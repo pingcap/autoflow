@@ -18,6 +18,9 @@ async def add_semantic_cache(
     user: CurrentSuperuserDep,
     question: str,
     answer: str,
+    chat_id: str,
+    user_message_id: int,
+    assistant_message_id: int,
     namespace: str = "default",
     chat_engine: str = "default",
     metadata: Optional[dict] = Body(None),
@@ -28,6 +31,16 @@ async def add_semantic_cache(
     scm = SemanticCacheManager(
         dspy_llm=_dspy_lm,
     )
+
+    # fill the chat related information into metadata
+    if metadata is None:
+        metadata = {}
+
+    metadata["chat_detail"] = {
+        "chat_id": chat_id,
+        "user_message_id": user_message_id,
+        "assistant_message_id": assistant_message_id,
+    }
 
     try:
         scm.add_cache(

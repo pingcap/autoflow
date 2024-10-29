@@ -47,6 +47,7 @@ from app.rag.knowledge_graph.graph_store import (
     tidb_graph_editor as editor,
 )
 from app.rag.knowledge_graph import KnowledgeGraphIndex
+from app.rag.semantic_cache import SemanticCacheManager
 from app.rag.chat_config import ChatEngineConfig, get_default_embedding_model
 from app.rag.types import (
     MyCBEventType,
@@ -209,6 +210,83 @@ class ChatService:
         _llm = self.chat_engine_config.get_llama_llm(self.db_session)
         _fast_llm = self.chat_engine_config.get_fast_llama_llm(self.db_session)
         _fast_dspy_lm = self.chat_engine_config.get_fast_dspy_lm(self.db_session)
+
+        if settings.ENABLE_SEMANTIC_CACHE:
+            try:
+                _semantic_cache_manager = SemanticCacheManager(
+                    _fast_dspy_lm,
+                    _embed_model,
+                )
+                cached_response = _semantic_cache_manager.search(
+                    self.db_session,
+                    self.user_question,
+                )
+                if cached_response['match_type'] == 'exact_match' and len(cached_response['items']) == 1 and 'meta' in cached_response['items'][0]:
+                    # simple cache hit, return the cached response
+                    cached_chat = cached_response['items'][0]['meta'].get('chat_detail', None)
+                    if cached_chat and cached_chat.get('user_message_id', None) and cached_chat.get('assistant_message_id', None):
+                        # get the identical user message from the db
+                        cached_db_user_message = chat_repo.get_message(self.db_session, cached_chat.get('user_message_id', None))
+                        # get the identical assistant message from the db
+                        cached_db_assistant_message = chat_repo.get_message(self.db_session, cached_chat.get('assistant_message_id', None))
+
+                        yield ChatEvent(
+                            event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
+                            payload=ChatStreamMessagePayload(
+                                state=ChatMessageSate.TRACE,
+                                display="Searching from semantic sahce",
+                                context={"langfuse_url": cached_db_assistant_message.trace_url},
+                            ),
+                        )
+
+                        yield ChatEvent(
+                            event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
+                            payload=ChatStreamMessagePayload(
+                                state=ChatMessageSate.SOURCE_NODES,
+                                context=cached_db_assistant_message.sources,
+                            ),
+                        )
+
+                        response_text = ""
+                        for word in cached_db_assistant_message.content:
+                            response_text += word
+                            yield ChatEvent(
+                                event_type=ChatEventType.TEXT_PART,
+                                payload=word,
+                            )
+
+                        yield ChatEvent(
+                            event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
+                            payload=ChatStreamMessagePayload(
+                                state=ChatMessageSate.FINISHED,
+                            ),
+                        )
+
+                        db_assistant_message.sources = cached_db_assistant_message.sources
+                        db_assistant_message.graph_data = cached_db_assistant_message.graph_data
+                        db_assistant_message.content = cached_db_assistant_message.content
+                        db_assistant_message.post_verification_result_url = cached_db_assistant_message.post_verification_result_url
+                        db_assistant_message.updated_at = datetime.now(UTC)
+                        db_assistant_message.finished_at = datetime.now(UTC)
+                        self.db_session.add(db_assistant_message)
+                        db_user_message.graph_data = cached_db_user_message.graph_data
+                        db_user_message.updated_at = datetime.now(UTC)
+                        db_user_message.finished_at = datetime.now(UTC)
+                        self.db_session.add(db_user_message)
+                        self.db_session.commit()
+
+                        yield ChatEvent(
+                            event_type=ChatEventType.DATA_PART,
+                            payload=ChatStreamDataPayload(
+                                chat=self.db_chat_obj,
+                                user_message=db_user_message,
+                                assistant_message=db_assistant_message,
+                            ),
+                        )
+
+                        return
+            except Exception as e:
+                logger.error(f"Failed to search from semantic cache: {e}")
 
         def _get_llamaindex_callback_manager():
             # Why we don't use high-level decorator `observe()` as \

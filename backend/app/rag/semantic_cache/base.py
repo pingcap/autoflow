@@ -145,7 +145,7 @@ class SemanticCacheManager:
                 SemanticCache,
                 SemanticCache.query_vec.cosine_distance(embedding).label("distance"),
             )
-            .having(SemanticCache.query_vec.cosine_distance(embedding) < 0.5)
+            .having(SemanticCache.query_vec.cosine_distance(embedding) < 0.8)
             .order_by("distance")
             .limit(20)
         )

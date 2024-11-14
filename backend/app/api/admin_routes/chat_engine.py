@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi_pagination import Params, Page
 
 from app.api.deps import SessionDep, CurrentSuperuserDep
+from app.rag.chat_config import ChatEngineConfig
 from app.repositories import chat_engine_repo
 from app.models import ChatEngine, ChatEngineUpdate
 
@@ -64,3 +65,10 @@ def delete_chat_engine(
             detail="Cannot delete the default chat engine",
         )
     return chat_engine_repo.delete(session, chat_engine)
+
+
+@router.get("/admin/chat-engines-default-config")
+def get_default_config(
+    session: SessionDep, user: CurrentSuperuserDep
+) -> ChatEngineConfig:
+    return ChatEngineConfig()

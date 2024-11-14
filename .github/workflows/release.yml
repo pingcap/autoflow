@@ -206,7 +206,7 @@ jobs:
       name: "Deploy E2E Test Results"
       runs-on: ubuntu-latest
       needs: e2e-test
-      if: "!(contains(needs.*.result, 'skipped')) && !cancelled()"
+      if: "!contains(needs.e2e-test.result, 'skipped') && !cancelled()"
       defaults:
         run:
           working-directory: e2e

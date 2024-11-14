@@ -1,5 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import { loginViaApi } from '../utils/login';
+import { submitAndWaitSavedByLabel } from '../utils/settings';
 
 test.describe('Site Sittings', () => {
   test('Basic Settings', async ({ page, browser, baseURL }) => {
@@ -15,13 +16,13 @@ test.describe('Site Sittings', () => {
 
     await test.step('Title and Description', async () => {
       await page.getByLabel('Title', { exact: true }).fill('FooBar.AI');
-      await submitAndWaitSavedByLabel('Title');
+      await submitAndWaitSavedByLabel(page, 'Title');
 
       await page.getByLabel('Description', { exact: true }).fill('FooBar AI Description');
-      await submitAndWaitSavedByLabel('Description');
+      await submitAndWaitSavedByLabel(page, 'Description');
 
       await page.getByLabel('Homepage Title', { exact: true }).fill('Ask anything about FooBar');
-      await submitAndWaitSavedByLabel('Homepage Title');
+      await submitAndWaitSavedByLabel(page, 'Homepage Title');
 
       await page.reload();
 
@@ -32,15 +33,6 @@ test.describe('Site Sittings', () => {
       await expect(homePage.locator('h1 + p')).toHaveText('FooBar AI Description');
       await expect(homePage.locator('meta[name=description]')).toHaveAttribute('content', 'FooBar AI Description');
     });
-
-    async function submitAndWaitSavedByLabel (label: string) {
-      const button = page.getByText(label, { exact: true }).locator('..').locator('..').getByRole('button', { name: 'Save', exact: true });
-
-      // Click the save button in the field form
-      await button.click();
-
-      // Wait the save button to be vanished. (Saved)
-      await button.waitFor({ state: 'hidden' });
-    }
   });
 });
+

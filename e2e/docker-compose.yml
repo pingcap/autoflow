@@ -72,3 +72,36 @@ services:
       - "4001:80"
     volumes:
       - ./test-html:/public
+
+  postgres:
+    image: postgres:17
+    restart: always
+    shm_size: 128mb
+    environment:
+      POSTGRES_PASSWORD: password
+
+  langfuse:
+    image: langfuse/langfuse:latest
+    restart: always
+    depends_on:
+      - postgres
+    ports:
+      - "5001:3000"
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: password
+      DATABASE_NAME: postgres
+      NEXTAUTH_URL: http://localhost:5001
+      NEXTAUTH_SECRET: mysecret
+      SALT: mysalt
+      ENCRYPTION_KEY: 29da5e11c513945cabadefd32a3802f6c432e2ff2fa8bfae168ca8e4c7fb55d3
+      LANGFUSE_INIT_USER_EMAIL: langfuse@tidb.ai
+      LANGFUSE_INIT_USER_NAME: TiDB.AI
+      LANGFUSE_INIT_USER_PASSWORD: password
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: lf_pk_1234567890
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: lf_sk_1234567890
+      LANGFUSE_INIT_PROJECT_NAME: tidb.ai
+      LANGFUSE_INIT_PROJECT_ID: tidb-ai
+      LANGFUSE_INIT_ORG_NAME: PingCAP
+      LANGFUSE_INIT_ORG_ID: pingcap

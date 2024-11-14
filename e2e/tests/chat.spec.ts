@@ -3,7 +3,7 @@ import { getChatRequestPromise, QUESTION, testNewChat } from '../utils/chat';
 import { loginViaApi } from '../utils/login';
 
 test.describe.serial('Chat', () => {
-  test('From Home Page', async ({ page, baseURL }) => {
+  test('From Home Page', async ({ browser, page, baseURL }) => {
     await test.step('Visit home page', async () => {
       await page.goto('/');
     });
@@ -20,10 +20,10 @@ test.describe.serial('Chat', () => {
       return await chatRequestPromise;
     });
 
-    await testNewChat(page, chatRequest, true, true);
+    await testNewChat(browser, page, chatRequest, true, true);
   });
 
-  test('From Keyboard Shortcut', async ({ page, baseURL }) => {
+  test('From Keyboard Shortcut', async ({ browser, page, baseURL }) => {
     await test.step('Visit home page', async () => {
       await page.goto('/');
     });
@@ -38,7 +38,7 @@ test.describe.serial('Chat', () => {
       return await chatRequestPromise;
     });
 
-    await testNewChat(page, chatRequest, true, false);
+    await testNewChat(browser, page, chatRequest, true, false);
   });
 
   test('Admin Feedback Page', async ({ page }) => {

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { submitAndWaitSavedByLabel } from '../utils/settings';
 
 test.use({
   trace: !!process.env.CI ? 'off' : 'on',
@@ -112,6 +113,27 @@ test('Bootstrap', async ({ page }) => {
       } catch (e) {
         throw new Error(await page.getByText('Failed to').locator('..').textContent({ timeout: 1000 }));
       }
+    }
+  });
+
+  // Setup langfuse
+  await test.step(`Setup langfuse`, async () => {
+    const header = page.getByText('Setup Langfuse');
+    if (await header.locator('.lucide-circle-alert').count() === 0) {
+      // Already configured.
+      console.warn('Langfuse already configured.');
+    } else {
+      await header.click();
+
+      // Fill Info
+      await page.getByLabel('Langfuse Public Key', { exact: true }).fill('lf_pk_1234567890');
+      await submitAndWaitSavedByLabel(page, 'Langfuse Public Key');
+
+      await page.getByLabel('Langfuse Secret Key', { exact: true }).fill('lf_sk_1234567890');
+      await submitAndWaitSavedByLabel(page, 'Langfuse Secret Key');
+
+      await page.getByLabel('Langfuse Host', { exact: true }).fill('http://localhost:5001');
+      await submitAndWaitSavedByLabel(page, 'Langfuse Host');
     }
   });
 

@@ -54,7 +54,7 @@ cat bootstrap.stdout | grep IMPORTANT | sed 's/^.*email: \(.*\) and password: \(
 cat .credentials
 
 echo -e "$TAG Start components"
-docker compose up -d redis frontend backend background static-web-server
+docker compose up -d redis frontend backend background static-web-server postgres langfuse
 
 echo -e "$TAG Wait until tidb.ai ready..."
 while ! curl http://127.0.0.1:3000 > /dev/null 2>/dev/null

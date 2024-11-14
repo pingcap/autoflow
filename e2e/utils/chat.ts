@@ -1,4 +1,4 @@
-import { expect, type Page, type Request, test } from '@playwright/test';
+import { type Browser, expect, type Page, type Request, test } from '@playwright/test';
 
 export const QUESTION = 'What is the content of sample.pdf?';
 
@@ -6,7 +6,7 @@ export function getChatRequestPromise (page: Page, baseURL: string) {
   return page.waitForRequest(request => request.url() === `${baseURL}/api/v1/chats` && request.method() === 'POST');
 }
 
-export async function testNewChat (page: Page, chatRequest: Request, validatePageUrlAndTitle: boolean, feedbackLike?: boolean) {
+export async function testNewChat (browser: Browser, page: Page, chatRequest: Request, validatePageUrlAndTitle: boolean, feedbackLike?: boolean, testLangfuse: boolean = true) {
   await test.step('Wait page changes', async () => {
     if (validatePageUrlAndTitle) {
       await page.waitForURL(/\/c\/.+/);
@@ -46,6 +46,27 @@ export async function testNewChat (page: Page, chatRequest: Request, validatePag
       await page.getByText('Add feedback', { exact: true }).click();
 
       await dialog.waitFor({ state: 'hidden' });
+    });
+  }
+
+  if (testLangfuse) {
+    await test.step('Validate langfuse URL', async () => {
+      const debugInfoButton = await page.waitForSelector('button > svg.lucide-info');
+      await debugInfoButton.click();
+
+      const link = page.getByText('Langfuse Tracing');
+      const href = await link.getAttribute('href');
+      const langfusePage = await browser.newPage();
+      await langfusePage.goto(href);
+      await langfusePage.bringToFront();
+
+      await langfusePage.getByLabel('Email').fill('langfuse@tidb.ai');
+      await langfusePage.getByLabel('Password').fill('password');
+      await langfusePage.getByTestId('submit-email-password-sign-in-form').click();
+
+      await langfusePage.getByText('loading...').waitFor({ state: 'hidden' });
+
+      await langfusePage.close();
     });
   }
 }

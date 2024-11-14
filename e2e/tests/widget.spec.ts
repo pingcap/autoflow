@@ -1,13 +1,13 @@
-import { expect, type Locator, type Page, test } from '@playwright/test';
+import { type Browser, expect, type Locator, type Page, test } from '@playwright/test';
 import { getChatRequestPromise, QUESTION, testNewChat } from '../utils/chat';
 
-test('JS Widget', async ({ page }) => {
+test('JS Widget', async ({ browser, page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Ask AI' }).waitFor({ state: 'visible' });
   expect(await page.evaluate('tidbai')).toMatchObject({ open: false });
 });
 
-test('Embedded JS Widget with trigger button', async ({ page }) => {
+test('Embedded JS Widget with trigger button', async ({ browser, page }) => {
   const trigger = await test.step('Wait trigger visible and tidbai object ready', async () => {
     await page.goto('http://localhost:4001/widget.html');
     const trigger = page.getByRole('button', { name: 'Ask AI' });
@@ -25,11 +25,11 @@ test('Embedded JS Widget with trigger button', async ({ page }) => {
     return dialog;
   });
 
-  await testWidgetChat(page, dialog);
+  await testWidgetChat(browser, page, dialog);
 });
 
 // Used by docs.pingcap.com
-test('Embedded JS Widget controlled by js', async ({ page }) => {
+test('Embedded JS Widget controlled by js', async ({ browser, page }) => {
   await test.step('Wait trigger visible and tidbai object ready', async () => {
     await page.goto('http://localhost:4001/widget-controlled.html');
     const trigger = page.getByRole('button', { name: 'Ask AI' });
@@ -46,10 +46,10 @@ test('Embedded JS Widget controlled by js', async ({ page }) => {
     return dialog;
   });
 
-  await testWidgetChat(page, dialog);
+  await testWidgetChat(browser, page, dialog);
 });
 
-async function testWidgetChat (page: Page, dialog: Locator) {
+async function testWidgetChat (browser: Browser, page: Page, dialog: Locator) {
   await test.step('Fill in question', async () => {
     const input = dialog.getByPlaceholder('Input your question here...');
     await input.focus();
@@ -63,5 +63,5 @@ async function testWidgetChat (page: Page, dialog: Locator) {
     return chatRequestPromise;
   });
 
-  await testNewChat(page, chatRequestPromise, false);
+  await testNewChat(browser, page, chatRequestPromise, false, false);
 }

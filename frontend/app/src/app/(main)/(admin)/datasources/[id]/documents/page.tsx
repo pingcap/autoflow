@@ -1,5 +1,6 @@
 import { getDatasource } from '@/api/datasources';
 import { AdminPageHeading } from '@/components/admin-page-heading';
+import { DatasourceDeprecationAlert } from '@/components/datasource/DatasourceDeprecationAlert';
 import { DocumentsTable } from '@/components/documents/documents-table';
 import { isServerError } from '@/lib/request';
 import { notFound } from 'next/navigation';
@@ -17,7 +18,8 @@ export default async function ChatEnginesPage ({ params }: { params: { id: strin
           { title: 'Documents' },
         ]}
       />
-      <DocumentsTable datasourceId={datasource.id} />
+      <DatasourceDeprecationAlert />
+      <DocumentsTable knowledgeBaseId={datasource.id} />
     </>
   );
 }

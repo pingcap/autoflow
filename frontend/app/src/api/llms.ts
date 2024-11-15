@@ -3,13 +3,16 @@ import { authenticationHeaders, handleErrors, handleResponse, type Page, type Pa
 import { zodJsonDate } from '@/lib/zod';
 import { z, type ZodType, type ZodTypeDef } from 'zod';
 
-export interface LLM {
+export interface LLMSummary {
   id: number;
   name: string;
   provider: string;
   model: string;
-  config?: any;
   is_default: boolean;
+}
+
+export interface LLM extends LLMSummary {
+  config?: any;
   created_at: Date | null;
   updated_at: Date | null;
 }
@@ -28,13 +31,16 @@ export interface CreateLLM {
   credentials: string | object;
 }
 
-const llmSchema = z.object({
+export const llmSummarySchema = z.object({
   id: z.number(),
   name: z.string(),
   provider: z.string(),
   model: z.string(),
-  config: z.any(),
   is_default: z.boolean(),
+}) satisfies ZodType<LLMSummary, ZodTypeDef, any>;
+
+const llmSchema = llmSummarySchema.extend({
+  config: z.any(),
   created_at: zodJsonDate().nullable(),
   updated_at: zodJsonDate().nullable(),
 }) satisfies ZodType<LLM, ZodTypeDef, any>;

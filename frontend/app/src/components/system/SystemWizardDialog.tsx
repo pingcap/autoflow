@@ -6,7 +6,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { CreateDatasourceForm } from '@/components/datasource/CreateDatasourceForm';
 import { DatasourceTypeTabs } from '@/components/datasource/DatasourceTypeTabs';
 import type { DatasourceType } from '@/components/datasource/types';
-import { CreateEmbeddingModelForm } from '@/components/embedding-model/CreateEmbeddingModelForm';
+import { CreateEmbeddingModelForm } from '@/components/embedding-models/CreateEmbeddingModelForm';
 import { CreateLLMForm } from '@/components/llm/CreateLLMForm';
 import { useRefresh } from '@/components/nextjs/app-router-hooks';
 import { NextLink } from '@/components/nextjs/NextLink';

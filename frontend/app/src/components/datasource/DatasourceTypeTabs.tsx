@@ -1,13 +1,15 @@
 import { type DatasourceType, isDatasourceType } from '@/components/datasource/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { ReactNode } from 'react';
 
 export interface DatasourceTypeTabsProps {
   className?: string;
   type?: DatasourceType;
   onTypeChange?: (value: DatasourceType) => void;
+  children?: ReactNode;
 }
 
-export function DatasourceTypeTabs ({ className, type, onTypeChange }: DatasourceTypeTabsProps) {
+export function DatasourceTypeTabs ({ className, type, onTypeChange, children }: DatasourceTypeTabsProps) {
   return (
     <Tabs className={className} value={type} onValueChange={value => {
       isDatasourceType(value) && onTypeChange?.(value);
@@ -23,6 +25,7 @@ export function DatasourceTypeTabs ({ className, type, onTypeChange }: Datasourc
           Web Sitemap
         </TabsTrigger>
       </TabsList>
+      {children}
     </Tabs>
   );
 }

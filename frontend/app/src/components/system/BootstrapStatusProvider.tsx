@@ -5,6 +5,7 @@ import { createContext, type ReactNode, useContext } from 'react';
 
 const BootstrapStatusContext = createContext<BootstrapStatus>({
   required: {
+    knowledge_base: false,
     datasource: false,
     default_embedding_model: false,
     default_llm: false,

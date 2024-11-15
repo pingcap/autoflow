@@ -5,7 +5,7 @@ import logging
 import dspy
 
 from uuid import UUID
-from typing import List, Generator, Optional, Tuple, Type, Callable
+from typing import List, Generator, Optional, Tuple, Callable
 from datetime import datetime, UTC
 from urllib.parse import urljoin
 
@@ -14,7 +14,7 @@ import jinja2
 from llama_index.core.base.embeddings.base import BaseEmbedding
 from llama_index.core.llms import LLM
 from pydantic import BaseModel
-from sqlmodel import Session, select, func
+from sqlmodel import Session, select, func, SQLModel
 from llama_index.core import VectorStoreIndex
 from llama_index.core.base.llms.base import ChatMessage
 from llama_index.core.prompts.base import PromptTemplate
@@ -27,23 +27,29 @@ from langfuse.llama_index import LlamaIndexCallbackHandler
 
 from app.models import (
     User,
-    Document,
-    Chunk,
+    Document as DBDocument,
     ChatVisibility,
     Chat as DBChat,
     ChatMessage as DBChatMessage,
     LLM as DBLLM,
     EmbeddingModel as DBEmbeddingModel,
     DataSource as DBDataSource,
+    KnowledgeBase as DBKnowledgeBase,
     RerankerModel as DBRerankerModel,
+    Chunk as DBChunk,
+    Entity as DBEntity,
+    Relationship as DBRelationship,
 )
 from app.core.config import settings
+from app.models.chunk import get_kb_chunk_model
+from app.models.entity import get_kb_entity_model
 from app.models.recommend_question import RecommendQuestion
 from app.rag.chat_stream_protocol import (
     ChatStreamMessagePayload,
     ChatStreamDataPayload,
     ChatEvent,
 )
+from app.models.relationship import get_kb_relationship_model
 from app.rag.vector_store.tidb_vector_store import TiDBVectorStore
 from app.rag.knowledge_graph.graph_store import (
     TiDBGraphStore,
@@ -57,7 +63,7 @@ from app.rag.types import (
     ChatEventType,
     MessageRole,
 )
-from app.repositories import chat_repo
+from app.repositories import chat_repo, knowledge_base_repo
 from app.site_settings import SiteSetting
 from app.exceptions import ChatNotFound
 
@@ -65,6 +71,10 @@ logger = logging.getLogger(__name__)
 
 
 class ChatService:
+    _chunk_db_model: SQLModel = DBChunk
+    _entity_db_model: SQLModel = DBEntity
+    _relationship_db_model: SQLModel = DBRelationship
+
     def __init__(
             self,
             *,
@@ -150,8 +160,16 @@ class ChatService:
         self.langfuse_secret_key = SiteSetting.langfuse_secret_key
         self.langfuse_public_key = SiteSetting.langfuse_public_key
         self.enable_langfuse = (
-                self.langfuse_host and self.langfuse_secret_key and self.langfuse_public_key
+            self.langfuse_host and self.langfuse_secret_key and self.langfuse_public_key
         )
+
+        if self.chat_engine_config.knowledge_base:
+            # TODO: Support multiple knowledge base retrieve.
+            linked_knowledge_base = self.chat_engine_config.knowledge_base.linked_knowledge_base
+            kb = knowledge_base_repo.must_get(db_session, linked_knowledge_base.id)
+            self._chunk_db_model = get_kb_chunk_model(kb)
+            self._entity_db_model = get_kb_entity_model(kb)
+            self._relationship_db_model = get_kb_relationship_model(kb)
 
     def chat(self) -> Generator[ChatEvent | str, None, None]:
         try:
@@ -204,6 +222,8 @@ class ChatService:
                 dspy_lm=fast_dspy_lm,
                 session=self.db_session,
                 embed_model=embed_model,
+                entity_db_model=self._entity_db_model,
+                relationship_db_model=self._relationship_db_model,
             )
             graph_index: KnowledgeGraphIndex = KnowledgeGraphIndex.from_existing(
                 dspy_lm=fast_dspy_lm,
@@ -482,7 +502,7 @@ class ChatService:
             graph_knowledges=graph_knowledges_context,
             original_question=self.user_question,
         )
-        vector_store = TiDBVectorStore(session=self.db_session)
+        vector_store = TiDBVectorStore(session=self.db_session, chunk_db_model=self._chunk_db_model)
         vector_index = VectorStoreIndex.from_vector_store(
             vector_store,
             embed_model=embed_model,
@@ -857,14 +877,14 @@ class ChatService:
         source_nodes_ids = [s_n.node_id for s_n in response.source_nodes]
         stmt = (
             select(
-                Chunk.id,
-                Document.id,
-                Document.name,
-                Document.source_uri,
+                self._chunk_db_model.id,
+                DBDocument.id,
+                DBDocument.name,
+                DBDocument.source_uri,
             )
-            .outerjoin(Document, Chunk.document_id == Document.id)
+            .outerjoin(DBDocument, self._chunk_db_model.document_id == DBDocument.id)
             .where(
-                Chunk.id.in_(source_nodes_ids),
+                self._chunk_db_model.id.in_(source_nodes_ids),
             )
         )
         source_chunks = self.db_session.exec(stmt).all()
@@ -1008,7 +1028,10 @@ def get_graph_data_from_langfuse(trace_url: str):
 
 
 def get_chat_message_subgraph(
-        session: Session, chat_message: DBChatMessage
+    session: Session,
+    chat_message: DBChatMessage,
+    entity_db_model: SQLModel = DBEntity,
+    relationship_db_model: SQLModel = DBRelationship
 ) -> Tuple[List, List]:
     if chat_message.role != MessageRole.USER:
         return [], []
@@ -1066,6 +1089,8 @@ def get_chat_message_subgraph(
         dspy_lm=chat_engine_config.get_fast_dspy_lm(session),
         session=session,
         embed_model=get_default_embedding_model(session),
+        entity_db_model=entity_db_model,
+        relationship_db_model=relationship_db_model,
     )
     entities, relations, _ = graph_store.retrieve_with_weight(
         chat_message.content,
@@ -1078,18 +1103,23 @@ def get_chat_message_subgraph(
     return entities, relations
 
 
-def check_rag_required_config(session: Session) -> tuple[bool]:
+def check_rag_required_config(session: Session) -> tuple[bool, bool, bool, bool]:
     # Check if llm, embedding model, and datasource are configured
     # If any of them is missing, the rag can not work
     has_default_llm = session.scalar(select(func.count(DBLLM.id))) > 0
-    has_default_embedding_model = (
-            session.scalar(select(func.count(DBEmbeddingModel.id))) > 0
-    )
+    has_default_embedding_model = (session.scalar(select(func.count(DBEmbeddingModel.id))) > 0)
     has_datasource = session.scalar(select(func.count(DBDataSource.id))) > 0
-    return has_default_llm, has_default_embedding_model, has_datasource
+
+    try:
+        has_knowledge_base = session.scalar(select(func.count(DBKnowledgeBase.id))) > 0
+    except Exception as e:
+        has_knowledge_base = False
+        logger.exception(e)
+
+    return has_default_llm, has_default_embedding_model, has_datasource, has_knowledge_base
 
 
-def check_rag_optional_config(session: Session) -> tuple[bool]:
+def check_rag_optional_config(session: Session) -> tuple[bool, bool]:
     langfuse = bool(
         SiteSetting.langfuse_host
         and SiteSetting.langfuse_secret_key

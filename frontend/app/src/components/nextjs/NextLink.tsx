@@ -1,3 +1,5 @@
+'use client';
+
 import { type ButtonProps, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link, { type LinkProps } from 'next/link';
@@ -32,9 +34,9 @@ export const NextLink = forwardRef<HTMLAnchorElement, NextLinkProps>(({ classNam
 
     startTransition(() => {
       if (replace) {
-        router.push(href, { scroll });
-      } else {
         router.replace(href, { scroll });
+      } else {
+        router.push(href, { scroll });
       }
     });
   };

@@ -54,6 +54,7 @@ class FileDataSource(BaseDataSource):
                 hash=hash(content),
                 content=content,
                 mime_type=mime_type,
+                knowledge_base_id=self.knowledge_base_id,
                 data_source_id=self.data_source_id,
                 user_id=self.user_id,
                 source_uri=upload.path,

@@ -9,7 +9,6 @@ from app.core.db import engine
 from app.models import (
     Document as DBDocument,
     Chunk as DBChunk,
-    LLM as DBLLM,
     DataSource,
     DocIndexTaskStatus,
     KgIndexStatus,

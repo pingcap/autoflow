@@ -7,6 +7,8 @@ from tidb_vector.sqlalchemy import VectorType
 
 from app.core.config import settings
 from app.models import *  # noqa
+from app.models.knowledge_base_scoped.table_naming import KB_CHUNKS_TABLE_PATTERN, KB_ENTITIES_TABLE_PATTERN, \
+    KB_RELATIONSHIPS_TABLE_PATTERN
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -29,6 +31,17 @@ def get_url():
     return str(settings.SQLALCHEMY_DATABASE_URI)
 
 
+def include_name(name, type_, parent_names):
+    if type_ == "table":
+        return (
+            not bool(KB_CHUNKS_TABLE_PATTERN.match(name))
+            and not bool(KB_ENTITIES_TABLE_PATTERN.match(name))
+            and not bool(KB_RELATIONSHIPS_TABLE_PATTERN.match(name))
+        )
+    else:
+        return True
+
+
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
 
@@ -43,7 +56,11 @@ def run_migrations_offline():
     """
     url = get_url()
     context.configure(
-        url=url, target_metadata=target_metadata, literal_binds=True, compare_type=True
+        url=url,
+        target_metadata=target_metadata,
+        include_name=include_name,
+        literal_binds=True,
+        compare_type=True
     )
 
     with context.begin_transaction():
@@ -68,7 +85,10 @@ def run_migrations_online():
     with connectable.connect() as connection:
         connection.dialect.ischema_names["vector"] = VectorType
         context.configure(
-            connection=connection, target_metadata=target_metadata, compare_type=True
+            connection=connection,
+            target_metadata=target_metadata,
+            include_name=include_name,
+            compare_type=True
         )
 
         with context.begin_transaction():

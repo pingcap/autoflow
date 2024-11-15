@@ -1,11 +1,10 @@
 # flake8: noqa
-from .knowledge_graph import (
+from .entity import (
     EntityType,
     Entity,
     EntityPublic,
-    Relationship,
-    RelationshipPublic,
 )
+from .relationship import Relationship, RelationshipPublic
 from .feedback import (
     Feedback,
     FeedbackType,
@@ -23,7 +22,8 @@ from .api_key import ApiKey, PublicApiKey
 from .site_setting import SiteSetting
 from .upload import Upload
 from .data_source import DataSource, DataSourceType
+from .knowledge_base import KnowledgeBase, KnowledgeBaseDataSource
 from .llm import LLM, AdminLLM
-from .embed_model import EmbeddingModel, AdminEmbeddingModel
+from .embed_model import EmbeddingModel
 from .reranker_model import RerankerModel, AdminRerankerModel
 from .recommend_question import RecommendQuestion

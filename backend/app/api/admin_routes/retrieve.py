@@ -8,7 +8,7 @@ from app.rag.retrieve import RetrieveService
 router = APIRouter()
 
 
-@router.get("/admin/retrieve/documents")
+@router.get("/admin/retrieve/documents", deprecated=True)
 async def retrieve_documents(
     session: SessionDep,
     user: CurrentSuperuserDep,
@@ -20,7 +20,7 @@ async def retrieve_documents(
     return retrieve_service.retrieve(question, top_k=top_k)
 
 
-@router.get("/admin/embedding_retrieve")
+@router.get("/admin/embedding_retrieve", deprecated=True)
 async def embedding_retrieve(
     session: SessionDep,
     user: CurrentSuperuserDep,

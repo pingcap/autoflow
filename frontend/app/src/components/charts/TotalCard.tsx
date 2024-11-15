@@ -5,7 +5,15 @@ import type { ReactNode } from 'react';
 
 const nf = new Intl.NumberFormat('en-US', {});
 
-export function TotalCard ({ title, icon, total, children }: { title: string, icon: ReactNode, total?: number | null | undefined, children?: ReactNode }) {
+export interface TotalCardProps {
+  isLoading: boolean;
+  title: string,
+  icon: ReactNode,
+  total?: number | null | undefined,
+  children?: ReactNode
+}
+
+export function TotalCard ({ isLoading = false, title, icon, total, children }: TotalCardProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -14,7 +22,7 @@ export function TotalCard ({ title, icon, total, children }: { title: string, ic
       </CardHeader>
       <CardContent>
         <div className={cn('text-2xl font-bold', total == null && 'h-8 pt-2')}>
-          {total == null ? <Skeleton className="w-12 h-4" /> : nf.format(total)}
+          {isLoading ? <Skeleton className="w-12 h-4" /> : nf.format(total || 0)}
         </div>
         <p className="text-xs text-muted-foreground mt-4">
           {children}

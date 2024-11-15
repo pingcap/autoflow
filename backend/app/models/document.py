@@ -12,6 +12,7 @@ from sqlmodel import (
     DateTime,
     JSON,
     String,
+    Relationship as SQLRelationship
 )
 
 from .base import UpdatableBaseModel
@@ -39,9 +40,28 @@ class Document(UpdatableBaseModel, table=True):
     meta: dict | list = Field(default={}, sa_column=Column(JSON))
     # the last time the document was modified in the source system
     last_modified_at: Optional[datetime] = Field(sa_column=Column(DateTime))
+    
+    # TODO: rename to vector_index_status, vector_index_result.
     index_status: DocIndexTaskStatus = DocIndexTaskStatus.NOT_STARTED
     index_result: str = Field(sa_column=Column(Text, nullable=True))
-    data_source_id: int = Field(nullable=True)
+
+    # TODO: add kg_index_status, kg_index_result column, unify the index status.
+
+    data_source_id: int = Field(foreign_key="data_sources.id", nullable=True)
+    data_source: "DataSource" = SQLRelationship(
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "primaryjoin": "Document.data_source_id == DataSource.id",
+        },
+    )
+
+    knowledge_base_id: int = Field(foreign_key="knowledge_bases.id", nullable=True)
+    knowledge_base: "KnowledgeBase" = SQLRelationship(
+        sa_relationship_kwargs={
+            "lazy": "joined",
+            "primaryjoin": "Document.knowledge_base_id == KnowledgeBase.id",
+        },
+    )
 
     __tablename__ = "documents"
 

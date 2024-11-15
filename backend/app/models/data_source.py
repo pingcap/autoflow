@@ -11,7 +11,9 @@ from sqlmodel import (
     Relationship as SQLRelationship,
 )
 
+from app.models.auth import User
 from app.models.base import UpdatableBaseModel
+from app.models.llm import LLM
 
 
 class DataSourceType(str, Enum):
@@ -26,7 +28,6 @@ class DataSource(UpdatableBaseModel, table=True):
     description: str = Field(max_length=512)
     data_source_type: str = Field(max_length=256)
     config: dict | list = Field(default={}, sa_column=Column(JSON))
-    build_kg_index: bool = Field(default=False)
     user_id: UUID = Field(foreign_key="users.id", nullable=True)
     user: "User" = SQLRelationship(
         sa_relationship_kwargs={
@@ -34,15 +35,18 @@ class DataSource(UpdatableBaseModel, table=True):
             "primaryjoin": "DataSource.user_id == User.id",
         },
     )
+    deleted_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime),
+    )
+
+    # Deprecated columns.
+    build_kg_index: bool = Field(default=False)
     llm_id: Optional[int] = Field(foreign_key="llms.id", nullable=True)
     llm: "LLM" = SQLRelationship(
         sa_relationship_kwargs={
             "foreign_keys": "DataSource.llm_id",
         },
-    )
-    deleted_at: Optional[datetime] = Field(
-        default=None,
-        sa_column=Column(DateTime),
     )
 
     __tablename__ = "data_sources"

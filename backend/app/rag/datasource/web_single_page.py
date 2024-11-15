@@ -24,4 +24,4 @@ class WebSinglePageDataSource(BaseDataSource):
         else:
             urls = self.config["urls"]
 
-        yield from load_web_documents(self.data_source_id, urls)
+        yield from load_web_documents(self.knowledge_base_id, self.data_source_id, urls)

@@ -1,4 +1,4 @@
-import { createDatasource, type Datasource } from '@/api/datasources';
+import { createDatasource, type DeprecatedDatasource } from '@/api/datasources';
 import { BasicCreateDatasourceFormLayout } from '@/components/datasource/BasicCreateDatasourceForm';
 import { createDatasourceBaseSchema } from '@/components/datasource/schema';
 import { FormInput } from '@/components/form/control-widget';
@@ -14,7 +14,7 @@ const schema = createDatasourceBaseSchema.extend({
 export interface CreateWebSinglePageDatasourceFormProps {
   excludesLLM?: boolean;
   transitioning?: boolean;
-  onCreated?: (datasource: Datasource) => void;
+  onCreated?: (datasource: DeprecatedDatasource) => void;
 }
 
 export default function CreateWebSinglePageDatasourceForm ({ excludesLLM, transitioning, onCreated }: CreateWebSinglePageDatasourceFormProps) {

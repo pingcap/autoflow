@@ -29,12 +29,12 @@ export function DocumentViewer ({ content, mime }: DocumentPreviewProps) {
 
 const nf = new Intl.NumberFormat('en-US');
 
-export function DocumentPreviewDialog ({ title, mime, content }: { title: string, mime: string, content: string }) {
+export function DocumentPreviewDialog ({ title, name, mime, content }: { title: string, name: string, mime: string, content: string }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className='text-xs' variant="ghost" size="sm">
-          Show content ({nf.format(content.length)} characters)
+        <Button className='text-xs p-2' variant="ghost" size="sm">
+          {name} ({nf.format(content.length)} characters)
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-[720px] w-full">

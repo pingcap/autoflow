@@ -3,6 +3,7 @@
 import { Ask } from '@/components/chat/ask';
 import { useAsk } from '@/components/chat/use-ask';
 import { withReCaptcha } from '@/components/security-setting-provider';
+import { SystemWizardBanner } from '@/components/system/SystemWizardBanner';
 import { Button } from '@/components/ui/button';
 import { useSettingContext } from '@/components/website-setting-provider';
 import NextLink from 'next/link';
@@ -14,7 +15,8 @@ export default function Page () {
   const { homepage_title, description, homepage_example_questions, homepage_footer_links } = useSettingContext();
 
   return (
-    <div className="h-screen">
+    <div className="h-screen relative">
+      <SystemWizardBanner />
       <div className="lg:h-[calc(100%-var(--ask-referral-height))] h-2/3 p-4 lg:p-0 flex flex-col items-center justify-center gap-4 relative">
         <h1 className="text-2xl sm:text-4xl font-light text-center">
           {homepage_title || ''}

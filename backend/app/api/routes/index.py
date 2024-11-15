@@ -24,6 +24,7 @@ class RequiredConfigStatus(BaseModel):
     default_llm: bool
     default_embedding_model: bool
     datasource: bool
+    knowledge_base: bool
 
 
 class OptionalConfigStatus(BaseModel):
@@ -38,7 +39,7 @@ class SystemConfigStatusResponse(BaseModel):
 
 @router.get("/system/bootstrap-status")
 def system_bootstrap_status(session: SessionDep) -> SystemConfigStatusResponse:
-    has_default_llm, has_default_embedding_model, has_datasource = (
+    has_default_llm, has_default_embedding_model, has_datasource, has_knowledge_base = (
         check_rag_required_config(session)
     )
     langfuse, default_reranker = check_rag_optional_config(session)
@@ -47,6 +48,7 @@ def system_bootstrap_status(session: SessionDep) -> SystemConfigStatusResponse:
             default_llm=has_default_llm,
             default_embedding_model=has_default_embedding_model,
             datasource=has_datasource,
+            knowledge_base=has_knowledge_base
         ),
         optional=OptionalConfigStatus(
             langfuse=langfuse,

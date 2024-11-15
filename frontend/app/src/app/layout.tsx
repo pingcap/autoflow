@@ -1,16 +1,16 @@
 import { getPublicSiteSettings } from '@/api/site-settings';
 import { getBootstrapStatus } from '@/api/system';
 import { RootProviders } from '@/app/RootProviders';
-import { SystemWizardDialog } from '@/components/system/SystemWizardDialog';
 import { experimentalFeatures } from '@/experimental/experimental-features';
 import { auth } from '@/lib/auth';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import './globals.css';
-import './chart-theme.css';
 import Script from 'next/script';
 import { cache, type ReactNode } from 'react';
+
+import './globals.css';
+import './chart-theme.css';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -51,7 +51,6 @@ export default async function RootLayout ({
     <body className={inter.className}>
     <RootProviders me={me} settings={settings} bootstrapStatus={bootstrapStatus} experimentalFeatures={_experimentalFeatures}>
       {children}
-      <SystemWizardDialog />
     </RootProviders>
     {settings.ga_id && <GoogleAnalytics gaId={settings.ga_id} />}
     <Script async src="/widget.js" data-is-main-site="true" />

@@ -1,4 +1,4 @@
-import { createDatasource, type Datasource, uploadFiles } from '@/api/datasources';
+import { createDatasource, type DeprecatedDatasource, uploadFiles } from '@/api/datasources';
 import { BasicCreateDatasourceFormLayout } from '@/components/datasource/BasicCreateDatasourceForm';
 import { createDatasourceBaseSchema } from '@/components/datasource/schema';
 import { FormFieldBasicLayout } from '@/components/form/field-layout';
@@ -14,7 +14,7 @@ const schema = createDatasourceBaseSchema.extend({
 export interface CreateFileDatasourceFormProps {
   excludesLLM?: boolean;
   transitioning?: boolean;
-  onCreated?: (datasource: Datasource) => void;
+  onCreated?: (datasource: DeprecatedDatasource) => void;
 }
 
 export default function CreateFileDatasourceForm ({ excludesLLM, transitioning, onCreated }: CreateFileDatasourceFormProps) {

@@ -7,7 +7,7 @@ from sqlmodel import (
     Column,
     JSON,
     DateTime,
-    Relationship as SQLRelationship,
+    Relationship as SQLRelationship, SQLModel,
 )
 
 from .base import UpdatableBaseModel

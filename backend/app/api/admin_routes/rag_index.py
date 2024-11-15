@@ -7,7 +7,7 @@ from app.models import Document, Chunk, Relationship, Entity
 router = APIRouter()
 
 
-@router.get("/admin/rag/index-progress")
+@router.get("/admin/rag/index-progress", deprecated=True)
 def status(session: SessionDep, user: CurrentSuperuserDep):
     statement = (
         select(Chunk.index_status, func.count(Chunk.id))

@@ -1,4 +1,3 @@
-import { authenticationHeaders, handleResponse, requestUrl } from '@/lib/request';
 import { z, type ZodType } from 'zod';
 
 export const indexStatuses = [
@@ -17,14 +16,7 @@ export type IndexTotalStats = {
   total: number
 }
 
-export interface RagIndexProgress {
-  kg_index: IndexProgress;
-  vector_index: IndexProgress;
-  documents: IndexTotalStats;
-  chunks: IndexTotalStats;
-  entities: IndexTotalStats;
-  relationships: IndexTotalStats;
-}
+export const indexStatusSchema = z.enum(indexStatuses) satisfies ZodType<IndexStatus>;
 
 export const totalSchema = z.object({
   total: z.number(),
@@ -37,19 +29,3 @@ export const indexSchema = z.object({
   completed: z.number().optional(),
   failed: z.number().optional(),
 }) satisfies ZodType<IndexProgress>;
-
-const ragIndexProgressSchema = z.object({
-  kg_index: indexSchema,
-  vector_index: indexSchema,
-  documents: totalSchema,
-  chunks: totalSchema,
-  entities: totalSchema,
-  relationships: totalSchema,
-}) satisfies ZodType<RagIndexProgress>;
-
-export async function getIndexProgress () {
-  return await fetch(requestUrl('/api/v1/admin/rag/index-progress'), {
-    headers: await authenticationHeaders(),
-  })
-    .then(handleResponse(ragIndexProgressSchema));
-}

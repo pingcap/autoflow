@@ -1,4 +1,5 @@
 import { AdminPageHeading } from '@/components/admin-page-heading';
+import { DatasourceDeprecationAlert } from '@/components/datasource/DatasourceDeprecationAlert';
 import { DatasourceDetails } from '@/components/datasource/DatasourceDetails';
 import { DatasourceName } from '@/components/datasource/DatasourceName';
 
@@ -13,6 +14,7 @@ export default function DatasourcePage ({ params }: { params: { id: string } }) 
           { title: <DatasourceName id={id} />, url: `/datasources/${id}` },
         ]}
       />
+      <DatasourceDeprecationAlert />
       <DatasourceDetails id={id} />
     </div>
   );

@@ -20,7 +20,7 @@ export const FilesInput = forwardRef<any, FilesInputProps>(({
   id,
   disabled,
   onBlur,
-  value: files,
+  value: files = [],
   onChange: onFilesChange,
   ...props
 }, ref) => {

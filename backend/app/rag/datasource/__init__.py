@@ -11,6 +11,7 @@ from .web_single_page import WebSinglePageDataSource
 
 def get_data_source_loader(
     session: Session,
+    knowledge_base_id: int,
     data_source_type: DataSourceType,
     data_source_id: int,
     user_id: UUID,
@@ -28,4 +29,4 @@ def get_data_source_loader(
         case _:
             raise ValueError("Data source type not supported")
 
-    return data_source_cls(session, data_source_id, user_id, config)
+    return data_source_cls(session, knowledge_base_id, data_source_id, user_id, config)

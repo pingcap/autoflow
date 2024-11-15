@@ -14,7 +14,7 @@ from app.models import (
     Relationship,
 )
 from app.repositories.base_repo import BaseRepo
-from app.schemas import VectorIndexError, KGIndexError
+from app.api.admin_routes.knowledge_base.models import VectorIndexError, KGIndexError
 
 
 class DataSourceRepo(BaseRepo):

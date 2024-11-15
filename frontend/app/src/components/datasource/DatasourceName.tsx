@@ -1,11 +1,12 @@
 'use client';
 
-import { useDatasource } from '@/components/datasource/hooks';
+import { getDatasource } from '@/api/datasources';
 import { cn } from '@/lib/utils';
 import { Loader2Icon } from 'lucide-react';
+import useSWR from 'swr';
 
 export function DatasourceName ({ id }: { id: number }) {
-  const { datasource, isLoading, isValidating } = useDatasource(id);
+  const { data: datasource, isLoading, isValidating } = useSWR(`api.datasources.${id}`, () => getDatasource(id));
 
   if (isLoading) {
     return <Loader2Icon className="size-4 animate-spin repeat-infinite" />;

@@ -1,11 +1,35 @@
+import { type EmbeddingModel, listEmbeddingModels } from '@/api/embedding-models';
 import { listLlms, type LLM } from '@/api/llms';
 import type { ProviderOption } from '@/api/providers';
 import { listRerankers, type Reranker } from '@/api/rerankers';
+import { EmbeddingModelInfo } from '@/components/embedding-models/EmbeddingModelInfo';
 import { FormSelect, type FormSelectConfig, type FormSelectProps } from '@/components/form/control-widget';
 import { LlmInfo } from '@/components/llm/LlmInfo';
 import { RerankerInfo } from '@/components/reranker/RerankerInfo';
 import { forwardRef } from 'react';
 import useSWR from 'swr';
+
+export const EmbeddingModelSelect = forwardRef<any, Omit<FormSelectProps, 'config'> & { reverse?: boolean }>(({ reverse = true, ...props }, ref) => {
+  // TODO
+  const { data: embeddingModels, isLoading, error } = useSWR('api.embedding-models.list-all', () => listEmbeddingModels({ size: 100 }));
+
+  return (
+    <FormSelect
+      {...props}
+      placeholder="Default Embedding Model"
+      config={{
+        options: embeddingModels?.items ?? [],
+        loading: isLoading,
+        error,
+        renderValue: option => (<span><EmbeddingModelInfo reverse={reverse} id={option.id} /></span>),
+        renderOption: option => (<span><EmbeddingModelInfo detailed reverse={reverse} id={option.id} /></span>),
+        key: 'id',
+      } satisfies FormSelectConfig<EmbeddingModel>}
+    />
+  );
+});
+
+EmbeddingModelSelect.displayName = 'EmbeddingModelSelect';
 
 export const LLMSelect = forwardRef<any, Omit<FormSelectProps, 'config'> & { reverse?: boolean }>(({ reverse = true, ...props }, ref) => {
   const { data: llms, isLoading, error } = useSWR('api.llms.list-all', () => listLlms({ size: 100 }));

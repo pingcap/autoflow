@@ -45,4 +45,4 @@ class WebSitemapDataSource(BaseDataSource):
         sitemap_url = self.config["url"]
         urls = extract_urls_from_sitemap(sitemap_url)
         logger.info(f"Found {len(urls)} URLs in sitemap {sitemap_url}")
-        yield from load_web_documents(self.data_source_id, urls)
+        yield from load_web_documents(self.knowledge_base_id, self.data_source_id, urls)

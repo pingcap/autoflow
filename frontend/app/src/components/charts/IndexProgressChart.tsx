@@ -103,6 +103,7 @@ export function IndexProgressChart ({ title, description, data }: { title: strin
                           y={(viewBox.cy || 0) + 24}
                           className="fill-muted-foreground"
                         >
+                          {/*  FIXME: vector index is group by documents */}
                           Total chunks
                         </tspan>
                       </text>

@@ -33,6 +33,7 @@ type Story = StoryObj<typeof meta>
 export const Default: Story = {
   args: {
     title: 'Title',
+    isLoading: false,
     icon: <GitHubIcon />,
     total: 42,
     children: 'Hahaha',

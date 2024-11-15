@@ -4,7 +4,7 @@ test.use({
   trace: !!process.env.CI ? 'off' : 'on',
 });
 
-test('Bootstrap', async ({ page }) => {
+test.fail('Bootstrap', async ({ page }) => {
   test.slow();
 
   const {

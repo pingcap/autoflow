@@ -4,6 +4,7 @@ import { z } from 'zod';
 export interface RequiredBootstrapStatus {
   default_llm: boolean;
   default_embedding_model: boolean;
+  knowledge_base: boolean;
   datasource: boolean;
 }
 
@@ -20,6 +21,7 @@ export interface BootstrapStatus {
 const requiredBootstrapStatusSchema = z.object({
   default_llm: z.boolean(),
   default_embedding_model: z.boolean(),
+  knowledge_base: z.boolean(),
   datasource: z.boolean(),
 });
 

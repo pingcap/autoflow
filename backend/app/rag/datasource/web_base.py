@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 def load_web_documents(
-    data_source_id: int, urls: list[str]
+    knowledge_base_id: int,
+    data_source_id: int,
+    urls: list[str]
 ) -> Generator[Document, None, None]:
     visited = set()
     with sync_playwright() as p:
@@ -44,6 +46,7 @@ def load_web_documents(
                 hash=hash(content),
                 content=content,
                 mime_type="text/plain",
+                knowledge_base_id=knowledge_base_id,
                 data_source_id=data_source_id,
                 source_uri=final_url,
                 last_modified_at=datetime.now(UTC),

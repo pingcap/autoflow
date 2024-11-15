@@ -1,36 +1,10 @@
-from typing import Optional
-
-from pydantic import Field, BaseModel
 from sqlmodel import select, Session, col
 from fastapi_pagination import Params, Page
 from fastapi_pagination.ext.sqlmodel import paginate
 
-from app.models import Document, DocIndexTaskStatus
+from app.api.admin_routes.document.models import DocumentFilters
+from app.models import Document
 from app.repositories.base_repo import BaseRepo
-
-from datetime import datetime
-
-from app.types import MimeTypes
-
-
-class DocumentFilters(BaseModel):
-    name: Optional[str] = Field(
-        None,
-        description="[Fuzzy Match] name field, will search for the name that contains the given string."
-    )
-    source_uri: Optional[str] = Field(
-        None,
-        description="[Fuzzy Match] source URI field, will search for the source URI that contains the given string."
-    )
-    data_source_id: Optional[int]  = Field(None)
-    created_at_start: Optional[datetime] = Field(None)
-    created_at_end: Optional[datetime] = None
-    updated_at_start: Optional[datetime] = None
-    updated_at_end: Optional[datetime] = None
-    last_modified_at_start: Optional[datetime] = None
-    last_modified_at_end: Optional[datetime] = None
-    mime_type: Optional[MimeTypes] = None
-    index_status: Optional[DocIndexTaskStatus] = None
 
 
 class DocumentRepo(BaseRepo):
@@ -44,6 +18,8 @@ class DocumentRepo(BaseRepo):
     ) -> Page[Document]:
         # build the select statement via conditions
         stmt = select(Document)
+        if filters.knowledge_base_id:
+            stmt = stmt.where(Document.knowledge_base_id == filters.knowledge_base_id)
         if filters.source_uri:
             stmt = stmt.where(col(Document.source_uri).contains(filters.source_uri))
         if filters.data_source_id:

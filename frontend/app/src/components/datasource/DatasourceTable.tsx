@@ -1,17 +1,15 @@
 'use client';
 
-import { type Datasource, deleteDatasource, listDataSources } from '@/api/datasources';
+import { deleteDatasource, type DeprecatedDatasource, listDataSources } from '@/api/datasources';
 import { actions } from '@/components/cells/actions';
 import { link } from '@/components/cells/link';
-import { DataTableHeading } from '@/components/data-table-heading';
 import { DataTableRemote } from '@/components/data-table-remote';
 import { LlmInfo } from '@/components/llm/LlmInfo';
-import { NextLink } from '@/components/nextjs/NextLink';
 import type { ColumnDef } from '@tanstack/react-table';
 import { createColumnHelper } from '@tanstack/table-core';
-import { PlusIcon, Trash2Icon } from 'lucide-react';
+import { Trash2Icon } from 'lucide-react';
 
-const helper = createColumnHelper<Datasource>();
+const helper = createColumnHelper<DeprecatedDatasource>();
 
 const columns = [
   helper.accessor('name', { cell: link({ url: datasource => `/datasources/${datasource.id}` }) }),
@@ -34,21 +32,11 @@ const columns = [
       },
     ]),
   }),
-] as ColumnDef<Datasource>[];
+] as ColumnDef<DeprecatedDatasource>[];
 
 export function DatasourceTable () {
   return (
     <DataTableRemote
-      before={(
-        <DataTableHeading>
-          <NextLink className="gap-2" href={`/datasources/create/file`}>
-            <PlusIcon className="size-4" />
-            <span>
-              Create
-            </span>
-          </NextLink>
-        </DataTableHeading>
-      )}
       columns={columns}
       apiKey="api.datasources.list"
       api={listDataSources}

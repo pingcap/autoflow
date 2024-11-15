@@ -8,12 +8,11 @@ from app.models import (
     Document,
     Chunk,
     Relationship,
-    Entity,
 )
 from app.rag.datasource import get_data_source_loader
 from app.repositories import data_source_repo
 from .rag_build import build_vector_index_from_document
-
+from ..models.knowledge_base import PHONY_KNOWLEDGE_BASE_ID
 
 logger = get_task_logger(__name__)
 
@@ -28,6 +27,7 @@ def import_documents_from_datasource(data_source_id: int):
 
         loader = get_data_source_loader(
             session,
+            PHONY_KNOWLEDGE_BASE_ID,
             data_source.data_source_type,
             data_source.id,
             data_source.user_id,

@@ -6,19 +6,31 @@ from llama_index.core.schema import NodeWithScore
 from sqlmodel import Session, select
 
 from app.models import (
-    Document,
-    Chunk,
+    Document as DBDocument,
+    Chunk as DBChunk,
+    Entity as DBEntity,
+    Relationship as DBRelationship,
 )
+from app.models.chunk import get_kb_chunk_model
+from app.models.entity import get_kb_entity_model
 from app.rag.chat import get_prompt_by_jinja2_template
 from app.rag.chat_config import ChatEngineConfig, get_default_embedding_model
+from app.models.relationship import get_kb_relationship_model
+from app.models.patch.sql_model import SQLModel
 from app.rag.knowledge_graph import KnowledgeGraphIndex
 from app.rag.knowledge_graph.graph_store import TiDBGraphStore
 from app.rag.vector_store.tidb_vector_store import TiDBVectorStore
+from app.repositories.knowledge_base import knowledge_base_repo
+
 
 logger = logging.getLogger(__name__)
 
 
 class RetrieveService:
+    _chunk_model: SQLModel = DBChunk
+    _entity_model:SQLModel = DBEntity
+    _relationship_model: SQLModel = DBRelationship
+
     def __init__(
         self,
         db_session: Session,
@@ -31,7 +43,15 @@ class RetrieveService:
         self.db_chat_engine = self.chat_engine_config.get_db_chat_engine()
         self._reranker = self.chat_engine_config.get_reranker(db_session)
 
-    def retrieve(self, question: str, top_k: int = 10) -> List[Document]:
+        if self.chat_engine_config.knowledge_base:
+            # TODO: Support multiple knowledge base retrieve.
+            linked_knowledge_base = self.chat_engine_config.knowledge_base.linked_knowledge_base
+            kb = knowledge_base_repo.must_get(db_session, linked_knowledge_base.id)
+            self._chunk_model = get_kb_chunk_model(kb)
+            self._entity_model = get_kb_entity_model(kb)
+            self._relationship_model = get_kb_relationship_model(kb)
+
+    def retrieve(self, question: str, top_k: int = 10) -> List[DBDocument]:
         """
         Retrieve the related documents based on the user question.
         Args:
@@ -47,7 +67,7 @@ class RetrieveService:
         except Exception as e:
             logger.exception(e)
 
-    def _retrieve(self, question: str, top_k: int) -> List[Document]:
+    def _retrieve(self, question: str, top_k: int) -> List[DBDocument]:
         _embed_model = get_default_embedding_model(self.db_session)
         _llm = self.chat_engine_config.get_llama_llm(self.db_session)
         _fast_llm = self.chat_engine_config.get_fast_llama_llm(self.db_session)
@@ -60,6 +80,8 @@ class RetrieveService:
                 dspy_lm=_fast_dspy_lm,
                 session=self.db_session,
                 embed_model=_embed_model,
+                entity_model=self._entity_model,
+                relationship_model=self._relationship_model,
             )
             graph_index: KnowledgeGraphIndex = KnowledgeGraphIndex.from_existing(
                 dspy_lm=_fast_dspy_lm,
@@ -116,7 +138,7 @@ class RetrieveService:
             self.chat_engine_config.llm.refine_prompt,
             graph_knowledges=graph_knowledges_context,
         )
-        vector_store = TiDBVectorStore(session=self.db_session)
+        vector_store = TiDBVectorStore(session=self.db_session, chunk_db_model=self._chunk_model)
         vector_index = VectorStoreIndex.from_vector_store(
             vector_store,
             embed_model=_embed_model,
@@ -135,13 +157,13 @@ class RetrieveService:
 
         return source_documents
 
-    def _embedding_retrieve(self, question: str, top_k: int) -> List[Document]:
+    def _embedding_retrieve(self, question: str, top_k: int) -> List[DBDocument]:
         _embed_model = get_default_embedding_model(self.db_session)
 
-        vector_store = TiDBVectorStore(session=self.db_session)
+        vector_store = TiDBVectorStore(session=self.db_session, chunk_db_model=self._chunk_model)
         vector_index = VectorStoreIndex.from_vector_store(
             vector_store,
-            embed_model=_embed_model,
+            embed_model=_embed_model
         )
 
         retrieve_engine = vector_index.as_retriever(
@@ -154,14 +176,14 @@ class RetrieveService:
 
         return source_documents
 
-    def _get_source_documents(self, node_list: List[NodeWithScore]) -> List[Document]:
+    def _get_source_documents(self, node_list: List[NodeWithScore]) -> List[DBDocument]:
         source_nodes_ids = [s_n.node_id for s_n in node_list]
-        stmt = select(Document).where(
-            Document.id.in_(
+        stmt = select(DBDocument).where(
+            DBDocument.id.in_(
                 select(
-                    Chunk.document_id,
+                    self._chunk_model.document_id,
                 ).where(
-                    Chunk.id.in_(source_nodes_ids),
+                    self._chunk_model.id.in_(source_nodes_ids),
                 )
             ),
         )

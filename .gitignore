@@ -10,3 +10,4 @@ local-embedding-reranker
 
 *.swp
 *.swo
+*.log

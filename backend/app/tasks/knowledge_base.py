@@ -55,10 +55,18 @@ def import_documents_from_kb_datasource(kb_id: int, data_source_id: int):
             )
 
             for document in loader.load_documents():
+                # When content of document is too long, truncate it when saving to database.
+                # We can use original content to build index later.
+                original_content = document.truncate_content(max_length=2*1024*1024)
+                if original_content is not None:
+                    logger.info(f"Truncate document #{document.id} from data source #{data_source_id}")
+                    truncated_content_length = document.get_content_length()
+                    logger.info(f"original content length: {len(original_content)}, truncated content length: {truncated_content_length}")
+
                 session.add(document)
                 session.commit()
 
-                build_index_for_document.delay(kb_id, document.id)
+                build_index_for_document.delay(kb_id, document.id, original_content)
 
         stats_for_knowledge_base.delay(kb_id)
         logger.info(f"Successfully imported documents for from datasource #{data_source_id}")

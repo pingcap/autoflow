@@ -71,3 +71,20 @@ class Document(UpdatableBaseModel, table=True):
             text=self.content,
             metadata=self.meta,
         )
+    def to_llama_with_new_content(self, new_content: str) -> LlamaDocument:
+        return LlamaDocument(
+            id_=str(self.id),
+            text=new_content,
+            metadata=self.meta,
+        )
+    def truncate_content(self, max_length: int) -> str:
+        # sometimes we don't need to store the full content in the database
+        content_length = len(self.content)
+        if content_length > max_length:
+            original_content = self.content
+            self.content = self.content[:max_length] + "..."
+            return original_content
+        return None
+
+    def get_content_length(self) -> int:
+        return len(self.content)

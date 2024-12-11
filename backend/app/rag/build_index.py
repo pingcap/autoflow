@@ -36,7 +36,7 @@ class IndexService:
         self._embed_model = embed_model
         self._knowledge_base = knowledge_base
 
-    def build_vector_index_for_document(self, session: Session, db_document: Type[DBDocument]):
+    def build_vector_index_for_document(self, session: Session, db_document: Type[DBDocument], original_content: str=None):
         """
         Build vector index and graph index from document.
 
@@ -67,7 +67,11 @@ class IndexService:
             transformations=_transformations
         )
 
-        document = db_document.to_llama_document()
+        # document = db_document.to_llama_document()
+        if (original_content is not None):
+            document = db_document.to_llama_with_new_content(original_content)
+        else:
+            document = db_document.to_llama_document()
         logger.info(f"Start building vector index for document #{document.doc_id}.")
         vector_index.insert(document, source_uri=db_document.source_uri)
         logger.info(f"Finish building vector index for document #{document.doc_id}.")

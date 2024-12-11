@@ -23,7 +23,7 @@ logger = get_task_logger(__name__)
 # TODO: refactor: divide into two tasks: build_vector_index_for_document and build_kg_index_for_document
 
 @celery_app.task(bind=True)
-def build_index_for_document(self, knowledge_base_id: int, document_id: int):
+def build_index_for_document(self, knowledge_base_id: int, document_id: int, original_content: str=None):
     # Pre-check before building index.
     with Session(engine, expire_on_commit=False) as session:
         kb = knowledge_base_repo.must_get(session, knowledge_base_id)
@@ -57,7 +57,7 @@ def build_index_for_document(self, knowledge_base_id: int, document_id: int):
     # Build vector index.
     try:
         with Session(engine) as index_session:
-            index_service.build_vector_index_for_document(index_session, db_document)
+            index_service.build_vector_index_for_document(index_session, db_document, original_content)
 
         with Session(engine) as session:
             db_document.index_status = DocIndexTaskStatus.COMPLETED

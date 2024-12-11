@@ -46,7 +46,9 @@ class RetrieveService:
 
         if self.chat_engine_config.knowledge_base:
             # TODO: Support multiple knowledge base retrieve.
-            linked_knowledge_base = self.chat_engine_config.knowledge_base.linked_knowledge_base
+            linked_knowledge_base = (
+                self.chat_engine_config.knowledge_base.linked_knowledge_base
+            )
             kb = knowledge_base_repo.must_get(db_session, linked_knowledge_base.id)
             self._chunk_model = get_kb_chunk_model(kb)
             self._entity_model = get_kb_entity_model(kb)
@@ -54,7 +56,6 @@ class RetrieveService:
             self._embed_model = get_kb_embed_model(self.db_session, kb)
         else:
             self._embed_model = get_default_embed_model(self.db_session)
-
 
     def retrieve(self, question: str, top_k: int = 10) -> List[DBDocument]:
         """
@@ -143,7 +144,9 @@ class RetrieveService:
             self.chat_engine_config.llm.refine_prompt,
             graph_knowledges=graph_knowledges_context,
         )
-        vector_store = TiDBVectorStore(session=self.db_session, chunk_db_model=self._chunk_model)
+        vector_store = TiDBVectorStore(
+            session=self.db_session, chunk_db_model=self._chunk_model
+        )
         vector_index = VectorStoreIndex.from_vector_store(
             vector_store,
             embed_model=self._embed_model,
@@ -163,10 +166,11 @@ class RetrieveService:
         return source_documents
 
     def _embedding_retrieve(self, question: str, top_k: int) -> List[NodeWithScore]:
-        vector_store = TiDBVectorStore(session=self.db_session, chunk_db_model=self._chunk_model)
+        vector_store = TiDBVectorStore(
+            session=self.db_session, chunk_db_model=self._chunk_model
+        )
         vector_index = VectorStoreIndex.from_vector_store(
-            vector_store,
-            embed_model=self._embed_model
+            vector_store, embed_model=self._embed_model
         )
 
         retrieve_engine = vector_index.as_retriever(

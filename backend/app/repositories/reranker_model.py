@@ -14,13 +14,13 @@ class RerankerModelRepo(BaseRepo):
     model_cls: RerankerModel
 
     def paginate(
-        self,
-        session: Session,
-        params: Params | None  = Params()
+        self, session: Session, params: Params | None = Params()
     ) -> Page[RerankerModel]:
         query = select(RerankerModel)
         # Make sure the default reranker model is always on top.
-        query = query.order_by(RerankerModel.is_default.desc(), RerankerModel.created_at.desc())
+        query = query.order_by(
+            RerankerModel.is_default.desc(), RerankerModel.created_at.desc()
+        )
         return paginate(session, query, params)
 
     def get(self, session: Session, reranker_model_id: int) -> Optional[RerankerModel]:
@@ -52,15 +52,10 @@ class RerankerModelRepo(BaseRepo):
         stmt = select(RerankerModel).with_for_update().limit(1)
         return session.exec(stmt).one_or_none() is not None
 
-
     # Default model
 
     def get_default(self, session: Session) -> Optional[RerankerModel]:
-        stmt = (
-            select(RerankerModel)
-                .where(RerankerModel.is_default == True)
-                .limit(1)
-        )
+        stmt = select(RerankerModel).where(RerankerModel.is_default == True).limit(1)
         return session.exec(stmt).first()
 
     def has_default(self, session: Session) -> bool:

@@ -27,3 +27,5 @@ from .llm import LLM, AdminLLM
 from .embed_model import EmbeddingModel
 from .reranker_model import RerankerModel, AdminRerankerModel
 from .recommend_question import RecommendQuestion
+from .evaluation_task import EvaluationTask, EvaluationTaskItem, EvaluationStatus
+from .evaluation_dataset import EvaluationDataset, EvaluationDatasetItem

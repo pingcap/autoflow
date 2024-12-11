@@ -40,12 +40,12 @@ class TiDBGraphEditor:
                 model=OpenAIEmbeddingModelType.TEXT_EMBED_3_SMALL
             )
 
-
     def get_entity(self, session: Session, entity_id: int) -> Optional[SQLModel]:
         return session.get(self._entity_db_model, entity_id)
 
-
-    def update_entity(self, session: Session, entity: SQLModel, new_entity: dict) -> SQLModel:
+    def update_entity(
+        self, session: Session, entity: SQLModel, new_entity: dict
+    ) -> SQLModel:
         old_entity_dict = entity.screenshot()
         for key, value in new_entity.items():
             if value is not None:
@@ -83,8 +83,9 @@ class TiDBGraphEditor:
         )
         return entity
 
-
-    def get_entity_subgraph(self, session: Session, entity: SQLModel) -> Tuple[list, list]:
+    def get_entity_subgraph(
+        self, session: Session, entity: SQLModel
+    ) -> Tuple[list, list]:
         """
         Get the subgraph of an entity, including all related relationships and entities.
         """
@@ -112,19 +113,21 @@ class TiDBGraphEditor:
 
         return relationships, entities
 
-
-    def get_relationship(self, session: Session, relationship_id: int) -> Optional[SQLModel]:
+    def get_relationship(
+        self, session: Session, relationship_id: int
+    ) -> Optional[SQLModel]:
         return session.get(self._relationship_db_model, relationship_id)
 
-
-    def get_relationship_by_ids(self, session: Session, ids: list[int]) -> Tuple[List[SQLModel], List[SQLModel]]:
+    def get_relationship_by_ids(
+        self, session: Session, ids: list[int]
+    ) -> Tuple[List[SQLModel], List[SQLModel]]:
         stmt = (
             select(self._relationship_db_model)
-                .where(self._relationship_db_model.id.in_(ids))
-                .options(
-                    joinedload(self._relationship_db_model.source_entity),
-                    joinedload(self._relationship_db_model.target_entity),
-                )
+            .where(self._relationship_db_model.id.in_(ids))
+            .options(
+                joinedload(self._relationship_db_model.source_entity),
+                joinedload(self._relationship_db_model.target_entity),
+            )
         )
         relationships_queryset = session.exec(stmt)
 
@@ -140,7 +143,6 @@ class TiDBGraphEditor:
             entities.append(entity)
 
         return entities, relationships
-
 
     def update_relationship(
         self, session: Session, relationship: SQLModel, new_relationship: dict
@@ -172,8 +174,9 @@ class TiDBGraphEditor:
         )
         return relationship
 
-
-    def search_similar_entities(self, session: Session, query: str, top_k: int = 10) -> list:
+    def search_similar_entities(
+        self, session: Session, query: str, top_k: int = 10
+    ) -> list:
         embedding = get_query_embedding(query, self._embed_model)
         return session.exec(
             select(self._entity_db_model)
@@ -181,7 +184,6 @@ class TiDBGraphEditor:
             .order_by(self._entity_db_model.description_vec.cosine_distance(embedding))
             .limit(top_k)
         ).all()
-
 
     def create_synopsis_entity(
         self,
@@ -213,10 +215,12 @@ class TiDBGraphEditor:
             session=session,
             embed_model=self._embed_model,
             entity_db_model=self._entity_db_model,
-            relationship_db_model=self._relationship_db_model
+            relationship_db_model=self._relationship_db_model,
         )
         for related_entity in session.exec(
-            select(self._entity_db_model).where(self._entity_db_model.id.in_(related_entities_ids))
+            select(self._entity_db_model).where(
+                self._entity_db_model.id.in_(related_entities_ids)
+            )
         ).all():
             graph_store.create_relationship(
                 synopsis_entity,

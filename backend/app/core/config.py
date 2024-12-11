@@ -104,6 +104,8 @@ class Settings(BaseSettings):
     EMBEDDING_DIMS: int = 1536
     EMBEDDING_MAX_TOKENS: int = 2048
 
+    EVALUATION_OPENAI_API_KEY: str | None = None
+
     @computed_field  # type: ignore[misc]
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> MySQLDsn:

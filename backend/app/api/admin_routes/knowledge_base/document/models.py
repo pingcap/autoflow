@@ -11,14 +11,14 @@ from app.types import MimeTypes
 class DocumentFilters(BaseModel):
     name: Optional[str] = Field(
         None,
-        description="[Fuzzy Match] name field, will search for the name that contains the given string."
+        description="[Fuzzy Match] name field, will search for the name that contains the given string.",
     )
     source_uri: Optional[str] = Field(
         None,
-        description="[Fuzzy Match] source URI field, will search for the source URI that contains the given string."
+        description="[Fuzzy Match] source URI field, will search for the source URI that contains the given string.",
     )
     knowledge_base_id: Optional[int] = Field(None)
-    data_source_id: Optional[int]  = Field(None)
+    data_source_id: Optional[int] = Field(None)
     created_at_start: Optional[datetime] = Field(None)
     created_at_end: Optional[datetime] = None
     updated_at_start: Optional[datetime] = None
@@ -35,9 +35,9 @@ class DocumentItem(BaseModel):
     name: str
     content: str
     mime_type: MimeTypes | None
-    source_uri: str  | None
+    source_uri: str | None
     meta: dict | list | None
-    index_status: DocIndexTaskStatus  | None
+    index_status: DocIndexTaskStatus | None
     index_result: str | None
     data_source: DataSourceDescriptor | None
     knowledge_base: KnowledgeBaseDescriptor | None

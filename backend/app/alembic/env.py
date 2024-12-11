@@ -7,8 +7,11 @@ from tidb_vector.sqlalchemy import VectorType
 
 from app.core.config import settings
 from app.models import *  # noqa
-from app.models.knowledge_base_scoped.table_naming import KB_CHUNKS_TABLE_PATTERN, KB_ENTITIES_TABLE_PATTERN, \
-    KB_RELATIONSHIPS_TABLE_PATTERN
+from app.models.knowledge_base_scoped.table_naming import (
+    KB_CHUNKS_TABLE_PATTERN,
+    KB_ENTITIES_TABLE_PATTERN,
+    KB_RELATIONSHIPS_TABLE_PATTERN,
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -60,7 +63,7 @@ def run_migrations_offline():
         target_metadata=target_metadata,
         include_name=include_name,
         literal_binds=True,
-        compare_type=True
+        compare_type=True,
     )
 
     with context.begin_transaction():
@@ -88,7 +91,7 @@ def run_migrations_online():
             connection=connection,
             target_metadata=target_metadata,
             include_name=include_name,
-            compare_type=True
+            compare_type=True,
         )
 
         with context.begin_transaction():

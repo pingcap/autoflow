@@ -92,8 +92,7 @@ def extract_text_from_xlsx(file: IO) -> str:
     for sheet in wb.worksheets:
         full_text.append(f"Sheet: {sheet.title}")
         sheet_string = "\n".join(
-            ",".join(map(str, row))
-            for row in sheet.iter_rows(values_only=True)
+            ",".join(map(str, row)) for row in sheet.iter_rows(values_only=True)
         )
         full_text.append(sheet_string)
     return "\n\n".join(full_text)

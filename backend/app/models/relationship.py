@@ -16,8 +16,11 @@ from app.models.knowledge_base import KnowledgeBase
 from app.models.entity import get_kb_entity_model, Entity
 from app.models.patch.sql_model import SQLModel as PatchSQLModel
 from app.models.knowledge_base_scoped.registry import get_kb_scoped_registry
-from app.models.knowledge_base_scoped.table_naming import get_kb_relationships_table_name, get_kb_entities_table_name, \
-    get_kb_vector_dims
+from app.models.knowledge_base_scoped.table_naming import (
+    get_kb_relationships_table_name,
+    get_kb_entities_table_name,
+    get_kb_vector_dims,
+)
 
 
 class RelationshipBase(SQLModel):
@@ -90,7 +93,7 @@ def get_kb_relationship_model(kb: KnowledgeBase) -> Type[SQLModel]:
 
     class KBRelationship(PatchSQLModel, table=True, registry=ctx.registry):
         __tablename__ = relationships_table_name
-        __table_args__ = ({'extend_existing': True},)
+        __table_args__ = ({"extend_existing": True},)
 
         id: Optional[int] = Field(default=None, primary_key=True)
         description: str = Field(sa_column=Column(Text))

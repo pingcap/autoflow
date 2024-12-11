@@ -13,7 +13,7 @@ from app.core.config import settings, Environment
 
 if settings.ENVIRONMENT == Environment.LOCAL:
     logging.basicConfig()
-    logger = logging.getLogger('sqlalchemy.engine')
+    logger = logging.getLogger("sqlalchemy.engine")
     logger.setLevel(logging.DEBUG)
 
 # TiDB Serverless clusters have a limitation: if there are no active connections for 5 minutes,

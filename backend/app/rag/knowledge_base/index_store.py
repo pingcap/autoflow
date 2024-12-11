@@ -13,10 +13,7 @@ from app.rag.vector_store.tidb_vector_store import TiDBVectorStore
 
 def get_kb_tidb_vector_store(session: Session, kb: KnowledgeBase) -> TiDBVectorStore:
     chunk_model = get_kb_chunk_model(kb)
-    vector_store = TiDBVectorStore(
-        session,
-        chunk_db_model=chunk_model
-    )
+    vector_store = TiDBVectorStore(session, chunk_db_model=chunk_model)
     return vector_store
 
 

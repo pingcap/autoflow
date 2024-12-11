@@ -56,8 +56,8 @@ dependencies = [
     "openpyxl>=3.1.5",
     "fastapi-cli>=0.0.5",
     "retry>=0.9.2",
-    "ragas>=0.2.5",
     "langchain-openai>=0.2.9",
+    "ragas>=0.2.6",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"

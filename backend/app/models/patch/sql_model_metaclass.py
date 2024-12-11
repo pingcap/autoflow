@@ -29,7 +29,11 @@ from sqlmodel.main import (
     get_relationship_to,
     is_table_model_class,
     set_config_value,
-    __dataclass_transform__, Field, FieldInfo, RelationshipInfo, get_column_from_field,
+    __dataclass_transform__,
+    Field,
+    FieldInfo,
+    RelationshipInfo,
+    get_column_from_field,
 )
 from typing_extensions import get_origin
 
@@ -60,11 +64,11 @@ class SQLModelMetaclass(ModelMetaclass, DeclarativeMeta):
 
     # From Pydantic
     def __new__(
-            cls,
-            name: str,
-            bases: Tuple[Type[Any], ...],
-            class_dict: Dict[str, Any],
-            **kwargs: Any,
+        cls,
+        name: str,
+        bases: Tuple[Type[Any], ...],
+        class_dict: Dict[str, Any],
+        **kwargs: Any,
     ) -> Any:
         relationships: Dict[str, RelationshipInfo] = {}
         dict_for_pydantic = {}
@@ -94,7 +98,7 @@ class SQLModelMetaclass(ModelMetaclass, DeclarativeMeta):
             key
             for key in dir(BaseConfig)
             if not (
-                    key.startswith("__") and key.endswith("__")
+                key.startswith("__") and key.endswith("__")
             )  # skip dunder methods and attributes
         }
         config_kwargs = {
@@ -150,7 +154,7 @@ class SQLModelMetaclass(ModelMetaclass, DeclarativeMeta):
 
     # Override SQLAlchemy, allow both SQLAlchemy and plain Pydantic models
     def __init__(
-            cls, classname: str, bases: Tuple[type, ...], dict_: Dict[str, Any], **kw: Any
+        cls, classname: str, bases: Tuple[type, ...], dict_: Dict[str, Any], **kw: Any
     ) -> None:
         # Only one of the base classes (or the current one) should be a table model
         # this allows FastAPI cloning a SQLModel for the response_model without

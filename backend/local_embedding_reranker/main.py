@@ -23,7 +23,9 @@ PRE_LOAD_DEFAULT_RERANKER_MODEL = env.bool(
     "PRE_LOAD_DEFAULT_RERANKER_MODEL", default=False
 )
 DEFAULT_EMBEDDING_MODEL = env.str("DEFAULT_EMBEDDING_MODEL", default="BAAI/bge-m3")
-DEFAULT_RERANKER_MODEL = env.str("DEFAULT_RERANKER_MODEL", default="BAAI/bge-reranker-v2-m3")
+DEFAULT_RERANKER_MODEL = env.str(
+    "DEFAULT_RERANKER_MODEL", default="BAAI/bge-reranker-v2-m3"
+)
 router = APIRouter()
 
 

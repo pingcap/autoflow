@@ -18,4 +18,8 @@ run_dev_server:
 
 run_dev_celery_worker:
 	@echo "Running celery..."
-	@rye run celery -A app.celery worker
+	@rye run celery -A app.celery worker -Q default
+
+run_eval_dev_celery_worker:
+	@echo "Running evaluation celery..."
+	@rye run celery -A app.celery worker -Q evaluation --loglevel=debug --pool=solo

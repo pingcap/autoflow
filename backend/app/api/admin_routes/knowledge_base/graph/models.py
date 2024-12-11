@@ -14,8 +14,8 @@ class SynopsisEntityCreate(BaseModel):
         if len(self.entities) == 0:
             raise ValueError("Entities list should not be empty")
         return self
-    
-    
+
+
 class EntityUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None

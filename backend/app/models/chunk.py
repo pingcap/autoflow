@@ -9,7 +9,8 @@ from sqlmodel import (
     Column,
     Text,
     JSON,
-    Relationship as SQLRelationship, SQLModel,
+    Relationship as SQLRelationship,
+    SQLModel,
 )
 from tidb_vector.sqlalchemy import VectorType
 from llama_index.core.schema import TextNode
@@ -19,7 +20,10 @@ from app.models.document import Document
 from app.models.knowledge_base import KnowledgeBase
 from .base import UpdatableBaseModel, UUIDBaseModel
 from app.models.knowledge_base_scoped.registry import get_kb_scoped_registry
-from .knowledge_base_scoped.table_naming import get_kb_chunks_table_name, get_kb_vector_dims
+from .knowledge_base_scoped.table_naming import (
+    get_kb_chunks_table_name,
+    get_kb_vector_dims,
+)
 from app.models.patch.sql_model import SQLModel as PatchSQLModel
 from ..utils.uuid6 import uuid7
 
@@ -78,12 +82,13 @@ def get_kb_chunk_model(kb: KnowledgeBase) -> Type[SQLModel]:
     if ctx.chunk_model:
         return ctx.chunk_model
 
-
     class KBChunk(PatchSQLModel, table=True, registry=ctx.registry):
         __tablename__ = chunks_table_name
-        __table_args__ = {'extend_existing': True}
+        __table_args__ = {"extend_existing": True}
 
-        id: UUID = Field(primary_key=True, index=True, nullable=False, default_factory=uuid7)
+        id: UUID = Field(
+            primary_key=True, index=True, nullable=False, default_factory=uuid7
+        )
         hash: str = Field(max_length=64)
         text: str = Field(sa_column=Column(Text))
         meta: dict | list = Field(default={}, sa_column=Column(JSON))

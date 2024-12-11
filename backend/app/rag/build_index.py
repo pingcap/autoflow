@@ -8,7 +8,10 @@ from llama_index.core.node_parser import SentenceSplitter
 from sqlmodel import Session
 
 from app.models.knowledge_base import KnowledgeBase
-from app.rag.knowledge_base.index_store import get_kb_tidb_vector_store, get_kb_tidb_graph_store
+from app.rag.knowledge_base.index_store import (
+    get_kb_tidb_vector_store,
+    get_kb_tidb_graph_store,
+)
 from app.rag.knowledge_graph import KnowledgeGraphIndex
 from app.core.config import settings
 from app.models import (
@@ -36,7 +39,9 @@ class IndexService:
         self._embed_model = embed_model
         self._knowledge_base = knowledge_base
 
-    def build_vector_index_for_document(self, session: Session, db_document: Type[DBDocument]):
+    def build_vector_index_for_document(
+        self, session: Session, db_document: Type[DBDocument]
+    ):
         """
         Build vector index and graph index from document.
 
@@ -64,7 +69,7 @@ class IndexService:
         vector_index = VectorStoreIndex.from_vector_store(
             vector_store,
             embed_model=self._embed_model,
-            transformations=_transformations
+            transformations=_transformations,
         )
 
         document = db_document.to_llama_document()
@@ -74,7 +79,6 @@ class IndexService:
         vector_store.close_session()
 
         return
-
 
     def build_kg_index_for_chunk(self, session: Session, db_chunk: Type[DBChunk]):
         """Build knowledge graph index from chunk.
@@ -87,7 +91,8 @@ class IndexService:
 
         graph_store = get_kb_tidb_graph_store(session, self._knowledge_base)
         graph_index: KnowledgeGraphIndex = KnowledgeGraphIndex.from_existing(
-            dspy_lm=self._dspy_lm, kg_store=graph_store,
+            dspy_lm=self._dspy_lm,
+            kg_store=graph_store,
         )
 
         node = db_chunk.to_llama_text_node()

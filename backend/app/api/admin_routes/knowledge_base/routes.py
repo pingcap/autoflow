@@ -3,14 +3,20 @@ import logging
 from fastapi import APIRouter, Depends
 from fastapi_pagination import Params, Page
 
-from app.rag.knowledge_base.index_store import init_kb_tidb_vector_store, init_kb_tidb_graph_store
+from app.rag.knowledge_base.index_store import (
+    init_kb_tidb_vector_store,
+    init_kb_tidb_graph_store,
+)
 from app.repositories.embedding_model import embed_model_repo
 from app.repositories.llm import llm_repo
 
 from .models import (
     KnowledgeBaseDetail,
     KnowledgeBaseItem,
-    KnowledgeBaseCreate, KnowledgeBaseUpdate, VectorIndexError, KGIndexError
+    KnowledgeBaseCreate,
+    KnowledgeBaseUpdate,
+    VectorIndexError,
+    KGIndexError,
 )
 from app.api.deps import SessionDep, CurrentSuperuserDep
 from app.exceptions import (
@@ -20,7 +26,7 @@ from app.exceptions import (
     KBNoVectorIndexConfigured,
     DefaultLLMNotFound,
     DefaultEmbeddingModelNotFound,
-    KBIsUsedByChatEngines
+    KBIsUsedByChatEngines,
 )
 from app.models import (
     KnowledgeBase,
@@ -34,7 +40,7 @@ from app.repositories import knowledge_base_repo, data_source_repo, chat_engine_
 from app.tasks.knowledge_base import (
     import_documents_for_knowledge_base,
     stats_for_knowledge_base,
-    purge_knowledge_base_related_resources
+    purge_knowledge_base_related_resources,
 )
 from ..models import ChatEngineDescriptor
 
@@ -44,19 +50,21 @@ logger = logging.getLogger(__name__)
 
 @router.post("/admin/knowledge_bases")
 def create_knowledge_base(
-    session: SessionDep,
-    user: CurrentSuperuserDep,
-    create: KnowledgeBaseCreate
+    session: SessionDep, user: CurrentSuperuserDep, create: KnowledgeBaseCreate
 ) -> KnowledgeBaseDetail:
     try:
         data_sources = [
-            data_source_repo.create(session, DataSource(
-                name=data_source.name,
-                description='',
-                user_id=user.id,
-                data_source_type=data_source.data_source_type,
-                config=data_source.config,
-            )) for data_source in create.data_sources
+            data_source_repo.create(
+                session,
+                DataSource(
+                    name=data_source.name,
+                    description="",
+                    user_id=user.id,
+                    data_source_type=data_source.data_source_type,
+                    config=data_source.config,
+                ),
+            )
+            for data_source in create.data_sources
         ]
 
         if not create.llm_id:
@@ -125,7 +133,7 @@ def update_knowledge_base_setting(
     session: SessionDep,
     user: CurrentSuperuserDep,
     knowledge_base_id: int,
-    update: KnowledgeBaseUpdate
+    update: KnowledgeBaseUpdate,
 ) -> KnowledgeBaseDetail:
     try:
         knowledge_base = knowledge_base_repo.must_get(session, knowledge_base_id)
@@ -142,9 +150,7 @@ def update_knowledge_base_setting(
 
 @router.get("/admin/knowledge_bases/{kb_id}/linked_chat_engines")
 def list_kb_linked_chat_engines(
-    session: SessionDep,
-    user: CurrentSuperuserDep,
-    kb_id: int
+    session: SessionDep, user: CurrentSuperuserDep, kb_id: int
 ) -> list[ChatEngineDescriptor]:
     try:
         kb = knowledge_base_repo.must_get(session, kb_id)
@@ -157,16 +163,14 @@ def list_kb_linked_chat_engines(
 
 
 @router.delete("/admin/knowledge_bases/{kb_id}")
-def delete_knowledge_base(
-    session: SessionDep,
-    user: CurrentSuperuserDep,
-    kb_id: int
-):
+def delete_knowledge_base(session: SessionDep, user: CurrentSuperuserDep, kb_id: int):
     try:
         kb = knowledge_base_repo.must_get(session, kb_id)
 
         # Check if the knowledge base has linked chat engines.
-        linked_chat_engines = knowledge_base_repo.list_linked_chat_engines(session, kb.id)
+        linked_chat_engines = knowledge_base_repo.list_linked_chat_engines(
+            session, kb.id
+        )
         if len(linked_chat_engines) > 0:
             raise KBIsUsedByChatEngines(kb_id, len(linked_chat_engines))
 
@@ -174,14 +178,9 @@ def delete_knowledge_base(
         knowledge_base_repo.delete(session, kb)
 
         # Trigger purge knowledge base related resources after 5 seconds.
-        purge_knowledge_base_related_resources.apply_async(
-            args=[kb_id],
-            countdown=5
-        )
+        purge_knowledge_base_related_resources.apply_async(args=[kb_id], countdown=5)
 
-        return {
-            "detail": f"Knowledge base #{kb_id} is deleted successfully"
-        }
+        return {"detail": f"Knowledge base #{kb_id} is deleted successfully"}
     except KBException as e:
         raise e
     except Exception as e:
@@ -252,16 +251,20 @@ def retry_failed_tasks(
         kb = knowledge_base_repo.must_get(session, kb_id)
 
         # Retry failed vector index tasks.
-        document_ids = knowledge_base_repo.set_failed_documents_status_to_pending(session, kb)
+        document_ids = knowledge_base_repo.set_failed_documents_status_to_pending(
+            session, kb
+        )
         for document_id in document_ids:
             build_index_for_document.delay(kb_id, document_id)
-        logger.info(f"Triggered {len(document_ids)} documents to rebuilt vector index." )
+        logger.info(f"Triggered {len(document_ids)} documents to rebuilt vector index.")
 
         # Retry failed kg index tasks.
         chunk_ids = knowledge_base_repo.set_failed_chunks_status_to_pending(session, kb)
         for chunk_id in chunk_ids:
             build_kg_index_for_chunk.delay(kb_id, chunk_id)
-        logger.info(f"Triggered {len(chunk_ids)} chunks to rebuilt knowledge graph index." )
+        logger.info(
+            f"Triggered {len(chunk_ids)} chunks to rebuilt knowledge graph index."
+        )
 
         return {
             "detail": f"Triggered reindex {len(document_ids)} documents and {len(chunk_ids)} chunks of knowledge base #{kb_id}."

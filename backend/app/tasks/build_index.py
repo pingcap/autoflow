@@ -22,6 +22,7 @@ logger = get_task_logger(__name__)
 
 # TODO: refactor: divide into two tasks: build_vector_index_for_document and build_kg_index_for_document
 
+
 @celery_app.task(bind=True)
 def build_index_for_document(self, knowledge_base_id: int, document_id: int):
     # Pre-check before building index.
@@ -34,7 +35,10 @@ def build_index_for_document(self, knowledge_base_id: int, document_id: int):
             logger.error(f"Document #{document_id} is not found")
             return
 
-        if db_document.index_status not in (DocIndexTaskStatus.PENDING, DocIndexTaskStatus.NOT_STARTED):
+        if db_document.index_status not in (
+            DocIndexTaskStatus.PENDING,
+            DocIndexTaskStatus.NOT_STARTED,
+        ):
             logger.info(f"Document #{document_id} is not in pending state")
             return
 
@@ -67,7 +71,9 @@ def build_index_for_document(self, knowledge_base_id: int, document_id: int):
     except Exception:
         with Session(engine) as session:
             error_msg = traceback.format_exc()
-            logger.error(f"Failed to build vector index for document {document_id}: {error_msg}")
+            logger.error(
+                f"Failed to build vector index for document {document_id}: {error_msg}"
+            )
             db_document.index_status = DocIndexTaskStatus.FAILED
             db_document.index_result = error_msg
             session.add(db_document)
@@ -98,7 +104,10 @@ def build_kg_index_for_chunk(knowledge_base_id: int, chunk_id: UUID):
             logger.error(f"Chunk #{chunk_id} is not found")
             return
 
-        if db_chunk.index_status not in (KgIndexStatus.PENDING, KgIndexStatus.NOT_STARTED):
+        if db_chunk.index_status not in (
+            KgIndexStatus.PENDING,
+            KgIndexStatus.NOT_STARTED,
+        ):
             logger.info(f"Chunk #{chunk_id} is not in pending state")
             return
 
@@ -119,11 +128,15 @@ def build_kg_index_for_chunk(knowledge_base_id: int, chunk_id: UUID):
             db_chunk.index_status = KgIndexStatus.COMPLETED
             session.add(db_chunk)
             session.commit()
-            logger.info(f"Built knowledge graph index for chunk #{chunk_id} successfully.")
+            logger.info(
+                f"Built knowledge graph index for chunk #{chunk_id} successfully."
+            )
     except Exception:
         with Session(engine) as session:
             error_msg = traceback.format_exc()
-            logger.error(f"Failed to build knowledge graph index for chunk #{chunk_id}: {error_msg}")
+            logger.error(
+                f"Failed to build knowledge graph index for chunk #{chunk_id}: {error_msg}"
+            )
             db_chunk.index_status = KgIndexStatus.FAILED
             db_chunk.index_result = error_msg
             session.add(db_chunk)

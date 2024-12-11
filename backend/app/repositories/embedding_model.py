@@ -5,9 +5,12 @@ from fastapi_pagination.ext.sqlmodel import paginate
 from sqlalchemy.orm.attributes import flag_modified
 from sqlmodel import Session, select, update
 
-from app.api.admin_routes.embedding_model.models import EmbeddingModelUpdate, EmbeddingModelCreate
+from app.api.admin_routes.embedding_model.models import (
+    EmbeddingModelUpdate,
+    EmbeddingModelCreate,
+)
 from app.exceptions import DefaultEmbeddingModelNotFound, EmbeddingModelNotFound
-from app.models import  EmbeddingModel
+from app.models import EmbeddingModel
 from app.repositories.base_repo import BaseRepo
 
 
@@ -38,11 +41,9 @@ class EmbeddingModelRepo(BaseRepo):
 
         return embed_model
 
-
     def exists_any_model(self, session: Session) -> bool:
         stmt = select(EmbeddingModel).with_for_update().limit(1)
         return session.exec(stmt).one_or_none() is not None
-
 
     def must_get(self, session: Session, model_id: int) -> Type[EmbeddingModel]:
         db_embed_model = self.get(session, model_id)
@@ -50,14 +51,11 @@ class EmbeddingModelRepo(BaseRepo):
             raise EmbeddingModelNotFound(model_id)
         return db_embed_model
 
-
-    def paginate(self, session: Session, params: Params | None = Params()) -> Page[EmbeddingModel]:
-        query = (
-            select(EmbeddingModel)
-            .order_by(EmbeddingModel.created_at.desc())
-        )
+    def paginate(
+        self, session: Session, params: Params | None = Params()
+    ) -> Page[EmbeddingModel]:
+        query = select(EmbeddingModel).order_by(EmbeddingModel.created_at.desc())
         return paginate(session, query, params)
-
 
     def update(
         self,
@@ -77,15 +75,10 @@ class EmbeddingModelRepo(BaseRepo):
         session.refresh(embed_model)
         return embed_model
 
-
     # Default model
 
     def get_default(self, session: Session) -> Type[EmbeddingModel]:
-        stmt = (
-            select(EmbeddingModel)
-                .where(EmbeddingModel.is_default == True)
-                .limit(1)
-        )
+        stmt = select(EmbeddingModel).where(EmbeddingModel.is_default == True).limit(1)
         return session.exec(stmt).first()
 
     def has_default(self, session: Session) -> bool:
@@ -108,8 +101,8 @@ class EmbeddingModelRepo(BaseRepo):
         self.unset_default_model(session)
         session.exec(
             update(EmbeddingModel)
-                .values(is_default=True)
-                .where(EmbeddingModel.id == new_default_model_id)
+            .values(is_default=True)
+            .where(EmbeddingModel.id == new_default_model_id)
         )
         session.commit()
 

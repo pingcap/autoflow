@@ -3,19 +3,18 @@ import logging
 from fastapi import APIRouter, Depends
 from fastapi_pagination import Params, Page
 
-from app.api.admin_routes.knowledge_base.data_source.models import KBDataSourceUpdate, KBDataSource
+from app.api.admin_routes.knowledge_base.data_source.models import (
+    KBDataSourceUpdate,
+    KBDataSource,
+)
 from app.api.admin_routes.knowledge_base.models import KBDataSourceCreate
 from app.api.deps import SessionDep, CurrentSuperuserDep
-from app.exceptions import (
-    InternalServerError,
-    KBDataSourceNotFound,
-    KBNotFound
-)
+from app.exceptions import InternalServerError, KBDataSourceNotFound, KBNotFound
 from app.models import DataSource
 from app.repositories import knowledge_base_repo
 from app.tasks.knowledge_base import (
     import_documents_from_kb_datasource,
-    purge_kb_datasource_related_resources
+    purge_kb_datasource_related_resources,
 )
 
 
@@ -28,7 +27,7 @@ def create_kb_datasource(
     session: SessionDep,
     user: CurrentSuperuserDep,
     kb_id: int,
-    create: KBDataSourceCreate
+    create: KBDataSourceCreate,
 ) -> KBDataSource:
     try:
         kb = knowledge_base_repo.must_get(session, kb_id)
@@ -38,7 +37,9 @@ def create_kb_datasource(
             data_source_type=create.data_source_type,
             config=create.config,
         )
-        new_data_source = knowledge_base_repo.add_kb_datasource(session, kb, new_data_source)
+        new_data_source = knowledge_base_repo.add_kb_datasource(
+            session, kb, new_data_source
+        )
 
         import_documents_from_kb_datasource.delay(kb_id, new_data_source.id)
 
@@ -46,7 +47,9 @@ def create_kb_datasource(
     except KBNotFound as e:
         raise e
     except Exception as e:
-        logger.error(f"Failed to create data source for knowledge base #{kb_id}: {e}", exc_info=e)
+        logger.error(
+            f"Failed to create data source for knowledge base #{kb_id}: {e}", exc_info=e
+        )
         raise InternalServerError()
 
 
@@ -123,17 +126,17 @@ def remove_kb_datasource(
         session.commit()
 
         purge_kb_datasource_related_resources.apply_async(
-            args=[kb_id, data_source_id],
-            countdown=5
+            args=[kb_id, data_source_id], countdown=5
         )
 
-        return {
-            "detail": "success"
-        }
+        return {"detail": "success"}
     except KBNotFound as e:
         raise e
     except KBDataSourceNotFound as e:
         raise e
     except Exception as e:
-        logger.error(f"Failed to remove data source #{data_source_id} from knowledge base #{kb_id}: {e}", exc_info=e)
+        logger.error(
+            f"Failed to remove data source #{data_source_id} from knowledge base #{kb_id}: {e}",
+            exc_info=e,
+        )
         raise InternalServerError()

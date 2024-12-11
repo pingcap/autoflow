@@ -12,7 +12,10 @@ from app.api.deps import CurrentSuperuserDep, SessionDep
 from app.exceptions import RerankerModelNotFound, InternalServerError
 from app.models import RerankerModel, AdminRerankerModel, ChatEngine
 from app.rag.chat_config import get_reranker_model
-from app.rag.reranker_model_option import RerankerModelOption, admin_reranker_model_options
+from app.rag.reranker_model_option import (
+    RerankerModelOption,
+    admin_reranker_model_options,
+)
 from app.repositories.reranker_model import reranker_model_repo
 
 router = APIRouter()
@@ -26,8 +29,7 @@ def get_reranker_model_options(user: CurrentSuperuserDep) -> List[RerankerModelO
 
 @router.post("/admin/reranker-models/test")
 def test_reranker_model(
-    db_reranker_model: RerankerModel,
-    user: CurrentSuperuserDep
+    db_reranker_model: RerankerModel, user: CurrentSuperuserDep
 ) -> LLMTestResult:
     try:
         reranker = get_reranker_model(
@@ -125,9 +127,7 @@ def delete_reranker_model(
 
 @router.put("/admin/reranker-models/{reranker_model_id}/set_default")
 def set_default_reranker_model(
-    session: SessionDep,
-    user: CurrentSuperuserDep,
-    reranker_model_id: int
+    session: SessionDep, user: CurrentSuperuserDep, reranker_model_id: int
 ) -> AdminRerankerModel:
     try:
         reranker_model = reranker_model_repo.must_get(session, reranker_model_id)

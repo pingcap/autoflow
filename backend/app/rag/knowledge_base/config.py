@@ -4,7 +4,12 @@ from llama_index.core.base.embeddings.base import BaseEmbedding
 from sqlmodel import Session
 
 from app.models.knowledge_base import KnowledgeBase
-from app.rag.chat_config import get_default_llm, get_llm, get_embed_model, get_default_embed_model
+from app.rag.chat_config import (
+    get_default_llm,
+    get_llm,
+    get_embed_model,
+    get_default_embed_model,
+)
 from app.utils.dspy import get_dspy_lm_by_llama_llm
 
 
@@ -31,8 +36,7 @@ def get_kb_embed_model(session: Session, kb: KnowledgeBase) -> BaseEmbedding:
             db_embed_model.provider,
             db_embed_model.model,
             db_embed_model.config,
-            db_embed_model.credentials
+            db_embed_model.credentials,
         )
     else:
         return get_default_embed_model(session)
-

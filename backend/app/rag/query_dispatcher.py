@@ -12,6 +12,7 @@ For more complex questions, you should break them down into clear, manageable su
 If you encounter concepts or entities you are not familiar with, you can break the query down into a sub-question to clarify the specific concept or entity. For example, if the query involves “what is the latest version,” you can treat this as a sub-question to better understand the context before proceeding with the solution.
 """
 
+
 class QueryDispatcher:
     def __init__(self, llm: OpenAI, system_prompt: Optional[str] = None):
         if system_prompt is None:
@@ -21,7 +22,9 @@ class QueryDispatcher:
         self._llm.system_prompt = system_prompt
 
     def route(self, query: str, tools: Sequence["BaseTool"]) -> str:
-        response = self._llm.chat_with_tools(tools, query, allow_parallel_tool_calls=True, verbose=True)
+        response = self._llm.chat_with_tools(
+            tools, query, allow_parallel_tool_calls=True, verbose=True
+        )
 
         try:
             tool_calls = self._llm.get_tool_calls_from_response(
@@ -32,7 +35,7 @@ class QueryDispatcher:
             return f"An error occurred while processing the query: {query}"
 
         return tool_calls
-    
+
 
 # mock the answer process
 def answer(query: str) -> str:
@@ -40,5 +43,6 @@ def answer(query: str) -> str:
     Answer a user query. The query should be simple and straightforward.
     """
     return f"I need some time to answer your question: {query}."
+
 
 answer_tool = FunctionTool.from_defaults(fn=answer)

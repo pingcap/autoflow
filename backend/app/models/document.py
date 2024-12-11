@@ -12,7 +12,7 @@ from sqlmodel import (
     DateTime,
     JSON,
     String,
-    Relationship as SQLRelationship
+    Relationship as SQLRelationship,
 )
 
 from .base import UpdatableBaseModel
@@ -40,7 +40,7 @@ class Document(UpdatableBaseModel, table=True):
     meta: dict | list = Field(default={}, sa_column=Column(JSON))
     # the last time the document was modified in the source system
     last_modified_at: Optional[datetime] = Field(sa_column=Column(DateTime))
-    
+
     # TODO: rename to vector_index_status, vector_index_result.
     index_status: DocIndexTaskStatus = DocIndexTaskStatus.NOT_STARTED
     index_result: str = Field(sa_column=Column(Text, nullable=True))

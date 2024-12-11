@@ -18,7 +18,7 @@ class DocumentRepo(BaseRepo):
         self,
         session: Session,
         filters: DocumentFilters,
-        params: Params | None = Params()
+        params: Params | None = Params(),
     ) -> Page[Document]:
         # build the select statement via conditions
         stmt = select(Document)
@@ -37,7 +37,9 @@ class DocumentRepo(BaseRepo):
         if filters.updated_at_end:
             stmt = stmt.where(Document.updated_at <= filters.updated_at_end)
         if filters.last_modified_at_start:
-            stmt = stmt.where(Document.last_modified_at >= filters.last_modified_at_start)
+            stmt = stmt.where(
+                Document.last_modified_at >= filters.last_modified_at_start
+            )
         if filters.last_modified_at_end:
             stmt = stmt.where(Document.last_modified_at <= filters.last_modified_at_end)
         if filters.name:

@@ -8,6 +8,7 @@ class LLMProvider(str, enum.Enum):
     OPENAI_LIKE = "openai_like"
     BEDROCK = "bedrock"
     OLLAMA = "ollama"
+    GITEEAI = "giteeai"
 
 
 class EmbeddingProvider(str, enum.Enum):
@@ -15,6 +16,7 @@ class EmbeddingProvider(str, enum.Enum):
     JINA = "jina"
     COHERE = "cohere"
     OLLAMA = "ollama"
+    GITEEAI = "giteeai"
     LOCAL = "local"
     OPENAI_LIKE = "openai_like"
 

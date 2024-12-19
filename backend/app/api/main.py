@@ -7,6 +7,7 @@ from app.api.routes import (
     user,
     api_key,
     feedback,
+    download,
 )
 from app.api.admin_routes.knowledge_base.routes import router as admin_knowledge_base_router
 from app.api.admin_routes.knowledge_base.graph.routes import router as admin_knowledge_base_graph_router
@@ -34,6 +35,7 @@ api_router.include_router(chat.router, tags=["chat"])
 api_router.include_router(feedback.router, tags=["chat"])
 api_router.include_router(user.router, tags=["user"])
 api_router.include_router(api_key.router, tags=["auth"])
+api_router.include_router(download.router)
 
 api_router.include_router(admin_rag_index.router, tags=["admin/rag_index"])
 api_router.include_router(admin_chat_engine.router, tags=["admin/chat_engine"])

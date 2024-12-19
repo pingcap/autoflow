@@ -2,7 +2,7 @@ import { FormRootError, FormRootErrorBeta } from '@/components/form/root-error';
 import { handleSubmitHelper } from '@/components/form/utils';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
-import { Form as FormBeta, formDomEventHandlers } from '@/components/ui/form.beta';
+import { Form as FormBeta, formDomEventHandlers, FormSubmit } from '@/components/ui/form.beta';
 import { getErrorMessage } from '@/lib/errors';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm as useTanstackForm } from '@tanstack/react-form';
@@ -116,9 +116,9 @@ export function withCreateEntityFormBeta<T, R> (
         >
           {children}
           <FormRootErrorBeta />
-          <Button type="submit" form={id} disabled={transitioning || form.state.isSubmitting}>
+          <FormSubmit form={id} transitioning={transitioning}>
             Create
-          </Button>
+          </FormSubmit>
         </form>
       </FormBeta>
     );

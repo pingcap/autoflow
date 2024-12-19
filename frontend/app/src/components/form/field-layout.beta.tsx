@@ -1,6 +1,7 @@
 import type { FormControlWidgetProps } from '@/components/form/control-widget';
 import { Button } from '@/components/ui/button';
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage, useFormContext } from '@/components/ui/form.beta';
+import { isChangeEvent } from '@/lib/react';
 import { cn } from '@/lib/utils';
 import { type DeepKeys, type DeepValue, type FieldApi, type FormApi, useField } from '@tanstack/react-form';
 import { MinusIcon, PlusIcon } from 'lucide-react';
@@ -35,7 +36,7 @@ function renderWidget<
     value: field.state.value ?? fallbackValue as any,
     name: field.name,
     onChange: ((ev: any) => {
-      if ((ev as ChangeEvent).type === 'change') {
+      if (isChangeEvent(ev)) {
         field.handleChange((ev as ChangeEvent<HTMLInputElement>).target.value as any);
       } else {
         field.handleChange(ev);

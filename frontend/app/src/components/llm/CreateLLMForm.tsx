@@ -1,21 +1,19 @@
 'use client';
 
-import { createLlm, listLlmOptions, type LLM, testLlm } from '@/api/llms';
+import { type CreateLLM, createLlm, listLlmOptions, type LLM, testLlm } from '@/api/llms';
 import { ProviderSelect } from '@/components/form/biz';
 import { FormInput } from '@/components/form/control-widget';
-import { FormFieldBasicLayout } from '@/components/form/field-layout';
-import { FormRootError } from '@/components/form/root-error';
-import { handleSubmitHelper } from '@/components/form/utils';
+import { FormFieldBasicLayout } from '@/components/form/field-layout.beta';
+import { FormRootErrorBeta as FormRootError } from '@/components/form/root-error';
+import { onSubmitHelper } from '@/components/form/utils';
 import { CodeInput } from '@/components/form/widgets/CodeInput';
 import { ProviderDescription } from '@/components/provider-description';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Button } from '@/components/ui/button';
-import { Form } from '@/components/ui/form';
+import { Form, formDomEventHandlers, FormSubmit } from '@/components/ui/form.beta';
+import { useModelProvider } from '@/hooks/use-model-provider';
 import { zodJsonText } from '@/lib/zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2Icon } from 'lucide-react';
-import { useEffect, useId } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm as useTanstackForm } from '@tanstack/react-form';
+import { useId } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 import { z } from 'zod';
@@ -41,67 +39,46 @@ export function CreateLLMForm ({ transitioning, onCreated }: { transitioning?: b
   const id = useId();
   const { data: options, isLoading, error } = useSWR('api.llms.list-options', listLlmOptions);
 
-  const form = useForm<any>({
-    resolver: (values, context, opts) => {
-      const provider = options?.find(option => option.provider === values.provider);
+  const form = useTanstackForm<CreateLLM | Omit<CreateLLM, 'model' | 'credentials'>>({
+    validators: {
+      onSubmit: unsetForm,
+    },
+    onSubmit (props) {
+      const { value } = props;
+      const provider = options?.find(option => option.provider === value.provider);
 
-      return zodResolver(
-        provider
-          ? provider.credentials_type === 'str'
-            ? strCredentialForm
-            : provider.credentials_type === 'dict'
-              ? dictCredentialForm
-              : unsetForm
-          : unsetForm)(values, context, opts);
+      const schema = provider
+        ? provider.credentials_type === 'str'
+          ? strCredentialForm
+          : provider.credentials_type === 'dict'
+            ? dictCredentialForm
+            : unsetForm
+        : unsetForm;
+
+      return onSubmitHelper(schema, async (values) => {
+        const { error, success } = await testLlm(values as CreateLLM);
+        if (!success) {
+          throw new Error(error || 'Test LLM failed');
+        }
+        const llm = await createLlm(values as CreateLLM);
+        toast.success(`LLM ${llm.name} successfully created.`);
+        onCreated?.(llm);
+      })(props);
     },
     defaultValues: {
       name: '',
       provider: '',
-      model: '',
-      credentials: '',
       is_default: false,
       config: '{}',
     },
   });
 
-  const providerName = form.watch('provider');
-  const provider = options?.find(option => option.provider === providerName);
-
-  useEffect(() => {
-    if (provider) {
-      form.reset({
-        ...form.getValues(),
-        model: provider.default_llm_model,
-        credentials: provider.credentials_type === 'dict' ? undefined : '',
-        config: JSON.stringify(provider.default_config, undefined, 2),
-      });
-    } else {
-      const { name, is_default } = form.getValues();
-      form.reset({
-        name,
-        is_default,
-        provider: '',
-        credentials: '',
-        model: '',
-        config: '{}',
-      });
-    }
-  }, [provider]);
-
-  const handleSubmit = handleSubmitHelper(form, async (values) => {
-    const { error, success } = await testLlm(values);
-    if (!success) {
-      throw new Error(error || 'Test LLM failed');
-    }
-    const llm = await createLlm(values);
-    toast.success(`LLM ${llm.name} successfully created.`);
-    onCreated?.(llm);
-  });
+  const provider = useModelProvider(form, options, 'default_llm_model');
 
   return (
     <>
-      <Form {...form}>
-        <form id={id} className="space-y-4" onSubmit={handleSubmit}>
+      <Form form={form} disabled={transitioning}>
+        <form id={id} className="space-y-4 max-w-screen-sm" {...formDomEventHandlers(form, transitioning)}>
           <FormFieldBasicLayout name="name" label="Name">
             <FormInput />
           </FormFieldBasicLayout>
@@ -134,10 +111,9 @@ export function CreateLLMForm ({ transitioning, onCreated }: { transitioning?: b
             </>
           )}
           <FormRootError title="Failed to create LLM" />
-          <Button disabled={form.formState.disabled || !provider || form.formState.isSubmitting || transitioning} type="submit" form={id}>
-            {(form.formState.isSubmitting || transitioning) && <Loader2Icon className="size-4 mr-1 animate-spin repeat-infinite" />}
+          <FormSubmit disabled={!options} transitioning={transitioning} form={id}>
             Create LLM
-          </Button>
+          </FormSubmit>
         </form>
       </Form>
     </>

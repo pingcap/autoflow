@@ -21,7 +21,7 @@ export interface RerankerOption extends ProviderOption {
   default_top_n: number;
 }
 
-export interface CreateRERANKER {
+export interface CreateReranker {
   name: string;
   provider: string;
   model: string;
@@ -71,7 +71,7 @@ export async function getReranker (id: number): Promise<Reranker> {
   }).then(handleResponse(rerankerSchema));
 }
 
-export async function createReranker (create: CreateRERANKER) {
+export async function createReranker (create: CreateReranker) {
   return await fetch(requestUrl(`/api/v1/admin/reranker-models`), {
     method: 'POST',
     body: JSON.stringify(create),
@@ -89,10 +89,10 @@ export async function deleteReranker (id: number) {
   }).then(handleErrors);
 }
 
-export async function testReranker (createRERANKER: CreateRERANKER) {
+export async function testReranker (createReranker: CreateReranker) {
   return await fetch(requestUrl(`/api/v1/admin/reranker-models/test`), {
     method: 'POST',
-    body: JSON.stringify(createRERANKER),
+    body: JSON.stringify(createReranker),
     headers: {
       'Content-Type': 'application/json',
       ...await authenticationHeaders(),

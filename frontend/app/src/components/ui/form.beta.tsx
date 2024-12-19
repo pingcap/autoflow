@@ -1,16 +1,18 @@
 // This file contains new form components based on @tanstack/form
 // The components should be aligned with original form components.
 
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { Slot } from '@radix-ui/react-slot';
-import type { FieldApi, FormApi } from '@tanstack/react-form';
+import type { FieldApi, FormApi, ReactFormExtendedApi } from '@tanstack/react-form';
 import * as FormPrimitives from '@tanstack/react-form';
+import { Loader2Icon } from 'lucide-react';
 import * as React from 'react';
 import { type ComponentProps, createContext, type FormEvent, type ReactNode, useContext, useId } from 'react';
 
 const FormContext = createContext<{
-  form: FormPrimitives.ReactFormExtendedApi<any, any>,
+  form: FormPrimitives.ReactFormExtendedApi<any, any>
   disabled?: boolean
 } | undefined
 >(undefined);
@@ -115,7 +117,7 @@ function FormField<
   mode?: 'value' | 'array' | undefined,
   render: (
     field: FieldApi<TFormData, TName, undefined, TFormValidator, FormPrimitives.DeepValue<TFormData, TName>>,
-    form: FormApi<TFormData, TFormValidator>,
+    form: ReactFormExtendedApi<TFormData, TFormValidator>,
     disabled: boolean | undefined,
   ) => ReactNode
 }) {
@@ -142,7 +144,7 @@ function FormItem ({ className, ref, ...props }: ComponentProps<'div'>) {
 
 function FormLabel ({ ref, className, ...props }: ComponentProps<typeof Label>) {
   const { field, formItemId } = useFormField();
-  const error = field.state.meta.errors.length > 0;
+  const error = field.state.meta.errors?.length > 0;
 
   return (
     <Label
@@ -156,7 +158,7 @@ function FormLabel ({ ref, className, ...props }: ComponentProps<typeof Label>) 
 
 function FormControl ({ ref, ...props }: ComponentProps<typeof Slot>) {
   const { field, formItemId, formDescriptionId, formMessageId } = useFormField();
-  const error = field.state.meta.errors[0];
+  const error = field.state.meta.errors?.[0];
 
   return (
     <Slot
@@ -188,7 +190,7 @@ function FormDescription ({ ref, className, ...props }: ComponentProps<'p'>) {
 
 function FormMessage ({ ref, className, children, ...props }: ComponentProps<'p'>) {
   const { field, formMessageId } = useFormField();
-  const error = field.state.meta.errors[0];
+  const error = field.state.meta.errors?.[0];
   const body = error ? String(error) : children;
 
   if (!body) {
@@ -207,4 +209,32 @@ function FormMessage ({ ref, className, children, ...props }: ComponentProps<'p'
   );
 }
 
-export { useFormContext, Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription, formDomEventHandlers };
+function FormSubmit ({
+  children,
+  asChild,
+  disabled,
+  transitioning,
+  ...props
+}: Omit<ComponentProps<typeof Button>, 'formAction' | 'type'> & {
+  /*
+   * Used when to start a transition after created an entity. The loader indicator will be shown while transitioning.
+   */
+  transitioning?: boolean
+}) {
+  const { form } = useFormContext();
+
+  return (
+    <Button {...props} type="submit" disabled={form.state.isSubmitting || transitioning || disabled}>
+      {asChild
+        ? children
+        : (form.state.isSubmitting || transitioning)
+          ? <>
+            <Loader2Icon className="animate-spin repeat-infinite" />
+            {children}
+          </>
+          : children}
+    </Button>
+  );
+}
+
+export { useFormContext, Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription, FormSubmit, formDomEventHandlers };

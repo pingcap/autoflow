@@ -1,21 +1,19 @@
 'use client';
 
-import { createEmbeddingModel, type EmbeddingModel, listEmbeddingModelOptions, testEmbeddingModel } from '@/api/embedding-models';
+import { type CreateEmbeddingModel, createEmbeddingModel, type EmbeddingModel, listEmbeddingModelOptions, testEmbeddingModel } from '@/api/embedding-models';
 import { ProviderSelect } from '@/components/form/biz';
 import { FormInput } from '@/components/form/control-widget';
-import { FormFieldBasicLayout } from '@/components/form/field-layout';
-import { FormRootError } from '@/components/form/root-error';
-import { handleSubmitHelper } from '@/components/form/utils';
+import { FormFieldBasicLayout } from '@/components/form/field-layout.beta';
+import { FormRootErrorBeta as FormRootError } from '@/components/form/root-error';
+import { onSubmitHelper } from '@/components/form/utils';
 import { CodeInput } from '@/components/form/widgets/CodeInput';
 import { ProviderDescription } from '@/components/provider-description';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Button } from '@/components/ui/button';
-import { Form } from '@/components/ui/form';
+import { Form, formDomEventHandlers, FormSubmit } from '@/components/ui/form.beta';
+import { useModelProvider } from '@/hooks/use-model-provider';
 import { zodJsonText } from '@/lib/zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2Icon } from 'lucide-react';
-import { useEffect, useId } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm as useTanstackForm } from '@tanstack/react-form';
+import { useId } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 import { z } from 'zod';
@@ -41,63 +39,46 @@ export function CreateEmbeddingModelForm ({ transitioning, onCreated }: { transi
   const id = useId();
   const { data: options, isLoading, error } = useSWR('api.embedding-models.list-options', listEmbeddingModelOptions);
 
-  const form = useForm<any>({
-    resolver: (values, context, opts) => {
-      const provider = options?.find(option => option.provider === values.provider);
-      return zodResolver(
-        provider
-          ? provider.credentials_type === 'str'
-            ? strCredentialForm
-            : provider.credentials_type === 'dict'
-              ? dictCredentialForm
-              : unsetForm
-          : unsetForm)(values, context, opts);
+  const form = useTanstackForm<CreateEmbeddingModel | Omit<CreateEmbeddingModel, 'model' | 'credentials'>>({
+    validators: {
+      onSubmit: unsetForm,
+    },
+    onSubmit (props) {
+      const { value } = props;
+      const provider = options?.find(option => option.provider === value.provider);
+
+      const schema = provider
+        ? provider.credentials_type === 'str'
+          ? strCredentialForm
+          : provider.credentials_type === 'dict'
+            ? dictCredentialForm
+            : unsetForm
+        : unsetForm;
+
+      return onSubmitHelper(schema, async (values) => {
+        const { error, success } = await testEmbeddingModel(values as CreateEmbeddingModel);
+        if (!success) {
+          throw new Error(error || 'Test Embedding Model failed');
+        }
+        const embeddingModel = await createEmbeddingModel(values as CreateEmbeddingModel);
+        toast.success(`Embedding Model ${embeddingModel.name} successfully created.`);
+        onCreated?.(embeddingModel);
+      })(props);
     },
     defaultValues: {
       name: '',
       provider: '',
-      model: '',
-      credentials: '',
+      vector_dimension: 1536,
+      config: '{}',
     },
   });
 
-  const providerName = form.watch('provider');
-  const provider = options?.find(option => option.provider === providerName);
-
-  useEffect(() => {
-    if (provider) {
-      form.reset({
-        ...form.getValues(),
-        model: provider.default_embedding_model,
-        credentials: provider.credentials_type === 'dict' ? undefined : '',
-        config: JSON.stringify(provider.default_config, undefined, 2),
-      });
-    } else {
-      const { name } = form.getValues();
-      form.reset({
-        name,
-        provider: '',
-        credentials: '',
-        model: '',
-        config: '{}',
-      });
-    }
-  }, [provider]);
-
-  const handleSubmit = handleSubmitHelper(form, async (values) => {
-    const { error, success } = await testEmbeddingModel(values);
-    if (!success) {
-      throw new Error(error || 'Test Embedding Model failed.');
-    }
-    const embeddingModel = await createEmbeddingModel(values);
-    toast.success('Embedding Model successfully created.');
-    onCreated?.(embeddingModel);
-  });
+  const provider = useModelProvider(form, options, 'default_embedding_model');
 
   return (
     <>
-      <Form {...form}>
-        <form id={id} className="space-y-4" onSubmit={handleSubmit}>
+      <Form form={form} disabled={transitioning}>
+        <form id={id} className="space-y-4 max-w-screen-sm" {...formDomEventHandlers(form, transitioning)}>
           <FormFieldBasicLayout name="name" label="Name">
             <FormInput />
           </FormFieldBasicLayout>
@@ -133,10 +114,9 @@ export function CreateEmbeddingModelForm ({ transitioning, onCreated }: { transi
             </>
           )}
           <FormRootError title="Failed to create Embedding Model" />
-          <Button type="submit" form={id} disabled={form.formState.disabled || !provider || form.formState.isSubmitting || transitioning}>
-            {(form.formState.isSubmitting || transitioning) && <Loader2Icon className="size-4 mr-1 animate-spin repeat-infinite" />}
+          <FormSubmit disabled={!options} transitioning={transitioning} form={id}>
             Create Embedding Model
-          </Button>
+          </FormSubmit>
         </form>
       </Form>
     </>

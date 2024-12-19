@@ -27,6 +27,7 @@ export interface CreateEmbeddingModel {
   name: string;
   provider: string;
   model: string;
+  vector_dimension: number;
   config?: any;
   credentials: string | object;
 }

@@ -82,6 +82,21 @@ admin_llm_options: List[LLMOption] = [
         default_credentials="dummy",
     ),
     LLMOption(
+        provider=LLMProvider.GITEEAI,
+        provider_display_name="Gitee AI",
+        provider_description="The Serverless API of Gitee AI offers ready-to-use cutting-edge model APIs for AI developers.",
+        provider_url="https://ai.gitee.com",
+        default_llm_model="Qwen2-72B-Instruct",
+        default_config={
+            "is_chat_model": True,
+        },
+        llm_model_description="Find more in https://ai.gitee.com/serverless-api",
+        credentials_display_name="Gitee AI API Key",
+        credentials_description="The API key of Gitee AI, you can find it in https://ai.gitee.com/dashboard/settings/tokens",
+        credentials_type="str",
+        default_credentials="****",
+    ),
+    LLMOption(
         provider=LLMProvider.ANTHROPIC_VERTEX,
         provider_display_name="Anthropic Vertex AI",
         provider_description="Anthropic's Claude models are now generally available through Vertex AI.",

@@ -75,7 +75,7 @@ export function FormFieldBasicLayout<
             {required && <sup className="text-destructive" aria-hidden>*</sup>}
           </FormLabel>
           <FormControl>
-            {renderWidget(children, field, form, disabled, fallbackValue)}
+            {renderWidget<TFieldValues, TName>(children, field, form, disabled, fallbackValue)}
           </FormControl>
           {description && <FormDescription className="break-words">{description}</FormDescription>}
           <FormMessage />
@@ -101,7 +101,7 @@ export function FormFieldInlineLayout<
         <FormItem>
           <div className="flex items-center gap-2">
             <FormControl>
-              {renderWidget(children, field, form, disabled)}
+              {renderWidget<TFieldValues, TName>(children, field, form, disabled)}
             </FormControl>
             <FormLabel>{label}</FormLabel>
           </div>
@@ -140,7 +140,7 @@ export function FormFieldContainedLayout<
             </FormDescription>}
           </div>
           <FormControl>
-            {renderWidget(children, field, form, disabled, fallbackValue)}
+            {renderWidget<TFieldValues, TName>(children, field, form, disabled, fallbackValue)}
           </FormControl>
         </FormItem>
       )}
@@ -161,7 +161,7 @@ export function FormPrimitiveArrayFieldBasicLayout<
   required,
   defaultValue,
 }: FormFieldLayoutProps<TFieldValues, TName> & { defaultValue: () => any }) {
-  const { form, disabled } = useFormContext<TFieldValues>();
+  const { form } = useFormContext<TFieldValues>();
   const arrayField = useField<TFieldValues, TName>({
     name,
     form,
@@ -189,7 +189,7 @@ export function FormPrimitiveArrayFieldBasicLayout<
                     <FormItem>
                       <div className="flex gap-2">
                         <FormControl className="flex-1">
-                          {renderWidget(children, field as any, form as any, disabled)}
+                          {renderWidget<any, any>(children, field as any, form as any, disabled)}
                         </FormControl>
                         <Button
                           disabled={disabled}

@@ -6,6 +6,7 @@ import { Form as BetaForm, formDomEventHandlers } from '@/components/ui/form.bet
 import { getErrorMessage } from '@/lib/errors';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm as useTanstackForm } from '@tanstack/react-form';
+import { Loader2Icon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { z, type ZodType } from 'zod';
@@ -116,11 +117,14 @@ export function GeneralSettingsFieldBeta<Data, FieldData> ({
         {children}
         <FormRootErrorBeta />
         {!readonly && (
-          <form.Subscribe selector={state => [state.isDirty] as const}>
-            {([isDirty]) => isDirty && (
+          <form.Subscribe selector={state => [state.isDirty, state.isSubmitting] as const}>
+            {([isDirty, isSubmitting]) => (isDirty || isSubmitting) && (
               <div className="flex items-center gap-2">
-                <Button type="submit" disabled={disabled || readonly || fieldReadonly}>Save</Button>
-                <Button type="reset" variant="secondary" disabled={disabled || readonly || fieldReadonly}>Reset</Button>
+                <Button type="submit" disabled={disabled || isSubmitting || readonly || fieldReadonly}>
+                  {isSubmitting && <Loader2Icon className="animate-spin repeat-infinite" />}
+                  {isSubmitting ? 'Saving' : 'Save'}
+                </Button>
+                <Button type="reset" variant="secondary" disabled={disabled || isSubmitting || readonly || fieldReadonly}>Reset</Button>
               </div>
             )}
           </form.Subscribe>

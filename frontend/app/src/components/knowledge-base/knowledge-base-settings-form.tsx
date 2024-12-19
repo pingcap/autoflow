@@ -3,9 +3,10 @@
 import { type KnowledgeBase, type KnowledgeBaseIndexMethod, updateKnowledgeBase } from '@/api/knowledge-base';
 import { EmbeddingModelSelect, LLMSelect } from '@/components/form/biz';
 import { FormInput, FormSwitch, FormTextarea } from '@/components/form/control-widget';
-import { FormFieldBasicLayout, FormFieldContainedLayout } from '@/components/form/field-layout';
+import { FormFieldBasicLayout, FormFieldContainedLayout } from '@/components/form/field-layout.beta';
 import { mutateKnowledgeBases } from '@/components/knowledge-base/hooks';
-import { fieldAccessor, GeneralSettingsField, type GeneralSettingsFieldAccessor, GeneralSettingsForm, shallowPick } from '@/components/settings-form';
+import { fieldAccessor, type GeneralSettingsFieldAccessor, GeneralSettingsForm, shallowPick } from '@/components/settings-form';
+import { GeneralSettingsFieldBeta as GeneralSettingsField } from '@/components/settings-form/GeneralSettingsField';
 import type { KeyOfType } from '@/lib/typing-utils';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';

@@ -36,6 +36,7 @@ export const Default: Story = {
   args: {
     title: 'Title',
     description: 'Description',
+    label: 'Count',
     data: {
       failed: 23,
       completed: 120,
@@ -48,6 +49,7 @@ export const Placeholder: StoryObj<typeof IndexProgressChartPlaceholder> = {
   args: {
     title: 'Title',
     description: 'Description',
+    label: 'Count',
   },
   render ({ ...args }) {
     return <IndexProgressChartPlaceholder {...args} />;

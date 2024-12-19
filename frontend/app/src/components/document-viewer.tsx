@@ -1,11 +1,10 @@
-import { PromptViewer } from '@/components/chat-engine/prompt-viewer';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useEffect, useState } from 'react';
 
 import Highlight from 'highlight.js/lib/core';
 import markdown from 'highlight.js/lib/languages/markdown';
+import { useEffect, useState } from 'react';
 import './code-theme.scss';
 
 export interface DocumentPreviewProps {
@@ -33,8 +32,8 @@ export function DocumentPreviewDialog ({ title, name, mime, content }: { title: 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className='text-xs p-2' variant="ghost" size="sm">
-          {name} ({nf.format(content.length)} characters)
+        <Button className="text-xs p-2 font-normal font-mono" variant="ghost" size="sm">
+          {name} <span className="text-muted-foreground">({nf.format(content.length)} characters)</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-[720px] w-full">
@@ -42,6 +41,7 @@ export function DocumentPreviewDialog ({ title, name, mime, content }: { title: 
           <DialogTitle>
             {title}
           </DialogTitle>
+          <DialogDescription className="sr-only" />
         </DialogHeader>
         <ScrollArea className="h-[80vh]">
           <DocumentViewer mime={mime} content={content} />
@@ -57,7 +57,7 @@ function MarkdownViewer ({ value: propValue }: { value: string }) {
   useEffect(() => {
     setValue(propValue);
     try {
-      const { value: result } = Highlight.highlight('markdown', propValue);
+      const { value: result } = Highlight.highlight(propValue, { language: 'markdown' });
       setValue(result);
     } catch {
     }

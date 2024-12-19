@@ -4,6 +4,7 @@ import { type KnowledgeBase, type KnowledgeBaseIndexMethod, updateKnowledgeBase 
 import { EmbeddingModelSelect, LLMSelect } from '@/components/form/biz';
 import { FormInput, FormSwitch, FormTextarea } from '@/components/form/control-widget';
 import { FormFieldBasicLayout, FormFieldContainedLayout } from '@/components/form/field-layout';
+import { mutateKnowledgeBases } from '@/components/knowledge-base/hooks';
 import { fieldAccessor, GeneralSettingsField, type GeneralSettingsFieldAccessor, GeneralSettingsForm, shallowPick } from '@/components/settings-form';
 import type { KeyOfType } from '@/lib/typing-utils';
 import { format } from 'date-fns';
@@ -26,6 +27,7 @@ export function KnowledgeBaseSettingsForm ({ knowledgeBase }: { knowledgeBase: K
           await updateKnowledgeBase(knowledgeBase.id, partial);
           startTransition(() => {
             router.refresh();
+            mutateKnowledgeBases();
           });
         } else {
           throw new Error(`${path.map(p => String(p)).join('.')} is not updatable currently.`);

@@ -4,24 +4,21 @@ import { type ChatEngine, createChatEngine, deleteChatEngine, listChatEngines } 
 import { actions } from '@/components/cells/actions';
 import { boolean } from '@/components/cells/boolean';
 import { datetime } from '@/components/cells/datetime';
-import { link } from '@/components/cells/link';
 import { mono } from '@/components/cells/mono';
-import { DangerousActionButton } from '@/components/dangerous-action-button';
 import { DataTableRemote } from '@/components/data-table-remote';
-import { usePush } from '@/components/nextjs/app-router-hooks';
-import { Button } from '@/components/ui/button';
-import { useDataTable } from '@/components/use-data-table';
+import { useBootstrapStatus } from '@/components/system/BootstrapStatusProvider';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ColumnDef } from '@tanstack/react-table';
 import { createColumnHelper } from '@tanstack/table-core';
-import { CopyIcon, TrashIcon } from 'lucide-react';
-import { useState } from 'react';
+import { AlertTriangleIcon, CopyIcon, TrashIcon } from 'lucide-react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 
 const helper = createColumnHelper<ChatEngine>();
 
 const columns = [
   helper.accessor('id', { cell: mono }),
-  helper.accessor('name', { cell: link({ url: row => `/chat-engines/${row.id}` }) }),
+  helper.accessor('name', { cell: context => <NameLink chatEngine={context.row.original} /> }),
   helper.accessor('created_at', { cell: datetime }),
   helper.accessor('updated_at', { cell: datetime }),
   helper.accessor('is_default', { cell: boolean }),
@@ -36,7 +33,7 @@ const columns = [
             name: `${name} Copy`, llm_id, fast_llm_id, engine_options,
           })
             .then(newEngine => {
-              toast('Chat Engine successfully cloned.');
+              toast.success('Chat Engine successfully cloned.');
               startTransition(() => {
                 router.push(`/chat-engines/${newEngine.id}`);
               });
@@ -71,60 +68,27 @@ export function ChatEnginesTable () {
   );
 }
 
-function ChatEngineActions ({ chatEngine }: { chatEngine: ChatEngine }) {
-  return (
-    <span className="flex gap-2 items-center">
-      <CloneButton chatEngine={chatEngine} />
-      <DeleteButton chatEngine={chatEngine} />
-    </span>
-  );
-}
+function NameLink ({ chatEngine }: { chatEngine: ChatEngine }) {
+  const { need_migration } = useBootstrapStatus();
 
-function CloneButton ({ chatEngine }: { chatEngine: ChatEngine }) {
-  const [cloning, setCloning] = useState(false);
-  const [navigating, push] = usePush();
+  const kbNotConfigured = !!need_migration.chat_engines_without_kb_configured?.includes(chatEngine.id);
 
   return (
-    <Button
-      variant="ghost"
-      className="text-xs"
-      disabled={cloning || navigating}
-      size="sm"
-      onClick={() => {
-        setCloning(true);
-        const { name, llm_id, fast_llm_id, engine_options } = chatEngine;
-        createChatEngine({
-          name: `${name} Copy`, llm_id, fast_llm_id, engine_options,
-        })
-          .then(newEngine => {
-            toast('Chat Engine successfully cloned.');
-            push(`/chat-engines/${newEngine.id}`);
-          })
-          .finally(() => {
-            setCloning(false);
-          });
-      }}
+    <Link
+      className="underline font-mono"
+      href={`/chat-engines/${chatEngine.id}`}
     >
-      <CopyIcon className="w-3 mr-1" />
-      Clone
-    </Button>
-  );
-}
-
-function DeleteButton ({ chatEngine }: { chatEngine: ChatEngine }) {
-  const { reload } = useDataTable();
-
-  return (
-    <DangerousActionButton
-      action={async () => {
-        await deleteChatEngine(chatEngine.id);
-        reload?.();
-      }}
-      variant="ghost"
-      className="text-xs text-destructive hover:text-destructive hover:bg-destructive/20"
-    >
-      <TrashIcon className="w-3 mr-1" />
-      Delete
-    </DangerousActionButton>
+      {kbNotConfigured && <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <AlertTriangleIcon className="text-warning inline-flex mr-1 size-3" />
+          </TooltipTrigger>
+          <TooltipContent className="text-xs" align="start">
+            Knowledge Base not configured.
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>}
+      {chatEngine.name}
+    </Link>
   );
 }

@@ -1,15 +1,14 @@
 'use client';
 
-import { Divider } from '@/components/divider';
-import { NextLink } from '@/components/nextjs/NextLink';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button, type ButtonProps } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuBadge, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem } from '@/components/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
-import clsx from 'clsx';
-import { ChevronRightIcon, TrashIcon } from 'lucide-react';
+import { ChevronDownIcon, TrashIcon } from 'lucide-react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+
 import { type ComponentType, Fragment, type ReactElement, type ReactNode } from 'react';
 
 export interface NavGroup {
@@ -68,13 +67,11 @@ export function SiteNav ({ groups }: SiteNavProps) {
 
   return (
     <TooltipProvider>
-      <nav className="flex flex-col gap-6 px-4 pb-8 pt-0 relative h-full">
-        {groups.map((group, index) => (
-          <Fragment key={index}>
-            <SiteNavGroup group={group} current={pathname} />
-          </Fragment>
-        ))}
-      </nav>
+      {groups.map((group, index) => (
+        <Fragment key={index}>
+          <SiteNavGroup group={group} current={pathname} />
+        </Fragment>
+      ))}
     </TooltipProvider>
   );
 }
@@ -82,24 +79,15 @@ export function SiteNav ({ groups }: SiteNavProps) {
 function SiteNavGroup ({ group, current }: { group: NavGroup, current: string }) {
   const { sectionProps: { className: sectionClassName, ...restSectionProps } = {} } = group;
   return (
-    <section className={clsx('space-y-2', sectionClassName)} {...restSectionProps}>
-      {group.title && <Divider className="text-sm font-semibold text-foreground/70">{group.title}</Divider>}
-      <ul className="space-y-1.5">
-        {renderItems(group.items, current)}
-      </ul>
-    </section>
+    <SidebarGroup>
+      {group.title && <SidebarGroupLabel>{group.title}</SidebarGroupLabel>}
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {renderItems(group.items, current)}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
   );
-}
-
-function resolveVariant<T extends ButtonProps['variant']> (fnOrValue: T | ((active: boolean) => T | undefined) | null | undefined, active: boolean) {
-  if (!fnOrValue) {
-    return fnOrValue;
-  }
-  if (typeof fnOrValue === 'string') {
-    return fnOrValue;
-  } else {
-    return fnOrValue(active);
-  }
 }
 
 function isActive (current: string, item: NavLinkItem) {
@@ -123,65 +111,38 @@ const renderItems = (items: NavItem[], current: string) => {
 const renderParentBaseItemContent = (item: NavParentItem) => {
   return (
     <>
-      {item.icon && <item.icon className="w-5 h-5 opacity-70 !rotate-0" />}
+      {item.icon && <item.icon className="opacity-70" />}
       {item.title}
-      <span className="ml-auto flex items-center gap-1">
-        {item.details}
-        <ChevronRightIcon className="size-4" />
-      </span>
     </>
   );
 };
 
 const renderParentItemChildren = (current: string, item: NavParentItem) => {
   return (
-    <ul className='space-y-2 p-1 relative'>
+    <>
       {item.children.map(item => (
-        <DropdownMenuItem asChild key={isCustomItem(item) ? item.key : item.href}>
+        <Fragment key={isCustomItem(item) ? item.key : item.href}>
           {isCustomItem(item)
             ? <Fragment key={item.key}>{item.children}</Fragment>
-            : <SiteNavLinkItem key={item.href} item={item} active={isActive(current, item)} />}
-        </DropdownMenuItem>
+            : <SiteNavLinkItem key={item.href} item={item} active={isActive(current, item)} sub />}
+        </Fragment>
       ))}
-    </ul>
+    </>
   );
 };
 
 const renderBaseItemContent = (item: NavBaseItem) => {
   return (
     <>
-      {item.icon && <item.icon className="w-5 h-5 opacity-70 !rotate-0" />}
+      {item.icon && <item.icon className="opacity-70" />}
       {item.title}
-      {item.details && <span className="ml-auto flex items-center">{item.details}</span>}
     </>
   );
 };
 
 function SiteParentItem ({ current, item, active }: { current: string, item: NavParentItem, active: boolean }) {
-  let el: ReactElement;
+  let el: ReactElement<any> = renderParentBaseItemContent(item);
 
-  if (!!item.disabled) {
-    el = (
-      <span className="cursor-not-allowed">
-        <Button className={cn('flex w-full justify-start gap-2 font-semibold', item.className)} variant={resolveVariant(item.variant, active) ?? (active ? 'secondary' : 'ghost')} disabled={!!item.disabled}>
-          {renderParentBaseItemContent(item)}
-        </Button>
-      </span>
-    );
-  } else {
-    el = (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button className={cn('flex w-full justify-start gap-2 font-semibold aria-disabled:opacity-50', item.className)} variant={resolveVariant(item.variant, active) ?? (active ? 'secondary' : 'ghost')} data-active={active ? 'true' : undefined}>
-            {renderParentBaseItemContent(item)}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent side="right" align="start" alignOffset={-8}>
-          {renderParentItemChildren(current, item)}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
-  }
   if (item.disabled && typeof item.disabled !== 'boolean') {
     el = (
       <Tooltip>
@@ -194,43 +155,42 @@ function SiteParentItem ({ current, item, active }: { current: string, item: Nav
       </Tooltip>
     );
   }
+
   return (
-    <li>
-      {el}
-    </li>
+    <Collapsible defaultOpen={active} className="group" asChild>
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild disabled={!!item.disabled}>
+          <SidebarMenuButton isActive={active}>
+            {el}
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <SidebarMenuBadge>
+          <ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" />
+        </SidebarMenuBadge>
+        <CollapsibleContent asChild>
+          <SidebarMenuSub>
+            {renderParentItemChildren(current, item)}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </SidebarMenuItem>
+    </Collapsible>
   );
 }
 
-function SiteNavLinkItem ({ item, active }: { item: NavLinkItem, active: boolean }) {
-  let el: ReactElement;
+function SiteNavLinkItem ({ item, active, sub = false }: { item: NavLinkItem, active: boolean, sub?: boolean }) {
+  let el: ReactElement<any>;
+  let badge: ReactNode | undefined;
 
   if (!!item.disabled) {
-    el = (
-      <span className="cursor-not-allowed">
-        <Button className={cn('flex w-full items-center justify-start gap-2 font-semibold', item.className)} variant={resolveVariant(item.variant, active) ?? (active ? 'default' : 'ghost')} disabled={!!item.disabled}>
-          {renderBaseItemContent(item)}
-        </Button>
-      </span>
-    );
+    el = renderBaseItemContent(item);
   } else {
-    el = (
-      <NextLink href={item.href} prefetch={false} className={cn('flex w-full justify-start items-center gap-2 font-semibold aria-disabled:opacity-50', item.className)} variant={resolveVariant(item.variant, active) ?? (active ? 'default' : 'ghost')} data-active={active ? 'true' : undefined}>
-        {renderBaseItemContent(item)}
-      </NextLink>
-    );
+    el = renderBaseItemContent(item);
   }
-  if (item.disabled && typeof item.disabled !== 'boolean') {
-    el = (
-      <Tooltip>
-        <TooltipTrigger asChild disabled={!!item.disabled}>
-          {el}
-        </TooltipTrigger>
-        <TooltipContent>
-          {item.disabled}
-        </TooltipContent>
-      </Tooltip>
-    );
+
+  if (item.details) {
+    badge = item.details;
   }
+
   if (item.onDelete) {
     el = (
       <div className="flex gap-2 items-center">
@@ -259,9 +219,35 @@ function SiteNavLinkItem ({ item, active }: { item: NavLinkItem, active: boolean
       </div>
     );
   }
+
+  const MenuItem = sub ? SidebarMenuSubItem : SidebarMenuItem;
+  const MenuButton = sub ? SidebarMenuSubButton : SidebarMenuButton;
+
+  el = (
+    <MenuButton asChild isActive={active} disabled={!!item.disabled}>
+      <Link href={item.href}>
+        {el}
+      </Link>
+    </MenuButton>
+  );
+
+  if (item.disabled && typeof item.disabled !== 'boolean') {
+    el = (
+      <Tooltip>
+        <TooltipTrigger asChild disabled={!!item.disabled}>
+          {el}
+        </TooltipTrigger>
+        <TooltipContent>
+          {item.disabled}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
   return (
-    <li>
+    <MenuItem>
       {el}
-    </li>
+      {badge && <SidebarMenuBadge className="pointer-events-auto">{badge}</SidebarMenuBadge>}
+    </MenuItem>
   );
 }

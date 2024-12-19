@@ -36,15 +36,15 @@ const config: Config = {
         content: 'var(--content-height)',
       },
       width: {
-        side: 'var(--side-width)',
+        side: 'var(--sidebar-width)',
         content: 'var(--content-width)',
       },
       padding: {
         body: 'var(--body-padding)',
-        side: 'var(--side-width)',
+        side: 'var(--sidebar-width)',
       },
       margin: {
-        side: 'var(--side-width)',
+        side: 'var(--sidebar-width)',
       },
       colors: {
         border: 'hsl(var(--border))',

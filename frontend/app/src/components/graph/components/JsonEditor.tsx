@@ -1,5 +1,5 @@
+import { useActiveTheme } from '@/components/use-active-theme';
 import * as monaco from 'monaco-editor';
-import { useTheme } from 'next-themes';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 
 export const JsonEditor = forwardRef<monaco.editor.IStandaloneCodeEditor | undefined, { defaultValue: string, disabled?: boolean, id?: string }>(({ disabled, defaultValue, id }, forwardedRef) => {
@@ -7,7 +7,7 @@ export const JsonEditor = forwardRef<monaco.editor.IStandaloneCodeEditor | undef
 
   useImperativeHandle(forwardedRef, () => editor, [editor]);
 
-  const { theme } = useTheme();
+  const theme = useActiveTheme();
 
   const ref = useRef<HTMLDivElement>(null);
 

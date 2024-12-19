@@ -3,13 +3,8 @@ import { useConfig, DocsThemeConfig, Link } from 'nextra-theme-docs';
 
 let themeConfig: DocsThemeConfig = {
   docsRepositoryBase: 'https://github.com/pingcap/tidb.ai/tree/main/frontend/app',
-  useNextSeoProps () {
-    return {
-      titleTemplate: '%s - TiDB.AI',
-    };
-  },
   project: {
-    link: 'https://github.com/pingcap/tidb.ai',
+    link: 'https://github.com/pingcap/autoflow',
   },
   // chat: {
   //   link: 'https://tidb.ai/discord',
@@ -65,9 +60,9 @@ let themeConfig: DocsThemeConfig = {
       </>
     ),
   },
-  head: () => {
+  head: function Head() {
     const { asPath, defaultLocale, locale } = useRouter();
-    const { frontMatter } = useConfig();
+    const { frontMatter, title } = useConfig();
     const url =
       'https://tidb.ai' +
       (defaultLocale === locale ? asPath : `/${locale}${asPath}`);
@@ -75,10 +70,10 @@ let themeConfig: DocsThemeConfig = {
     return (
       <>
         <meta property="og:url" content={url} />
-        <meta property="og:title" content={frontMatter.title || 'TiDB.AI'} />
+        <meta property="og:title" content={frontMatter.title || 'AutoFlow'} />
         <meta
           property="og:description"
-          content={frontMatter.description || 'Docs & Blogs of TiDB.AI'}
+          content={frontMatter.description || 'Docs & Blogs of AutoFlow'}
         />
         <link
           rel="shortcut icon"
@@ -92,6 +87,7 @@ let themeConfig: DocsThemeConfig = {
           type="image/svg+xml"
           media="(prefers-color-scheme: light)"
         />
+        <title>{`${title} - AutoFlow`}</title>
       </>
     );
   },
@@ -123,7 +119,7 @@ let themeConfig: DocsThemeConfig = {
         />
       </svg>
       <span style={{ marginLeft: '.5em', fontWeight: 300, fontSize: '20px' }}>
-        TiDB.AI
+        AutoFlow
       </span>
     </>
   ),
@@ -132,7 +128,7 @@ let themeConfig: DocsThemeConfig = {
     toggleButton: true,
   },
   footer: {
-    text: (
+    content: (
       <span>
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -159,13 +155,15 @@ let themeConfig: DocsThemeConfig = {
       </span>
     ),
   },
-  primaryHue: {
-    dark: 0,
-    light: 0,
-  },
-  primarySaturation: {
-    dark: 0,
-    light: 0,
+  color: {
+    hue: {
+      dark: 0,
+      light: 0,
+    },
+    saturation: {
+      dark: 0,
+      light: 0,
+    }
   },
   // ... other theme options
   components: {

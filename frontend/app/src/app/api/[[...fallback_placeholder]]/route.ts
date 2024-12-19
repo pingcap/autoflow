@@ -35,6 +35,7 @@ function handler (request: NextRequest) {
     return response;
   }, error => {
     console.error('[proxy]', request.method, newUrl.toString(), error);
+    return Promise.reject(error);
   });
 }
 

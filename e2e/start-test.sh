@@ -9,36 +9,60 @@ F_UNDERLINED="\033[4m"
 C_AQUA="\033[38;5;14m"
 TAG="${F_BOLD}${F_UNDERLINED}${C_AQUA}[TiDB.AI Integration Test]${NO_FORMAT}"
 
+TIDB_VERSION=v8.4.0
+
+PATH=${PATH}:/home/runner/.tiup/bin
 
 echo -e "$TAG Creating temp dir"
 export E2E_DATA_STORAGE_DIR=$(mktemp -d "${TMPDIR:-/tmp/}"/tidbai-storage.XXXXXXXX | sed 's#//#/#g')
 export E2E_DATA_REDIS_DIR=$(mktemp -d "${TMPDIR:-/tmp/}"/tidbai-redis.XXXXXXXX | sed 's#//#/#g')
-export E2E_DATA_TIDB_DIR=$(mktemp -d "${TMPDIR:-/tmp/}"/tidbai-storage.XXXXXXXX | sed 's#//#/#g')
 echo E2E_DOCKER_TAG_FRONTEND: ${E2E_DOCKER_TAG_FRONTEND}
 echo E2E_DOCKER_TAG_BACKEND: ${E2E_DOCKER_TAG_BACKEND}
 echo E2E_DATA_STORAGE_DIR: ${E2E_DATA_STORAGE_DIR}
 echo E2E_DATA_REDIS_DIR: ${E2E_DATA_REDIS_DIR}
-echo E2E_DATA_TIDB_DIR: ${E2E_DATA_TIDB_DIR}
 
 echo -e "$TAG Starting TiDB"
-docker compose up -d tidb
+
+CLUSTER_TAG=e2e_$(xxd -l4 -ps /dev/urandom)
+
+TIDB_PID=
 
 # Cleanups
 function clean_up {
   ARG=$?
   echo -e "$TAG Cleaning up..."
-  docker compose down frontend background backend tidb redis static-web-server
 
-  rm -rf ${E2E_DATA_STORAGE_DIR} ${E2E_DATA_REDIS_DIR} ${E2E_DATA_TIDB_DIR} || echo "Failed to remove temp dirs."
+  # Stop dockers
+  echo -e "$TAG Shutdown dockers..."
+  docker compose down frontend background backend redis static-web-server
+
+  # Stop tiup playground and cleanup data
+  echo -e "$TAG Stopping tiup playground cluster..."
+  echo -e "$TAG Wait until TiDB down..."
+  kill $TIDB_PID 2>/dev/null || true
+  while ! tiup playground display ${CLUSTER_TAG} >/dev/null 2>/dev/null
+  do
+    sleep 1
+  done
+  echo -e "$TAG Cleaning tiup playground data..."
+  tiup clean ${CLUSTER_TAG}
+
+  # Remove temp dirs
+  echo -e "$TAG Cleaning temp data dirs"
+  rm -rf ${E2E_DATA_STORAGE_DIR} ${E2E_DATA_REDIS_DIR} 2>/dev/null || true
 
   exit $ARG
 }
 
 trap clean_up EXIT
 
-
+echo -e "$TAG Create tiup playground cluster..."
+tiup playground ${TIDB_VERSION} --tag ${CLUSTER_TAG} --without-monitor \
+  --db 1 --pd 1 --tiflash 1 --kv 1 \
+  --db.host 0.0.0.0 --pd.host 0.0.0.0 &
+TIDB_PID=$!
 echo -e "$TAG Wait until TiDB ready..."
-while ! docker compose exec tidb /bin/bash -c "curl http://127.0.0.1:10080/status" > /dev/null 2>/dev/null
+while ! tiup playground display ${CLUSTER_TAG} >/dev/null 2>/dev/null
 do
   sleep 1
 done

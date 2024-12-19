@@ -83,6 +83,8 @@ class Settings(BaseSettings):
     TIDB_DATABASE: str
     TIDB_SSL: bool = True
 
+    ENABLE_QUESTION_CACHE: bool = False
+
     CELERY_BROKER_URL: str = "redis://redis:6379/0"
     CELERY_RESULT_BACKEND: str = "redis://redis:6379/0"
 
@@ -100,7 +102,9 @@ class Settings(BaseSettings):
     # For example:
     #   maidalun1020/bce-embedding-base_v1: EMBEDDING_DIMS=768   EMBEDDING_MAX_TOKENS=512
     EMBEDDING_DIMS: int = 1536
-    EMBEDDING_MAX_TOKENS: int = 8191
+    EMBEDDING_MAX_TOKENS: int = 2048
+
+    EVALUATION_OPENAI_API_KEY: str | None = None
 
     @computed_field  # type: ignore[misc]
     @property

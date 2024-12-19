@@ -1,18 +1,22 @@
 'use client';
 
 import { type Document, listDocuments, type ListDocumentsTableFilters } from '@/api/documents';
+import { deleteKnowledgeBaseDocument } from '@/api/knowledge-base';
+import { actions } from '@/components/cells/actions';
 import { datetime } from '@/components/cells/datetime';
+import { link } from '@/components/cells/link';
 import { mono } from '@/components/cells/mono';
-import { DatasourceCell, KnowledgeBaseCell } from '@/components/cells/reference';
+import { DatasourceCell } from '@/components/cells/reference';
 import { DataTableRemote } from '@/components/data-table-remote';
 import { DocumentPreviewDialog } from '@/components/document-viewer';
 import { DocumentsTableFilters } from '@/components/documents/documents-table-filters';
-import { DocumentChunksTable } from '@/components/knowledge-base/document-chunks-table';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { NextLink } from '@/components/nextjs/NextLink';
+import { getErrorMessage } from '@/lib/errors';
 import type { CellContext, ColumnDef } from '@tanstack/react-table';
 import { createColumnHelper } from '@tanstack/table-core';
+import { UploadIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 const helper = createColumnHelper<Document>();
 
@@ -25,16 +29,24 @@ const truncateUrl = (url: string, maxLength: number = 30): string => {
 
 const href = (cell: CellContext<any, string>) => <a className="underline" href={cell.getValue()} target="_blank">{truncateUrl(cell.getValue())}</a>;
 
-const getColumns = (kbId?: number) => [
+const getColumns = (kbId: number) => [
   helper.accessor('id', { cell: mono }),
-  helper.accessor('knowledge_base', { cell: ctx => <KnowledgeBaseCell {...ctx.getValue()} /> }),
-  helper.display({ id: 'name', header: 'name', cell: ({ row }) =>
-    <DocumentPreviewDialog
-      title={row.original.source_uri}
-      name={row.original.name}
-      mime={row.original.mime_type}
-      content={row.original.content}
-    />
+  helper.display({
+    id: 'name', header: 'name', cell: ({ row }) =>
+      <DocumentPreviewDialog
+        title={row.original.source_uri}
+        name={row.original.name}
+        mime={row.original.mime_type}
+        content={row.original.content}
+      />,
+  }),
+  helper.display({
+    id: 'chunks',
+    header: 'Chunks',
+    cell: link({
+      url: row => `/knowledge-bases/${kbId}/documents/${row.id}/chunks`,
+      text: () => 'View Chunks',
+    }),
   }),
   helper.accessor('source_uri', { cell: href }),
   helper.accessor('mime_type', { cell: mono }),
@@ -44,49 +56,55 @@ const getColumns = (kbId?: number) => [
   helper.accessor('last_modified_at', { cell: datetime }),
   helper.display({
     id: 'op',
-    header: 'action',
-    cell: ({ row }) => (kbId ?? row.original.knowledge_base?.id) != null && (
-      <Dialog>
-        <DialogTrigger>
-          <Button className='text-xs p-2' variant="ghost" size="sm">
-            Chunks
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-[720px] w-full">
-          <DialogHeader>
-            <DialogTitle>
-              Document Chunks
-            </DialogTitle>
-            <DialogDescription>
-            </DialogDescription>
-          </DialogHeader>
-          <div className="w-full overflow-x-hidden">
-            <DocumentChunksTable knowledgeBaseId={(kbId ?? row.original.knowledge_base?.id)!} documentId={row.original.id} />
-          </div>
-        </DialogContent>
-      </Dialog>
-
-    ),
+    header: 'Operations',
+    cell: actions(row => [
+      {
+        key: 'delete-document',
+        title: 'Delete',
+        dangerous: {
+          dialogTitle: `Continue to delete document "${row.name}"?`,
+        },
+        action: async (context) => {
+          try {
+            await deleteKnowledgeBaseDocument(kbId, row.id);
+            context.table.reload?.();
+            context.startTransition(() => {
+              context.router.refresh();
+            });
+            context.setDropdownOpen(false);
+            toast.success(`Successfully deleted document "${row.name}"`);
+          } catch (e) {
+            toast.error(`Failed to delete document "${row.name}"`, {
+              description: getErrorMessage(e),
+            });
+            return Promise.reject(e);
+          }
+        },
+      },
+    ]),
   }),
 ] as ColumnDef<Document>[];
 
-export function DocumentsTable ({ knowledgeBaseId }: { knowledgeBaseId?: number }) {
+export function DocumentsTable ({ knowledgeBaseId }: { knowledgeBaseId: number }) {
   const [filters, setFilters] = useState<ListDocumentsTableFilters>({});
 
   const columns = useMemo(() => {
-    if (knowledgeBaseId != null) {
-      const columns = [...getColumns(knowledgeBaseId)];
-      columns.splice(1, 1);
-      return columns;
-    } else {
-      return getColumns(knowledgeBaseId);
-    }
+    return [...getColumns(knowledgeBaseId)];
   }, [knowledgeBaseId]);
 
   return (
     <DataTableRemote
       toolbar={((table) => (
-        <DocumentsTableFilters table={table} onFilterChange={setFilters} />
+        <div className="space-y-2">
+          <NextLink
+            href={`/knowledge-bases/${knowledgeBaseId}/data-sources/new?type=file`}
+            variant="secondary"
+          >
+            <UploadIcon />
+            Upload documents
+          </NextLink>
+          <DocumentsTableFilters table={table} onFilterChange={setFilters} />
+        </div>
       ))}
       columns={columns}
       apiKey={knowledgeBaseId != null ? `api.datasource.${knowledgeBaseId}.documents` : 'api.documents.list'}

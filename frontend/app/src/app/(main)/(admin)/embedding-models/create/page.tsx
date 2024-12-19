@@ -14,7 +14,7 @@ export default function Page () {
       <AdminPageHeading
         breadcrumbs={[
           { title: 'Models' },
-          { title: 'Embedding Models', url: '/embedding-models' },
+          { title: 'Embedding Models', url: '/embedding-models', docsUrl: '/docs/embedding-model' },
           { title: 'Create' },
         ]}
       />
@@ -23,6 +23,7 @@ export default function Page () {
         onCreated={embeddingModel => {
           startTransition(() => {
             router.push(`/embedding-models/${embeddingModel.id}`);
+            router.refresh();
           });
         }}
       />

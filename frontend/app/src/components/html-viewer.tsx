@@ -13,7 +13,7 @@ export function HtmlViewer ({ value: propValue }: { value: string }) {
   useEffect(() => {
     setValue(propValue);
     try {
-      const { value: result } = Highlight.highlight('html', propValue);
+      const { value: result } = Highlight.highlight(propValue, { language: 'html' });
       setValue(result);
     } catch {
     }

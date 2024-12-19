@@ -19,9 +19,9 @@ const columns = [
       const type = cell.getValue();
       switch (type) {
         case FeedbackType.like:
-          return (<span className="flex gap-2 items-center text-green-500"><ThumbsUpIcon className="size-4" /> LIKE</span>);
+          return (<span className="flex gap-2 items-center text-success"><ThumbsUpIcon className="size-4" /> LIKE</span>);
         case FeedbackType.dislike:
-          return (<span className="flex gap-2 items-center text-red-500"><ThumbsDownIcon className="size-4" /> DISLIKE</span>);
+          return (<span className="flex gap-2 items-center text-destructive"><ThumbsDownIcon className="size-4" /> DISLIKE</span>);
       }
     },
   }),

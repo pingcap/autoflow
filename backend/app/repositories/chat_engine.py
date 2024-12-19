@@ -1,5 +1,7 @@
 from typing import Optional
 from datetime import datetime, UTC
+
+from sqlalchemy import func
 from sqlmodel import select, Session, update
 from fastapi_pagination import Params, Page
 from fastapi_pagination.ext.sqlmodel import paginate
@@ -33,6 +35,16 @@ class ChatEngineRepo(BaseRepo):
                 ChatEngine.is_default == True, ChatEngine.deleted_at == None
             )
         ).first()
+
+    def has_default(self, session: Session) -> bool:
+        return (
+            session.scalar(
+                select(func.count(ChatEngine.id)).where(
+                    ChatEngine.is_default == True, ChatEngine.deleted_at == None
+                )
+            )
+            > 0
+        )
 
     def get_engine_by_name(self, session: Session, name: str) -> Optional[ChatEngine]:
         return session.exec(

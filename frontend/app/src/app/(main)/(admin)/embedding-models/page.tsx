@@ -1,16 +1,24 @@
 'use client';
 
 import { AdminPageHeading } from '@/components/admin-page-heading';
-import { ConfigViewer } from '@/components/config-viewer';
-import { DateFormat } from '@/components/date-format';
 import { EmbeddingModelsTable } from '@/components/embedding-models/EmbeddingModelsTable';
-import { OptionDetail } from '@/components/option-detail';
+import { NextLink } from '@/components/nextjs/NextLink';
+import { PlusIcon } from 'lucide-react';
 
 export default function EmbeddingModelPage () {
 
   return (
     <>
-      <AdminPageHeading title="Embedding Models" />
+      <AdminPageHeading
+        breadcrumbs={[
+          { title: 'Models' },
+          { title: 'Embedding Models', docsUrl: '/docs/embedding-model' },
+        ]}
+      />
+      <NextLink href="/embedding-models/create">
+        <PlusIcon className="size-4" />
+        New Embedding Model
+      </NextLink>
       <EmbeddingModelsTable />
     </>
   );

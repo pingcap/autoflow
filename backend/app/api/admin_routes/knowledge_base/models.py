@@ -1,38 +1,31 @@
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, Field
 
-from app.api.admin_routes.models import EmbeddingModelDescriptor, LLMDescriptor, UserDescriptor
-from app.exceptions import KBNoVectorIndexConfiguredError
+from app.api.admin_routes.knowledge_base.data_source.models import (
+    KBDataSource,
+    KBDataSourceCreate,
+)
+from app.api.admin_routes.models import (
+    EmbeddingModelDescriptor,
+    LLMDescriptor,
+    UserDescriptor,
+)
+from app.exceptions import KBNoVectorIndexConfigured
 from app.models import KgIndexStatus
-from app.models.data_source import DataSourceType
 from app.models.knowledge_base import IndexMethod
-from app.models.patch.sql_model import SQLModel
 
 
-class KBDataSourceCreate(BaseModel):
-    id: Optional[int] = None
+class KnowledgeBaseCreate(BaseModel):
     name: str
-    data_source_type: DataSourceType
-    config: dict | list
-
-    @field_validator("name")
-    def name_must_not_be_blank(cls, v: str) -> str:
-        if not v.strip():
-            raise ValueError("Please provide a name for the data source")
-        return v
-
-    # TODO: verify DataSource config.
-
-
-class KnowledgeBaseCreate(SQLModel):
-    name: str
-    description: str
-    index_methods: list[IndexMethod]
+    description: Optional[str] = None
+    index_methods: list[IndexMethod] = Field(
+        default_factory=lambda: [IndexMethod.VECTOR]
+    )
     llm_id: Optional[int] = None
     embedding_model_id: Optional[int] = None
-    data_sources: list[KBDataSourceCreate]
+    data_sources: list[KBDataSourceCreate] = Field(default_factory=list)
 
     @field_validator("name")
     def name_must_not_be_blank(cls, v: str) -> str:
@@ -45,7 +38,7 @@ class KnowledgeBaseCreate(SQLModel):
         # Notice: For now, knowledge base must be configured vector index method,
         # we will remove this limit in the feature.
         if IndexMethod.VECTOR not in v:
-            raise KBNoVectorIndexConfiguredError()
+            raise KBNoVectorIndexConfigured()
         return v
 
 
@@ -54,23 +47,16 @@ class KnowledgeBaseUpdate(BaseModel):
     description: Optional[str] = None
 
 
-class KBDataSource(BaseModel):
-    """
-    Represents a linked data source for a knowledge base.
-    """
-    id: int
-    name: str
-    data_source_type: DataSourceType
-    config: dict | list
-
-
 class KnowledgeBaseDetail(BaseModel):
     """
     Represents a detailed view of a knowledge base.
     """
+
     id: int
     name: str
     description: str
+    documents_total: int
+    data_sources_total: int
     # Notice: By default, SQLModel will not serialize list type relationships.
     # https://github.com/fastapi/sqlmodel/issues/37#issuecomment-2093607242
     data_sources: list[KBDataSource]
@@ -88,6 +74,7 @@ class KnowledgeBaseItem(BaseModel):
     """
     Represents a simplified view of a knowledge base for list display purposes.
     """
+
     id: int
     name: str
     description: str

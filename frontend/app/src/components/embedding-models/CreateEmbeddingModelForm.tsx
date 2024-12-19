@@ -2,19 +2,19 @@
 
 import { createEmbeddingModel, type EmbeddingModel, listEmbeddingModelOptions, testEmbeddingModel } from '@/api/embedding-models';
 import { ProviderSelect } from '@/components/form/biz';
-import { FormInput, FormSwitch } from '@/components/form/control-widget';
-import { FormFieldBasicLayout, FormFieldContainedLayout } from '@/components/form/field-layout';
+import { FormInput } from '@/components/form/control-widget';
+import { FormFieldBasicLayout } from '@/components/form/field-layout';
 import { FormRootError } from '@/components/form/root-error';
+import { handleSubmitHelper } from '@/components/form/utils';
 import { CodeInput } from '@/components/form/widgets/CodeInput';
 import { ProviderDescription } from '@/components/provider-description';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
-import { getErrorMessage } from '@/lib/errors';
 import { zodJsonText } from '@/lib/zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2Icon } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useId } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import useSWR from 'swr';
@@ -38,6 +38,7 @@ const dictCredentialForm = unsetForm.extend({
 });
 
 export function CreateEmbeddingModelForm ({ transitioning, onCreated }: { transitioning?: boolean, onCreated?: (embeddingModel: EmbeddingModel) => void }) {
+  const id = useId();
   const { data: options, isLoading, error } = useSWR('api.embedding-models.list-options', listEmbeddingModelOptions);
 
   const form = useForm<any>({
@@ -83,25 +84,20 @@ export function CreateEmbeddingModelForm ({ transitioning, onCreated }: { transi
     }
   }, [provider]);
 
-  const handleSubmit = form.handleSubmit(async (values) => {
+  const handleSubmit = handleSubmitHelper(form, async (values) => {
     const { error, success } = await testEmbeddingModel(values);
     if (!success) {
-      form.setError('root', { message: error || 'Unknown error' });
-      return;
+      throw new Error(error || 'Test Embedding Model failed.');
     }
-    try {
-      const embeddingModel = await createEmbeddingModel(values);
-      toast('Embedding Model successfully created.');
-      onCreated?.(embeddingModel);
-    } catch (error) {
-      form.setError('root', { message: getErrorMessage(error) });
-    }
+    const embeddingModel = await createEmbeddingModel(values);
+    toast.success('Embedding Model successfully created.');
+    onCreated?.(embeddingModel);
   });
 
   return (
     <>
       <Form {...form}>
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <form id={id} className="space-y-4" onSubmit={handleSubmit}>
           <FormFieldBasicLayout name="name" label="Name">
             <FormInput />
           </FormFieldBasicLayout>
@@ -136,12 +132,8 @@ export function CreateEmbeddingModelForm ({ transitioning, onCreated }: { transi
               </Accordion>
             </>
           )}
-          <FormFieldContainedLayout name="is_default" label="Is Default Embedding Model" description="Enable will unset original default Embedding Model.">
-            <FormSwitch />
-          </FormFieldContainedLayout>
-          <FormRootError title="Failed to create LLM" />
           <FormRootError title="Failed to create Embedding Model" />
-          <Button disabled={form.formState.disabled || !provider || form.formState.isSubmitting || transitioning}>
+          <Button type="submit" form={id} disabled={form.formState.disabled || !provider || form.formState.isSubmitting || transitioning}>
             {(form.formState.isSubmitting || transitioning) && <Loader2Icon className="size-4 mr-1 animate-spin repeat-infinite" />}
             Create Embedding Model
           </Button>

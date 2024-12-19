@@ -43,7 +43,7 @@ export function MessageOperations ({ message }: { message: ChatMessageController
           {feedbackData
             ? (<DialogTrigger asChild>
               <Button size="icon" variant="ghost" className="rounded-full w-7 h-7" disabled={disabled}>
-                {feedbackData.feedback_type === 'like' ? <ThumbsUpIcon className="w-4 h-4 text-green-500" /> : <ThumbsDownIcon className="w-4 h-4 text-red-500" />}
+                {feedbackData.feedback_type === 'like' ? <ThumbsUpIcon className="w-4 h-4 text-success" /> : <ThumbsDownIcon className="w-4 h-4 text-destructive" />}
               </Button>
             </DialogTrigger>)
             : (<>
@@ -83,7 +83,7 @@ export function MessageOperations ({ message }: { message: ChatMessageController
             <Button
               size="icon"
               variant="ghost"
-              className={cn('rounded-full w-7 h-7 transition-colors', copied && '!text-green-500 hover:bg-green-500/10')}
+              className={cn('rounded-full w-7 h-7 transition-colors', copied && 'text-success hover:text-success hover:bg-success/10')}
               onClick={() => {
                 setCopied(copy(message.content));
               }}

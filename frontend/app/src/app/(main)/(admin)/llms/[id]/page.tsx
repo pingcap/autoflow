@@ -8,10 +8,11 @@ import { ConfigViewer } from '@/components/config-viewer';
 import { OptionDetail } from '@/components/option-detail';
 import { Loader2Icon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useTransition } from 'react';
+import { useTransition, use } from 'react';
 import useSWR from 'swr';
 
-export default function Page ({ params }: { params: { id: string } }) {
+export default function Page(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params);
   const router = useRouter();
   const { data } = useSWR(`api.llms.get?id=${params.id}`, () => getLlm(parseInt(params.id)));
   const [transitioning, startTransition] = useTransition();
@@ -21,7 +22,7 @@ export default function Page ({ params }: { params: { id: string } }) {
       <AdminPageHeading
         breadcrumbs={[
           { title: 'Models' },
-          { title: 'LLMs', url: '/llms' },
+          { title: 'LLMs', url: '/llms', docsUrl: '/docs/llm' },
           { title: data ? data.name : <Loader2Icon className="size-4 animate-spin repeat-infinite" /> },
         ]}
       />
@@ -32,7 +33,7 @@ export default function Page ({ params }: { params: { id: string } }) {
           <OptionDetail title="Provider" value={data?.provider} />
           <OptionDetail title="Model" value={data?.model} />
           <OptionDetail title="Config" value={data?.config && <ConfigViewer value={data.config}></ConfigViewer>} />
-          <OptionDetail title="Is Default" value={data?.is_default ? 'Yes' : 'No'} valueClassName={data?.is_default ? 'text-green-500' : 'text-muted-foreground'} />
+          <OptionDetail title="Is Default" value={data?.is_default ? 'Yes' : 'No'} valueClassName={data?.is_default ? 'text-success' : 'text-muted-foreground'} />
           <OptionDetail title="Created At" value={<DateFormat date={data?.created_at} />} />
           <OptionDetail title="Updated At" value={<DateFormat date={data?.updated_at} />} />
         </div>

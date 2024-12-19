@@ -10,7 +10,7 @@ export function boolean (props: CellContext<any, boolean | undefined | null>) {
 
   if (bool) {
     return (
-      <span className="text-green-500 inline-flex gap-1 items-center">
+      <span className="text-success inline-flex gap-1 items-center">
         <CheckIcon className="size-4" />
         Yes
       </span>

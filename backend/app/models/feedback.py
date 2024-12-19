@@ -52,7 +52,6 @@ class Feedback(BaseFeedback, table=True):
             "primaryjoin": "Feedback.user_id == User.id",
         },
     )
-    
 
     __tablename__ = "feedbacks"
 

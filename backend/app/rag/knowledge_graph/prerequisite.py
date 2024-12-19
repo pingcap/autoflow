@@ -6,12 +6,14 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
+
 class Prerequisites(BaseModel):
     """Decomposed prerequisite questions extracted from the main query"""
 
     questions: List[str] = Field(
         description="List of prerequisite questions necessary for answering the main query."
     )
+
 
 class DecomposePrerequisites(dspy.Signature):
     """You are an expert in query analysis and decomposition. Your task is to identify any prerequisite questions that need to be answered in order to fully address the main query.
@@ -37,6 +39,7 @@ class DecomposePrerequisites(dspy.Signature):
         desc="The decomposed prerequisite questions extracted from the main query."
     )
 
+
 class DecomposePrerequisitesModule(dspy.Module):
     def __init__(self, dspy_lm: dspy.LM):
         super().__init__()
@@ -46,6 +49,7 @@ class DecomposePrerequisitesModule(dspy.Module):
     def forward(self, query):
         with dspy.settings.context(lm=self.dspy_lm):
             return self.prog(query=query)
+
 
 class PrerequisiteAnalyzer:
     def __init__(self, dspy_lm: dspy.LM, compiled_program_path: Optional[str] = None):

@@ -2,6 +2,7 @@
 
 import { listChatEngines } from '@/api/chat-engines';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useAllChatEngines } from '@/components/chat-engine/hooks';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -41,7 +42,7 @@ export function MessageInput ({
   }, []);
 
   const showShowSelectChatEngine = !!auth.me?.is_superuser && !!onEngineChange;
-  const { data, isLoading } = useSWR(showShowSelectChatEngine && 'api.chat-engines.list-all', () => listChatEngines({ page: 1, size: 100 }));
+  const { data, isLoading } = useAllChatEngines();
 
   return (
     <div className={cn('bg-background border p-2 rounded-lg', className)}>
@@ -56,7 +57,7 @@ export function MessageInput ({
         {...inputProps}
         onChange={handleChange}
         ref={inputRef}
-        className="w-full border-none ring-0 outline-none bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 resize-none placeholder:font-light placeholder-gray-400 dark:placeholder-gray-500 max-h-72"
+        className="w-full border-none ring-0 outline-none bg-background focus-visible:ring-0 focus-visible:ring-offset-0 resize-none placeholder:font-light placeholder-gray-400 dark:placeholder-gray-500 max-h-72"
         disabled={disabled || inputProps?.disabled}
         minRows={4}
       />
@@ -66,13 +67,13 @@ export function MessageInput ({
             <SelectValue placeholder="Select Chat Engine" />
           </SelectTrigger>
           <SelectContent>
-            {data?.items.map(item => (
+            {data?.map(item => (
               <SelectItem key={item.name} value={String(item.name)} textValue={item.name}>
               <span className="flex items-center gap-2">
-                {item.is_default ? <Badge variant="outline" className="text-green-500 border-green-500/50">default</Badge> : item.name}
-                {item.engine_options.external_engine_config
+                {item.is_default ? <Badge variant="outline" className="text-success border-success/70">default</Badge> : item.name}
+                {!!item.engine_options.external_engine_config?.stream_chat_api_url
                   ? <Badge>External Engine (StackVM)</Badge>
-                  : item.engine_options.knowledge_graph.enabled
+                  : item.engine_options.knowledge_graph?.enabled !== false /* TODO: require default config */
                     ? <Badge variant="secondary">Knowledge graph enabled</Badge>
                     : undefined}
               </span>

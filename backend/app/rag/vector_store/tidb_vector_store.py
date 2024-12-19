@@ -55,7 +55,7 @@ class TiDBVectorStore(BasePydanticVectorStore):
         self,
         session: Optional[Session] = None,
         chunk_db_model: SQLModel = Chunk,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
         self._session = session
@@ -70,7 +70,9 @@ class TiDBVectorStore(BasePydanticVectorStore):
         table_name = self._chunk_db_model.__tablename__
 
         if table_name not in inspector.get_table_names():
-            self._chunk_db_model.metadata.create_all(engine, tables=[self._chunk_db_model.__table__])
+            self._chunk_db_model.metadata.create_all(
+                engine, tables=[self._chunk_db_model.__table__]
+            )
 
             # Add HNSW index to accelerate ann queries.
             VectorAdaptor(engine).create_vector_index(
@@ -79,14 +81,18 @@ class TiDBVectorStore(BasePydanticVectorStore):
 
             logger.info(f"Chunk table <{table_name}> has been created successfully.")
         else:
-            logger.info(f"Chunk table <{table_name}> is already exists, no action to do.")
+            logger.info(
+                f"Chunk table <{table_name}> is already exists, no action to do."
+            )
 
     def drop_table_schema(self):
         inspector = sqlalchemy.inspect(engine)
         table_name = self._chunk_db_model.__tablename__
 
         if table_name in inspector.get_table_names():
-            self._chunk_db_model.metadata.drop_all(self._session.connection(), tables=[self._chunk_db_model.__table__])
+            self._chunk_db_model.metadata.drop_all(
+                self._session.connection(), tables=[self._chunk_db_model.__table__]
+            )
             logger.info(f"Chunk table <{table_name}> has been dropped successfully.")
         else:
             logger.info(f"Chunk table <{table_name}> is not existed, not action to do.")
@@ -147,7 +153,9 @@ class TiDBVectorStore(BasePydanticVectorStore):
             None
         """
         assert ref_doc_id.isdigit(), "ref_doc_id must be an integer."
-        delete_stmt = delete(self._chunk_db_model).where(self._chunk_db_model.document_id == int(ref_doc_id))
+        delete_stmt = delete(self._chunk_db_model).where(
+            self._chunk_db_model.document_id == int(ref_doc_id)
+        )
         self._session.exec(delete_stmt)
         self._session.commit()
 
@@ -175,7 +183,9 @@ class TiDBVectorStore(BasePydanticVectorStore):
             self._chunk_db_model.id,
             self._chunk_db_model.text,
             self._chunk_db_model.meta,
-            self._chunk_db_model.embedding.cosine_distance(query.query_embedding).label("distance"),
+            self._chunk_db_model.embedding.cosine_distance(query.query_embedding).label(
+                "distance"
+            ),
         )
 
         if query.filters:

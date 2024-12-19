@@ -235,10 +235,7 @@ class KnowledgeGraphIndex(BaseIndex[IndexLPG]):
                 payload={EventPayload.QUERY_STR: chat_content},
             ) as event:
                 intents = self._intents.analyze(chat_content)
-                semantic_queries = [
-                    r.question
-                    for r in intents.questions
-                ]
+                semantic_queries = [r.question for r in intents.questions]
                 event.on_end(payload={"semantic_queries": semantic_queries})
 
         return semantic_queries

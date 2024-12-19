@@ -3,7 +3,7 @@
 import Link from 'next/link';
 
 export function DatasourceCell ({ id, name }: { id: number, name: string }) {
-  return <Link className="underline" href={`/datasources/${id}`}>{name}</Link>;
+  return <span>{name}</span>;
 }
 
 export function KnowledgeBaseCell ({ id, name }: { id?: number, name?: string }) {

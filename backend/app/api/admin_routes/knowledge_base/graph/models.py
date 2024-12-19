@@ -14,22 +14,40 @@ class SynopsisEntityCreate(BaseModel):
         if len(self.entities) == 0:
             raise ValueError("Entities list should not be empty")
         return self
-    
-    
+
+
 class EntityUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     meta: Optional[dict] = None
 
 
-class RelationUpdate(BaseModel):
+class RelationshipUpdate(BaseModel):
     description: Optional[str] = None
     meta: Optional[dict] = None
     weight: Optional[int] = None
 
 
-class SearchRequest(BaseModel):
+class GraphSearchRequest(BaseModel):
     query: str
     include_meta: bool = True
     depth: int = 2
     with_degree: bool = True
+
+
+class KnowledgeRequest(BaseModel):
+    query: str
+    similarity_threshold: float = 0.55
+    top_k: int = 10
+
+
+class KnowledgeNeighborRequest(BaseModel):
+    entities_ids: List[int]
+    query: str
+    max_depth: int = 1
+    max_neighbors: int = 20
+    similarity_threshold: float = 0.55
+
+
+class KnowledgeChunkRequest(BaseModel):
+    relationships_ids: List[int]

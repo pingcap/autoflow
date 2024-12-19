@@ -1,54 +1,31 @@
 'use client';
 
-import { Nav, NavDrawer } from '@/app/(main)/nav';
-import { Branding } from '@/components/branding';
-import { SiteNavActionBar, SiteNavFooter, type SiteSocialsType } from '@/components/site-nav-footer';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { SiteSidebar } from '@/app/(main)/nav';
+import { SiteHeaderLargeScreen, SiteHeaderSmallScreen } from '@/components/site-header';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { useSettingContext } from '@/components/website-setting-provider';
-import Link from 'next/link';
-import { ReactNode, useMemo } from 'react';
+import { cn } from '@/lib/utils';
+import { ReactNode, useState } from 'react';
 
 export default function Layout ({ children }: {
   children: ReactNode
 }) {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const setting = useSettingContext();
-
-  const socialMemo: SiteSocialsType = useMemo(
-    () => ({
-      discord: setting.social_discord,
-      twitter: setting.social_twitter,
-      github: setting.social_github,
-    }),
-    [setting],
-  );
 
   return (
     <>
-      <div className="md:flex md:min-h-screen">
-        <header className="md:hidden h-header px-2 sticky top-0 bg-background border-b z-10 flex gap-2 items-center">
-          <NavDrawer />
-          <Branding setting={setting} />
-        </header>
-        <div className="fixed top-0 right-2 md:top-4 md:right-4 z-10">
-          <div className="flex gap-2 items-center">
-            <SiteNavActionBar className="flex h-fit" social={socialMemo} />
-          </div>
+      <SiteHeaderSmallScreen setting={setting} />
+      <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
+        <div className={cn('hidden md:block absolute pl-2.5 top-2.5 md:top-5 md:pl-5 z-10 transition-all ease-linear', sidebarOpen ? 'left-[--sidebar-width]' : 'left-0')}>
+          <SidebarTrigger />
         </div>
-        <aside className="flex-shrink-0 gap-4 w-side h-full hidden md:block border-r fixed top-0 left-0">
-          <Link className="h-header flex gap-4 items-left justify-left px-4 py-8 bg-background" href="/" prefetch={false}>
-            <Branding setting={setting} />
-          </Link>
-          <ScrollArea className="h-[calc(100%-6rem)] pr-2">
-            <div className="w-side">
-              <Nav />
-            </div>
-          </ScrollArea>
-          <SiteNavFooter className="absolute bottom-0 left-0 bg-background" />
-        </aside>
-        <main className="flex-1 md:ml-side md:w-content overflow-x-hidden">
+        <SiteHeaderLargeScreen setting={setting} />
+        <SiteSidebar setting={setting} />
+        <main className="flex-1 overflow-x-hidden">
           {children}
         </main>
-      </div>
+      </SidebarProvider>
     </>
   );
 }

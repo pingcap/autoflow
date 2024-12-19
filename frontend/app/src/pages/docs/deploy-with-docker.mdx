@@ -1,13 +1,17 @@
-# Deploy with Docker & Docker Compose
+# Deploy with Docker Compose
 
-This document provides instructions for deploying the entire RAG using Docker Compose.
+import { Callout } from 'nextra/components'
+
+This document provides instructions for deploying the entire Autoflow application using Docker Compose.
+
+## Prerequisites
+
+- Set up a TiDB cluster, you can use either:
+  - [TiDB Cloud Serverless](https://docs.pingcap.com/tidbcloud/tidb-cloud-quickstart)(recommended)
+  - [TiDB Self-Managed](https://docs.pingcap.com/tidb/stable/production-deployment-using-tiup)(>=v8.4).
+- Install [Docker Compose](https://docs.docker.com/compose/install/).
 
 ## Deploy
-
-> **Prerequisites:**
->
-> 1. Set up a [TiDB Serverless cluster](https://docs.pingcap.com/tidbcloud/tidb-cloud-quickstart).
-> 2. Install [Docker Compose](https://docs.docker.com/compose/install/).
 
 1. Clone the repository:
 
@@ -16,37 +20,7 @@ This document provides instructions for deploying the entire RAG using Docker Co
     cd autoflow/;
     ```
 
-2. Select an embedding model for pingcap/autoflow.
-
-    We recommend using the OpenAI text-embedding-3-small model for autoflow, but you can also use other supported embedding models.
-
-    - OpenAI
-        - text-embedding-3-small
-            - EMBEDDING_DIMS: 1536
-            - EMBEDDING_MAX_TOKENS: 8191
-    - JinaAI
-        - jina-clip-v1
-            - EMBEDDING_DIMS: 768
-            - EMBEDDING_MAX_TOKENS: 8192
-        - find more models in https://jina.ai/embeddings/
-    - ZhipuAI
-        - embedding-3
-            - EMBEDDING_DIMS: 2048
-            - EMBEDDING_MAX_TOKENS: 8192
-        - Find more details in https://open.bigmodel.cn/dev/api/vector/embedding-3
-    - Local Embedding Server
-        - BAAI/bge-m3
-            - EMBEDDING_DIMS: 1024
-            - EMBEDDING_MAX_TOKENS: 8192
-
-import { Callout } from 'nextra/components'
-
-<Callout>
-Note: You cannot change the embedding model after deployment because different models have varying vector dimensions and generate different vectors for the same input text.
-If you want to use a different embedding model after deployment, you need to recreate the app and database.
-</Callout>
-
-3. Copy and edit the `.env` file:
+2. Copy and edit the `.env` file:
 
     ```bash
     cp .env.example .env
@@ -54,70 +28,84 @@ If you want to use a different embedding model after deployment, you need to rec
     ```
 
     Replace the following placeholders with your own values:
-    - `SECRET_KEY`: you can generate a random secret key using `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`
-    - `TIDB_HOST`, `TIDB_USER`, `TIDB_PASSWORD` and `TIDB_DATABASE`: get them from your [TiDB Serverless cluster](https://tidbcloud.com/)
-      - Note: TiDB Serverless will provide a default database name called `test`, if you want to use another database name, you need to create a new database in the TiDB Serverless console.
-      - Note: Don't use '#' in the password, it will cause an error when connecting to the database. See [issue](https://github.com/pydantic/pydantic/issues/8061).
-    - `EMBEDDING_DIMS` and `EMBEDDING_MAX_TOKENS`: set them according to the embedding model you choose before, it can not be changed after the deployment.
+    - `SECRET_KEY`: you can generate a random secret key using:
+      ```python
+      `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`
+      ```
+    - `TIDB_HOST`, `TIDB_USER`, `TIDB_PASSWORD` and `TIDB_DATABASE`: you can get these values from the TiDB cluster you set up before.
+      - Note: if you are using a self-managed TiDB cluster, you need to set `TIDB_SSL=false`.
+    - `EMBEDDING_MAX_TOKENS`: set them according to the embedding model you choose before, it can not be changed after the deployment.(We will remove it in the future, and move it to the admin panel)
 
-4. Migrate the database schema:
+3. Migrate the database schema:
 
     ```bash
     docker compose run backend /bin/sh -c "alembic upgrade head"
     ```
 
-5. Bootstrap the database with initial data:
+4. Bootstrap the database with initial data:
 
     ```bash
+    # Use default admin credentials (admin@example.com with random password)
     docker compose run backend /bin/sh -c "python bootstrap.py"
+
+    # Or specify a custom admin email
+    docker compose run backend /bin/sh -c "python bootstrap.py --email new-admin@example.com"
     ```
 
     Running the bootstrap script creates an admin user. You can find the username and password in the output.
 
-6. Start the services:
+    ```bash
+    # Reset admin password (random generated)
+    docker compose run backend /bin/sh -c "python bootstrap.py -r"
+
+    # Or specify a new password
+    docker compose run backend /bin/sh -c "python bootstrap.py -r --password <new_password>"
+    ```
+
+5. Start the services:
+
+    If you are using a SaaS embedding model, start the services with the following command:
 
     ```bash
     docker compose up
     ```
 
-    To use the local embedding model, start with the following command:
+    If you want to use the built-in local embedding reranker, start the services with the following command:
 
     ```bash
     docker compose --profile local-embedding-reranker up
     ```
 
-7. Open your browser and visit `http://localhost:3000` to access the web interface.
-
-That's it! You can now use pingcap/autoflow locally. You can also go to https://tidb.ai to experience the live demo.
-
+6. Done! Now you can open your browser and visit [http://localhost:3000](http://localhost:3000) locally
 
 ## Configuration
 
-After you deploy the tool, you need to initialize the tool by following the popup wizard. The wizard will guide you through the following steps:
+After you deploy the application, you need to initialize the application by following [quick start guide](./quick-start.mdx).
 
-* Set up the default LLM model.
-* Set up the default Embedding model.
-* Set up `Data Source` to index the data.
+1. Set up the default [LLM model](./llm.mdx) in the **Models > LLMs** page.
 
-![initialization](https://github.com/user-attachments/assets/7f9253da-3d6f-4ccd-838d-feed3f0b6f05 "Initialization")
+2. Set up the default [Embedding model](./embedding-model.mdx) in the **Models > Embedding Models** page.
 
+3. Add a new [Knowledge Base](./knowledge-base.mdx) in the **Knowledge Bases** page.
+
+4. Configure default [Chat Engine](./chat-engine.mdx) and set up the new knowledge base as the retrieval database.
 
 ## Upgrade
 
 This section will help you upgrade pingcap/autoflow to the new version.
 
-Suppose you want to upgrade pingcap/autoflow from 0.1.0 to version 0.2.0
+Suppose you want to upgrade pingcap/autoflow from 0.3.0 to 0.3.1. Follow these steps:
 
 1. Edit your docker-compose.yml file to use the new image version.
 
     ```yaml
     services:
       backend:
-        image: tidbai/backend:0.2.0
+        image: tidbai/backend:0.3.1
       frontend:
-        image: tidbai/frontend:0.2.0
+        image: tidbai/frontend:0.3.1
       background:
-        image: tidbai/backend:0.2.0
+        image: tidbai/backend:0.3.1
     ```
 
 2. Pull the new image:

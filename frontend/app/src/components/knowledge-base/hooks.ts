@@ -1,28 +1,35 @@
+import { listDataSources } from '@/api/datasources';
 import { getKnowledgeGraphIndexProgress, listKnowledgeBases } from '@/api/knowledge-base';
-import { useKB } from '@/app/(main)/(admin)/knowledge-bases/[id]/context';
-import useSWR from 'swr';
-
-export function useKnowledgeBaseDatasource (id: number) {
-  const { data_sources } = useKB();
-
-  return data_sources.find(ds => ds.id === id);
-}
+import { listAllHelper } from '@/lib/request';
+import useSWR, { mutate } from 'swr';
 
 export function useKnowledgeBaseIndexProgress (id: number) {
   const { data: progress, ...rest } = useSWR(`api.knowledge-base.${id}.index-progress`, () => getKnowledgeGraphIndexProgress(id));
   return { progress, ...rest };
 }
 
-export function useKnowledgeBases (pageIndex: number, pageSize: number) {
-  const { data: knowledgeBases, ...rest } = useSWR(`api.knowledge-bases.list?page=${pageIndex}&size=${pageSize}`, () => listKnowledgeBases({ page: pageIndex + 1, size: pageSize }), {
-    revalidateOnReconnect: false,
-    revalidateOnFocus: false,
-    focusThrottleInterval: 1000,
-    keepPreviousData: true,
-  });
+export function useAllKnowledgeBases (flag = true) {
+  return useSWR(flag && `api.knowledge-bases.list-all`, () => listAllHelper(listKnowledgeBases, 'id'));
+}
+
+export function useKnowledgeBase (id: number | null | undefined) {
+  const { data, mutate, ...rest } = useAllKnowledgeBases(id != null);
 
   return {
-    knowledgeBases,
+    knowledgeBase: data?.find(llm => llm.id === id),
     ...rest,
   };
+}
+
+export function useAllKnowledgeBaseDataSources (kbId: number, flag = true) {
+  return useSWR(flag && `api.knowledge-bases.${kbId}.data-sources.list-all`, () => listAllHelper((params) => listDataSources(kbId, params), 'id'));
+}
+
+export function mutateKnowledgeBases () {
+  return mutate(key => {
+    if (typeof key === 'string') {
+      return key.startsWith(`api.knowledge-bases.`);
+    }
+    return false;
+  });
 }

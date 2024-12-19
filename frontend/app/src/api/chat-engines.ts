@@ -15,11 +15,22 @@ export interface ChatEngine {
   is_default: boolean;
 }
 
+export interface CreateChatEngineParams {
+  name: string;
+  engine_options: ChatEngineOptions;
+  llm_id?: number | null;
+  fast_llm_id?: number | null;
+  reranker_id?: number | null;
+}
+
 export interface ChatEngineOptions {
-  external_engine_config?: object | null;
+  external_engine_config?: {
+    stream_chat_api_url?: string | null
+  } | null;
+  clarify_question?: boolean | null;
   knowledge_base?: ChatEngineKnowledgeBaseOptions | null;
-  knowledge_graph: ChatEngineKnowledgeGraphOptions;
-  llm: ChatEngineLLMOptions;
+  knowledge_graph?: ChatEngineKnowledgeGraphOptions | null;
+  llm?: ChatEngineLLMOptions | null;
   post_verification_url?: string | null;
   post_verification_token?: string | null;
   hide_sources?: boolean | null;
@@ -30,63 +41,69 @@ export interface ChatEngineKnowledgeBaseOptions {
 }
 
 export interface ChatEngineKnowledgeGraphOptions {
-  depth: number;
-  enabled: boolean;
-  include_meta: boolean;
-  with_degree: boolean;
-  using_intent_search: boolean;
+  depth?: number | null;
+  enabled?: boolean | null;
+  include_meta?: boolean | null;
+  with_degree?: boolean | null;
+  using_intent_search?: boolean | null;
 }
 
 export type ChatEngineLLMOptions = {
-  condense_question_prompt: string;
-  text_qa_prompt: string;
-  refine_prompt: string;
-
-  intent_graph_knowledge: string
-  normal_graph_knowledge: string
-
-  // provider: string;
-  // reranker_provider: string;
-  // reranker_top_k: number;
+  condense_question_prompt?: string | null
+  condense_answer_prompt?: string | null
+  text_qa_prompt?: string | null
+  refine_prompt?: string | null
+  intent_graph_knowledge?: string | null
+  normal_graph_knowledge?: string | null
+  clarifying_question_prompt?: string | null
+  generate_goal_prompt?: string | null
+  further_questions_prompt?: string | null
 }
 
 export interface LinkedKnowledgeBaseOptions {
-  id: number;
+  id?: number | null;
 }
 
 const kbOptionsSchema = z.object({
-  linked_knowledge_base: z.object({ id: number() }).nullable().optional(),
-});
+  linked_knowledge_base: z.object({ id: number().nullable().optional() }).nullable().optional(),
+}).passthrough();
 
 const kgOptionsSchema = z.object({
-  depth: z.number(),
-  enabled: z.boolean(),
-  include_meta: z.boolean(),
-  with_degree: z.boolean(),
-  using_intent_search: z.boolean(),
-}) satisfies ZodType<ChatEngineKnowledgeGraphOptions>;
+  depth: z.number().nullable().optional(),
+  enabled: z.boolean().nullable().optional(),
+  include_meta: z.boolean().nullable().optional(),
+  with_degree: z.boolean().nullable().optional(),
+  using_intent_search: z.boolean().nullable().optional(),
+}).passthrough() satisfies ZodType<ChatEngineKnowledgeGraphOptions>;
 
 const llmOptionsSchema =
   z.object({
-    condense_question_prompt: z.string(),
-    text_qa_prompt: z.string(),
-    refine_prompt: z.string(),
-    intent_graph_knowledge: z.string(),
-    normal_graph_knowledge: z.string(),
+    condense_question_prompt: z.string().nullable().optional(),
+    condense_answer_prompt: z.string().nullable().optional(),
+    text_qa_prompt: z.string().nullable().optional(),
+    refine_prompt: z.string().nullable().optional(),
+    intent_graph_knowledge: z.string().nullable().optional(),
+    normal_graph_knowledge: z.string().nullable().optional(),
+    clarifying_question_prompt: z.string().nullable().optional(),
+    generate_goal_prompt: z.string().nullable().optional(),
+    further_questions_prompt: z.string().nullable().optional(),
     // provider: z.string(),
     // reranker_provider: z.string(),
     // reranker_top_k: z.number(),
   }).passthrough() as ZodType<ChatEngineLLMOptions, any, any>;
 
 const chatEngineOptionsSchema = z.object({
-  external_engine_config: z.object({}).passthrough().nullable().optional(),
-  kbOptionsSchema: kbOptionsSchema.nullable().optional(),
-  knowledge_graph: kgOptionsSchema,
-  llm: llmOptionsSchema,
+  external_engine_config: z.object({
+    stream_chat_api_url: z.string().optional().nullable(),
+  }).nullable().optional(),
+  clarify_question: z.boolean().nullable().optional(),
+  knowledge_base: kbOptionsSchema.nullable().optional(),
+  knowledge_graph: kgOptionsSchema.nullable().optional(),
+  llm: llmOptionsSchema.nullable().optional(),
   post_verification_url: z.string().nullable().optional(),
   post_verification_token: z.string().nullable().optional(),
   hide_sources: z.boolean().nullable().optional(),
-}) satisfies ZodType<ChatEngineOptions, any, any>;
+}).passthrough() satisfies ZodType<ChatEngineOptions, any, any>;
 
 const chatEngineSchema = z.object({
   id: z.number(),
@@ -100,6 +117,13 @@ const chatEngineSchema = z.object({
   reranker_id: z.number().nullable(),
   is_default: z.boolean(),
 }) satisfies ZodType<ChatEngine, any, any>;
+
+export async function getDefaultChatEngineOptions (): Promise<ChatEngineOptions> {
+  return await fetch(requestUrl('/api/v1/admin/chat-engines-default-config'), {
+    headers: await authenticationHeaders(),
+  })
+    .then(handleResponse(chatEngineOptionsSchema));
+}
 
 export async function listChatEngines ({ page = 1, size = 10 }: PageParams = {}): Promise<Page<ChatEngine>> {
   return await fetch(requestUrl('/api/v1/admin/chat-engines', { page, size }), {
@@ -127,7 +151,7 @@ export async function updateChatEngine (id: number, partial: Partial<Pick<ChatEn
     .then(handleErrors);
 }
 
-export async function createChatEngine (create: Pick<ChatEngine, 'name' | 'llm_id' | 'fast_llm_id' | 'engine_options'>) {
+export async function createChatEngine (create: CreateChatEngineParams) {
   return await fetch(requestUrl(`/api/v1/admin/chat-engines`), {
     method: 'POST',
     headers: {

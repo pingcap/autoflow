@@ -3,7 +3,10 @@
 import type { Table } from '@tanstack/table-core';
 import { createContext, useContext } from 'react';
 
-const DataTableContext = createContext<Table<any> & { reload?: () => void } | null>(null);
+const DataTableContext = createContext<Table<any> & {
+  reload?: () => void
+  loading?: boolean
+} | null>(null);
 
 export const DataTableProvider = DataTableContext.Provider;
 

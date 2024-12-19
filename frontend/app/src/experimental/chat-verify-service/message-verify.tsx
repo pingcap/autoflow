@@ -126,12 +126,12 @@ const defaultMessages = {
 
 const skippedIcon = <CircleMinus className="size-4" />;
 const loadingIcon = <Loader2Icon className="size-4 animate-spin repeat-infinite" />;
-const succeedIcon = <CheckCircle2Icon className="size-4 text-green-500" />;
-const failedIcon = <TriangleAlertIcon className="size-4 text-yellow-500" />;
+const succeedIcon = <CheckCircle2Icon className="size-4 text-success" />;
+const failedIcon = <TriangleAlertIcon className="size-4 text-warning" />;
 const errorIcon = <TriangleAlertIcon className="size-4 text-destructive" />;
 
 function MessageVerifyHeader ({ creating, error, result }: { creating?: boolean, error: unknown, result: MessageVerifyResponse | undefined }) {
-  let icon: ReactElement | undefined;
+  let icon: ReactElement<any> | undefined;
   let message: ReactNode | undefined;
   const indicatorVisible = result ? isVisibleVerifyState(result.status) : false;
 

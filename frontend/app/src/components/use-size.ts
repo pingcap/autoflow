@@ -13,6 +13,12 @@ export function useSize () {
       setSize(el.getBoundingClientRect());
       ro.observe(el);
       ro.observe(document.documentElement);
+
+      // observe sidebar inset
+      for (let main of Array.from(document.getElementsByTagName('main'))) {
+        ro.observe(main);
+      }
+
       return () => {
         ro.disconnect();
       };

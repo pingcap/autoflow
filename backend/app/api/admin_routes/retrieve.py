@@ -9,7 +9,7 @@ from llama_index.core.schema import NodeWithScore
 router = APIRouter()
 
 
-@router.get("/admin/retrieve/documents", deprecated=True)
+@router.get("/admin/retrieve/documents")
 async def retrieve_documents(
     session: SessionDep,
     user: CurrentSuperuserDep,
@@ -21,7 +21,7 @@ async def retrieve_documents(
     return retrieve_service.retrieve(question, top_k=top_k)
 
 
-@router.get("/admin/embedding_retrieve", deprecated=True)
+@router.get("/admin/embedding_retrieve")
 async def embedding_retrieve(
     session: SessionDep,
     user: CurrentSuperuserDep,

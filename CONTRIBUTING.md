@@ -13,11 +13,17 @@ In this section, you should have some prerequisites software installed on your l
 * [Docker Compose](https://docs.docker.com/compose/install/)
 * [Python](https://www.python.org/downloads/)
 * [Node.js](https://nodejs.org/en/download/)
-* [TiDB Serverless](https://pingcap.com/ai)
+* [TiDB Cloud Serverless](https://pingcap.com/ai/?utm_source=tidb.ai&utm_medium=community) or [TiDB Self-Managed](https://www.pingcap.com/tidb-self-managed/?utm_source=tidb.ai&utm_medium=community)
 
 #### Setting up your development environment
 
 Setting up the project on your local machine is the first step to contributing to the project. You can clone the project from the GitHub repository and then start the project on your local machine. You can follow the instructions in the [Deployment Guide](https://tidb.ai/docs/deploy-with-docker) file to set up the project on your local machine.
+
+To test your local changes, you can build and run the project using:
+
+```bash
+docker compose -f docker-compose.build.yml up
+```
 
 ### Your First Contribution
 

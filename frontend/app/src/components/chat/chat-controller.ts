@@ -300,7 +300,7 @@ export class ChatController<State extends AppChatStreamState = AppChatStreamStat
       throw new Error('Unable to decide which chat engine used.');
     }
 
-    if (this.chat.engine_options.external_engine_config) {
+    if (this.chat.engine_options.external_engine_config?.stream_chat_api_url) {
       return this.createStackVMMessage(message, initialOngoingState);
     } else {
       return this.createLegacyMessage(message, initialOngoingState);

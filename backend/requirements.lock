@@ -594,7 +594,7 @@ pyyaml==6.0.1
     # via optuna
     # via transformers
     # via uvicorn
-ragas==0.2.5
+ragas==0.2.6
     # via deepeval
 redis==5.0.5
 regex==2024.5.15

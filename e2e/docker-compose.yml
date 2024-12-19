@@ -1,12 +1,6 @@
 name: tidb-ai-integration-test
 
 services:
-  tidb:
-    image: wangdi4zm/tind:v7.5.3-vector-index
-    restart: always
-    volumes:
-      - ${E2E_DATA_TIDB_DIR:-.data/tidb}:/app/data
-
   redis:
     image: redis:6.0.16
     restart: always
@@ -15,11 +9,12 @@ services:
 
   backend:
     image: tidbai/backend:${E2E_DOCKER_TAG_BACKEND}
+    platform: ${E2E_DOCKER_PLATFORM}
     restart: always
     depends_on:
       - redis
     ports:
-      - "5000:80"
+      - "5001:80"
     env_file:
       - .env.backend
     volumes:
@@ -29,14 +24,17 @@ services:
       options:
         max-size: "50m"
         max-file: "6"
+    extra_hosts:
+      host.docker.internal: host-gateway
 
   frontend:
     image: tidbai/frontend:${E2E_DOCKER_TAG_FRONTEND}
+    platform: ${E2E_DOCKER_PLATFORM}
     restart: always
     depends_on:
       - backend
     ports:
-      - 3000:3000
+      - "3000:3000"
     environment:
       BASE_URL: http://backend
     env_file:
@@ -49,6 +47,7 @@ services:
 
   background:
     image: tidbai/backend:${E2E_DOCKER_TAG_BACKEND}
+    platform: ${E2E_DOCKER_PLATFORM}
     restart: always
     depends_on:
       - redis
@@ -64,6 +63,8 @@ services:
       options:
         max-size: "50m"
         max-file: "6"
+    extra_hosts:
+      host.docker.internal: host-gateway
 
   static-web-server:
     image: joseluisq/static-web-server:2

@@ -1,17 +1,130 @@
-# Configure the Embedding Model
-
-The Embedding Model is a machine learning model that is trained to generate embeddings for a given input. The embeddings are then used to generate recommendations for the user.
+# Embedding Model
 
 import { Callout } from 'nextra/components'
 
-<Callout>
-Note: The Embedding Model is configured at the beggining of the deployment process. As different embedding models have different dimensions of vectors, you can not change the embedding model after the deployment.
+The Embedding Model converts given input into numerical vectors (embeddings) that represent the semantic meaning of the input text.
 
-If you want to change the embedding model, you need to:  
-* Redeploy the RAG app currently.
-* Or you can start a discussion in the [GitHub Discussions](https://github.com/pingcap/autoflow/discussions)
-</Callout>
+In Autoflow, we use the Embedding Model to vectorize documents and store them in TiDB. This enables us to leverage TiDB's Vector Search capability to retrieve relevant documents for user queries.
 
-You can enter the admin panel to view the current embedding model and its configuration.
+## Configure Embedding Model
 
-![embedding-model-config](https://github.com/user-attachments/assets/5cb589c1-3579-417e-9730-dcbe5aee4f84 "Embedding Model Config")
+After logging in with an admin account, you can configure the Embedding Model in the admin panel.
+
+1. Click on the `Models > Embedding Models` tab;
+2. Click the `New Embedding Model` button, select your preferred embedding model provider, and configure the model parameters.
+
+    ![Add Embedding Model](https://github.com/user-attachments/assets/70c9f8d7-0e6a-46e7-909f-03f94062d5e2)
+
+## Supported Providers
+
+Currently Autoflow supports the following embedding model providers:
+
+### OpenAI
+
+OpenAI provides a variety of Embedding Models, we recommend using the OpenAI `text-embedding-3-small` model due to its performance and compatibility with Autoflow.
+
+**Supported Models**:
+
+| Embedding Model          | Vector Dimensions | Max Tokens |
+| ------------------------ | ----------------- | ---------- |
+| `text-embedding-3-small` | 1536              | 8191       |
+
+
+For more information, see the [OpenAI Embedding Models documentation](https://platform.openai.com/docs/guides/embeddings#embedding-models).
+### OpenAI-Like
+
+Autoflow also supports embedding model providers (such as [ZhipuAI](#zhipuai)) that conform to the OpenAI API specification.
+
+To use OpenAI-Like embedding model providers, you need to provide the **base URL** of the embedding API as the following JSON format in **Advanced Settings**:
+
+```json
+{
+    "api_base": "{api_base_url}"
+}
+```
+
+#### ZhipuAI
+
+For example, the embedding API endpoint for ZhipuAI is:
+
+`https://open.bigmodel.cn/api/paas/v4/embeddings`
+
+You need to set up the base URL in the **Advanced Settings** as follows:
+
+```json
+{
+    "api_base": "https://open.bigmodel.cn/api/paas/v4"
+}
+```
+
+**Supported Models**:
+
+| Embedding Model | Vector Dimensions | Max Tokens |
+| --------------- | ----------------- | ---------- |
+| `embedding-3`   | 2048              | 8192       |
+
+For more information, see the [ZhipuAI embedding models documentation](https://open.bigmodel.cn/dev/api/vector/embedding-3).
+
+### JinaAI
+
+JinaAI provides multimodal multilingual long-context Embedding Models for RAG applications.
+
+**Supported Models**:
+
+| Embedding Model      | Vector Dimensions | Max Tokens |
+| -------------------- | ----------------- | ---------- |
+| `jina-clip-v1`       | 768               | 8192       |
+| `jina-embeddings-v3` | 1024              | 8192       |
+
+For more information, see the [JinaAI embedding models documentation](https://jina.ai/embeddings/).
+
+### Cohere
+
+Cohere provides industry-leading large language models (LLMs) and RAG capabilities tailored to meet the needs of enterprise use cases that solve real-world problems.
+
+**Supported Models**:
+
+| Embedding Model           | Vector Dimensions | Max Tokens |
+| ------------------------- | ----------------- | ---------- |
+| `embed-multilingual-v3.0` | 1024              | 512        |
+
+For more information, see the [Cohere Embed documentation](https://docs.cohere.com/docs/cohere-embed).
+
+### Ollama
+
+Ollama is a lightweight framework for building and running large language models and embedding models locally.
+
+**Supported Models**:
+
+| Embedding Model    | Vector Dimensions | Max Tokens |
+| ------------------ | ----------------- | ---------- |
+| `nomic-embed-text` | 768               | 8192       |
+
+To use Ollama, you'll need to configure the API base URL in the **Advanced Settings**:
+
+```json
+{
+    "api_base": "http://localhost:11434"
+}
+```
+
+For more information, see the [Ollama embedding models documentation](https://ollama.com/blog/embedding-models).
+
+### Local Embedding Server
+
+Autoflow's local embedding server is a self-hosted embedding service built upon [sentence-transformers](https://www.sentence-transformers.org/) and deployed on your own infrastructure.
+
+You can choose from a variety of pre-trained models from [Hugging Face](https://huggingface.co/models), such as:
+
+| Embedding Model | Vector Dimensions | Max Tokens |
+| --------------- | ----------------- | ---------- |
+| `BAAI/bge-m3`   | 1024              | 8192       |
+
+To configure the Local Embedding Service, set the API URL in the **Advanced Settings**:
+
+```json
+{
+    "api_url": "http://local-embedding-reranker:5001/api/v1/embedding"
+}
+```
+

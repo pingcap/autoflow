@@ -22,23 +22,25 @@ export function DocumentsTableFilters ({ onFilterChange }: { table: ReactTable<D
 
   return (
     <Form {...form}>
-      <form className="space-y-4" onSubmit={onSubmit}>
-        <FormField
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormControl>
-                <Input {...field} value={field.value ?? ''} placeholder="Search..." />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Collapsible>
-          <CollapsibleTrigger className="group text-sm flex items-center py-1.5 hover:underline focus:underline outline-none">
-            <ChevronDownIcon className="size-4 mr-1 transition-transform group-data-[state=open]:rotate-180" />
-            Advanced Filters
-          </CollapsibleTrigger>
+      <Collapsible asChild>
+        <form className="space-y-4" onSubmit={onSubmit}>
+          <div className="flex gap-2 items-center">
+            <FormField
+              name="name"
+              render={({ field }) => (
+                <FormItem className='flex-1'>
+                  <FormControl>
+                    <Input {...field} value={field.value ?? ''} placeholder="Search..." />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <CollapsibleTrigger className="group text-sm flex items-center py-1.5 hover:underline focus:underline outline-none">
+              Advanced Filters
+              <ChevronDownIcon className="size-4 mr-1 transition-transform group-data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+          </div>
           <CollapsibleContent className="py-2 space-y-4">
             <FormField
               name="source_uri"
@@ -59,7 +61,7 @@ export function DocumentsTableFilters ({ onFilterChange }: { table: ReactTable<D
                     <FormControl>
                       <Select value={value ?? ''} name={name} disabled={disabled} onValueChange={onChange}>
                         <SelectTrigger {...field}>
-                          <SelectValue placeholder={<span className='text-muted-foreground'>Select Document Type...</span>} />
+                          <SelectValue placeholder={<span className="text-muted-foreground">Select Document Type...</span>} />
                         </SelectTrigger>
                         <SelectContent>
                           {mimeTypes.map(mime => (
@@ -81,7 +83,7 @@ export function DocumentsTableFilters ({ onFilterChange }: { table: ReactTable<D
                     <FormControl>
                       <Select value={value ?? ''} name={name} disabled={disabled} onValueChange={onChange}>
                         <SelectTrigger {...field}>
-                          <SelectValue placeholder={<span className='text-muted-foreground'>Select Index Status...</span>} />
+                          <SelectValue placeholder={<span className="text-muted-foreground">Select Index Status...</span>} />
                         </SelectTrigger>
                         <SelectContent>
                           {indexStatuses.map(indexStatus => (
@@ -170,9 +172,9 @@ export function DocumentsTableFilters ({ onFilterChange }: { table: ReactTable<D
               />
             </div>
           </CollapsibleContent>
-        </Collapsible>
-        <Button type="submit">Search</Button>
-      </form>
+          <Button type="submit">Search</Button>
+        </form>
+      </Collapsible>
     </Form>
   );
 }

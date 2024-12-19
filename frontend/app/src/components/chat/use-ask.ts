@@ -12,7 +12,7 @@ export function useAsk (onFinish?: () => void) {
   const [waiting, setWaiting] = useState(false);
   const [transition, startTransition] = useTransition();
   const [engine, setEngine] = useState<string>();
-  const engineRef = useRef<string>();
+  const engineRef = useRef<string>(undefined);
 
   const ask = useCallback((message: string, options?: {
     headers?: Record<string, string>;

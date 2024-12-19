@@ -2,7 +2,7 @@
 
 import { type DatasourceKgIndexError, type DatasourceVectorIndexError } from '@/api/datasources';
 import { listKnowledgeBaseKgIndexErrors, listKnowledgeBaseVectorIndexErrors, retryKnowledgeBaseAllFailedTasks } from '@/api/knowledge-base';
-import { useKB } from '@/app/(main)/(admin)/knowledge-bases/[id]/context';
+import { errorMessageCell } from '@/components/cells/error-message';
 import { link } from '@/components/cells/link';
 import { IndexProgressChart, IndexProgressChartPlaceholder } from '@/components/charts/IndexProgressChart';
 import { TotalCard } from '@/components/charts/TotalCard';
@@ -17,7 +17,6 @@ import { ArrowRightIcon, FileTextIcon, PuzzleIcon, RouteIcon } from 'lucide-reac
 import Link from 'next/link';
 
 export function KnowledgeBaseIndexProgress ({ id }: { id: number }) {
-  const { index_methods } = useKB();
   const { progress, isLoading } = useKnowledgeBaseIndexProgress(id);
 
   return (
@@ -51,8 +50,8 @@ export function KnowledgeBaseIndexProgress ({ id }: { id: number }) {
         />
       </div>
       <div className="mt-4 grid grid-cols-2 gap-4">
-        {progress ? <IndexProgressChart title="Vector Index" data={progress.vector_index} /> : <IndexProgressChartPlaceholder title="Vector Index" />}
-        {progress?.kg_index ? <IndexProgressChart title="Knowledge Graph Index" data={progress.kg_index} /> : <IndexProgressChartPlaceholder title="Knowledge Graph Index" />}
+        {progress ? <IndexProgressChart title="Vector Index" data={progress.vector_index} label="Total Documents" /> : <IndexProgressChartPlaceholder title="Vector Index" label="Total Documents" />}
+        {progress?.kg_index ? <IndexProgressChart title="Knowledge Graph Index" data={progress.kg_index} label="Total Chunks" /> : <IndexProgressChartPlaceholder title="Knowledge Graph Index" label="Total Chunks" />}
       </div>
       <KnowledgeBaseIndexErrors id={id} />
     </>
@@ -144,7 +143,7 @@ const vectorIndexErrorsColumns: ColumnDef<DatasourceVectorIndexError, any>[] = [
   }),
   vectorIndexErrorsHelper.accessor('source_uri', { header: 'Source URI', cell: link({ url: row => row.source_uri, text: row => row.source_uri }) }),
   vectorIndexErrorsHelper.accessor('error', {
-    cell: ({ getValue }) => <ErrorPopper>{getValue()}</ErrorPopper>,
+    cell: errorMessageCell(),
   }),
 ];
 
@@ -153,30 +152,6 @@ const kgIndexErrorsColumns: ColumnDef<DatasourceKgIndexError, any>[] = [
   kgIndexErrorsHelper.accessor('source_uri', { header: 'Source URI', cell: link({ url: row => row.source_uri, text: row => row.source_uri }) }),
   kgIndexErrorsHelper.accessor('chunk_id', {}),
   kgIndexErrorsHelper.accessor('error', {
-    cell: ({ getValue }) => <ErrorPopper>{getValue()}</ErrorPopper>,
+    cell: errorMessageCell(),
   }),
 ];
-
-function ErrorPopper ({ children }: { children: string | null }) {
-  if (!children || children.length <= 25) {
-    return children;
-  }
-
-  const shortcut = children.slice(0, 25);
-
-  return (
-    <HoverCard>
-      <HoverCardTrigger>
-        {shortcut}{'... '}
-        <span className="text-muted-foreground">
-          ({children.length + ' characters'})
-        </span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-96 h-48">
-        <div className="size-full overflow-scroll">
-          <pre className="whitespace-pre">{children}</pre>
-        </div>
-      </HoverCardContent>
-    </HoverCard>
-  );
-}

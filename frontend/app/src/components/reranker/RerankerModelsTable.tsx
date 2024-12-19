@@ -1,27 +1,19 @@
 'use client';
 
+import { setDefault } from '@/api/commons';
 import { listRerankers, type Reranker } from '@/api/rerankers';
-import { DataTableHeading } from '@/components/data-table-heading';
+import { actions } from '@/components/cells/actions';
 import { DataTableRemote } from '@/components/data-table-remote';
 import { Badge } from '@/components/ui/badge';
-import { buttonVariants } from '@/components/ui/button';
+import { getErrorMessage } from '@/lib/errors';
 import type { ColumnDef } from '@tanstack/react-table';
 import { createColumnHelper } from '@tanstack/table-core';
-import { PlusIcon } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 export default function RerankerModelsTable () {
   return (
     <DataTableRemote
-      before={(
-        <DataTableHeading>
-          <span className="ml-auto" />
-          <Link className={buttonVariants({ variant: 'default', className: 'gap-2' })} href="/reranker-models/create">
-            <PlusIcon className="size-4" />
-            New
-          </Link>
-        </DataTableHeading>
-      )}
       columns={columns}
       apiKey="api.rerankers.list"
       api={listRerankers}
@@ -48,14 +40,40 @@ const columns: ColumnDef<Reranker, any>[] = [
     cell: ({ row }) => {
       const { model, provider } = row.original;
       return (
-        <span className="flex gap-1 items-center">
-          <Badge variant="secondary">{provider}</Badge>
-          <Badge variant="outline">{model}</Badge>
-        </span>
+        <>
+          <strong>{provider}</strong>:<span>{model}</span>
+        </>
       );
     },
   }),
   helper.accessor('top_n', {
     header: 'Top N',
+  }),
+  helper.display({
+    id: 'Operations',
+    header: 'Operations',
+    cell: actions(row => ([
+      {
+        key: 'set-default',
+        title: 'Set Default',
+        disabled: row.is_default,
+        action: async (context) => {
+          try {
+            await setDefault('reranker-models', row.id);
+            context.table.reload?.();
+            context.startTransition(() => {
+              context.router.refresh();
+            });
+            context.setDropdownOpen(false);
+            toast.success(`Successfully set default Reranker Model to ${row.name}.`);
+          } catch (e) {
+            toast.error(`Failed to set default Reranker Model to ${row.name}.`, {
+              description: getErrorMessage(e),
+            });
+            throw e;
+          }
+        },
+      },
+    ])),
   }),
 ];

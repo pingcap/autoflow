@@ -1,10 +1,10 @@
 import enum
 from uuid import UUID
-from typing import Optional, List
-from datetime import datetime, UTC, date
+from typing import Optional, List, Dict, Any
+from datetime import datetime, UTC, date, timedelta
 from collections import defaultdict
 
-from sqlmodel import select, Session, or_, func, case
+from sqlmodel import select, Session, or_, func, case, desc
 from fastapi_pagination import Params, Page
 from fastapi_pagination.ext.sqlmodel import paginate
 
@@ -110,6 +110,43 @@ class ChatRepo(BaseRepo):
         session.commit()
         session.refresh(chat_message)
         return chat_message
+
+    def find_recent_assistant_messages_by_goal(
+        self, session: Session, metadata: Dict[str, Any], days: int = 15
+    ) -> List[ChatMessage]:
+        """
+        Search for 'assistant' role chat messages with a specific goal within the recent days.
+
+        Args:
+            session (Session): The database session.
+            goal (str): The goal value to match in meta.goal.
+            days (int, optional): Number of recent days to include in the search. Defaults to 2.
+
+        Returns:
+            List[ChatMessage]: A list of ChatMessage instances that match the criteria.
+        """
+        # Calculate the cutoff datetime based on the current UTC time minus the specified number of days
+        cutoff = datetime.now(UTC) - timedelta(days=days)
+
+        query = select(ChatMessage).where(
+            ChatMessage.role == "assistant",
+            ChatMessage.created_at >= cutoff,
+            ChatMessage.is_best_answer.is_(True),  # Use is_ for boolean fields
+        )
+
+        # Dynamically add filters for each key-value pair in metadata
+        for key, value in metadata.items():
+            json_path = f"$.{key}"
+            filter_condition = (
+                func.JSON_UNQUOTE(func.JSON_EXTRACT(ChatMessage.meta, json_path))
+                == value
+            )
+            query = query.where(filter_condition)
+
+        # Order by created_at in descending order
+        query = query.order_by(desc(ChatMessage.created_at))
+
+        return session.exec(query).all()
 
     def chat_trend_by_user(
         self, session: Session, start_date: date, end_date: date

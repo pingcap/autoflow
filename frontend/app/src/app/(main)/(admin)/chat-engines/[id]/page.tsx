@@ -1,21 +1,31 @@
-import { getChatEngine } from '@/api/chat-engines';
+import { getChatEngine, getDefaultChatEngineOptions } from '@/api/chat-engines';
+import { getBootstrapStatus } from '@/api/system';
 import { AdminPageHeading } from '@/components/admin-page-heading';
-import { ChatEngineDetails } from '@/components/chat-engine/chat-engine-details';
-import { Card, CardContent } from '@/components/ui/card';
+import { UpdateChatEngineForm } from '@/components/chat-engine/update-chat-engine-form';
 
-export default async function ChatEnginePage ({ params }: { params: { id: string } }) {
-  const chatEngine = await getChatEngine(parseInt(params.id));
+export default async function ChatEnginePage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const [chatEngine, defaultChatEngineOptions, bootstrapStatus] = await Promise.all([
+    getChatEngine(parseInt(params.id)),
+    getDefaultChatEngineOptions(),
+    getBootstrapStatus(),
+  ]);
 
   return (
     <>
-      <AdminPageHeading title={`Chat Engine - ${chatEngine.name}`} />
-      <div className="xl:pr-side max-w-screen-lg">
-        <Card>
-          <CardContent className="pt-4">
-            <ChatEngineDetails chatEngine={chatEngine} />
-          </CardContent>
-        </Card>
-      </div>
+      <AdminPageHeading
+        breadcrumbs={[
+          { title: 'Chat Engines', docsUrl: '/docs/chat-engine', url: '/chat-engines' },
+          {
+            title: chatEngine.name,
+            alert: bootstrapStatus.need_migration.chat_engines_without_kb_configured?.includes(chatEngine.id) ? {
+              variant: 'warning',
+              content: 'KnowledgeBase not configured',
+            } : undefined,
+          },
+        ]}
+      />
+      <UpdateChatEngineForm chatEngine={chatEngine} defaultChatEngineOptions={defaultChatEngineOptions} />
     </>
   );
 }

@@ -57,7 +57,6 @@ function Action ({ item, open, setOpen }: { item: CellAction, open: boolean, set
     try {
       setBusy(true);
       await item.action({ startTransition, router, table, dropdownOpen: open, setDropdownOpen: setOpen });
-    } catch {
     } finally {
       setBusy(false);
     }

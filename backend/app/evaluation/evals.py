@@ -1,6 +1,5 @@
 import logging
 import os
-import random
 
 import requests
 import typing
@@ -22,7 +21,12 @@ from app.evaluation.evaluators import (
     E2ERagEvaluator,
 )
 import pandas as pd
-from ragas.metrics import LLMContextRecall, Faithfulness, FactualCorrectness, SemanticSimilarity
+from ragas.metrics import (
+    LLMContextRecall,
+    Faithfulness,
+    FactualCorrectness,
+    SemanticSimilarity,
+)
 from ragas import evaluate, EvaluationDataset
 from ragas.llms import LangchainLLMWrapper
 from ragas.embeddings import LangchainEmbeddingsWrapper
@@ -53,11 +57,11 @@ class Evaluation:
     """
 
     def __init__(
-            self,
-            dataset_name: str,
-            run_name: typing.Optional[str] = None,
-            llm_provider: typing.Literal["openai", "gemini"] = "openai",
-            tidb_ai_chat_engine: typing.Optional[str] = DEFAULT_TIDB_AI_CHAT_ENGINE,
+        self,
+        dataset_name: str,
+        run_name: typing.Optional[str] = None,
+        llm_provider: typing.Literal["openai", "gemini"] = "openai",
+        tidb_ai_chat_engine: typing.Optional[str] = DEFAULT_TIDB_AI_CHAT_ENGINE,
     ) -> None:
         self.langfuse = Langfuse()
         self.dataset_name = dataset_name
@@ -87,42 +91,104 @@ class Evaluation:
             "e2e_rag": E2ERagEvaluator(model="gpt-4o"),
         }
 
-    def runeval_dataset(self, csv_dataset: str, run_size: int = 30) -> None:
+    def runeval_dataset(
+        self,
+        csv_dataset: str,
+        run_size: int = 30,
+        checkpoint_file: str = "checkpoint.json",
+        error_file: str = "eval_error.csv",
+    ) -> None:
         if not os.path.exists(csv_dataset):
             raise FileNotFoundError(f"File not found: {csv_dataset}")
 
         df = pd.read_csv(csv_dataset)
-        eval_list = df.to_dict(orient='records')
-        random.shuffle(eval_list)
+        eval_list = df.to_dict(orient="records")
         eval_list = eval_list[:run_size]
 
+        # checkpoint info
         ragas_list = []
-        for item in tqdm(eval_list):
-            messages = [{"role": "user", "content": item['query']}]
-            response, _ = self._generate_answer_by_tidb_ai(messages)
-            user_input = json.dumps(messages)
+        completed_queries = set()
+        if os.path.exists(checkpoint_file):
+            with open(checkpoint_file, "r") as f:
+                checkpoint_data = json.load(f)
+                completed_queries = set(checkpoint_data["completed_queries"])
+                ragas_list = checkpoint_data["ragas_list"]
 
-            ragas_list.append({
-                "user_input": user_input,
-                "reference": item["reference"],
-                "response": response,
-                # TODO: we cannot get retrieved_contexts now, due to the external engine
-                # "retrieved_contexts": [],
-            })
+        # error info
+        error_list = []
+        errored_queries = set()
+        if os.path.exists(error_file):
+            error_df = pd.read_csv(error_file)
+            error_list = error_df.to_dict(orient="records")
+            errored_queries = set(item["query"] for item in error_list)
+
+        for item in tqdm(eval_list):
+            if item["query"] in completed_queries or item["query"] in errored_queries:
+                continue  # skip completed or errored queries
+
+            messages = [{"role": "user", "content": item["query"]}]
+            try:
+                response, _ = self._generate_answer_by_tidb_ai(messages)
+                user_input = json.dumps(messages)
+
+                ragas_list.append(
+                    {
+                        "user_input": user_input,
+                        "reference": item["reference"],
+                        "response": response,
+                        # TODO: we cannot get retrieved_contexts now, due to the external engine
+                        # "retrieved_contexts": [],
+                        # Add rest fields from raw data
+                        **{
+                            k: v
+                            for k, v in item.items()
+                            if k not in ["query", "reference"]
+                        },
+                    }
+                )
+
+                # save the checkpoint file
+                completed_queries.add(item["query"])
+                checkpoint_data = {
+                    "completed_queries": list(completed_queries),
+                    "ragas_list": ragas_list,
+                }
+                with open(checkpoint_file, "w") as f:
+                    json.dump(checkpoint_data, f)
+            except Exception as e:
+                print(f"Error processing query: {item['query']}, error: {e}")
+                item["error_message"] = str(e)
+                error_list.append(item)  # Add the item to the error list
+
+                # Save the errors to the error file
+                pd.DataFrame(error_list).to_csv(error_file, index=False)
 
         ragas_dataset = EvaluationDataset.from_list(ragas_list)
         evaluator_llm = LangchainLLMWrapper(ChatOpenAI(model="gpt-4o"))
-        evaluator_embeddings = LangchainEmbeddingsWrapper(OpenAIEmbeddings())
+        evaluator_embeddings = LangchainEmbeddingsWrapper(
+            OpenAIEmbeddings(model="text-embedding-3-large")
+        )
         metrics = [
             # LLMContextRecall(llm=evaluator_llm),  # retrieved_contexts required
             FactualCorrectness(llm=evaluator_llm),
             # Faithfulness(llm=evaluator_llm),  # retrieved_contexts required
-            SemanticSimilarity(embeddings=evaluator_embeddings)
+            SemanticSimilarity(embeddings=evaluator_embeddings),
         ]
         results = evaluate(dataset=ragas_dataset, metrics=metrics)
         df_results = results.to_pandas()
-        df_results = df_results.applymap(lambda x: x.replace('\n', '\\n').replace('\r', '\\r') if isinstance(x, str) else x)
-        df_results.to_csv(f"results_{self.run_name}.csv")
+
+        df_raw_data = pd.DataFrame(ragas_list)
+        additional_columns = df_raw_data.drop(
+            columns=["user_input", "reference", "response"]
+        )
+        df_results_combined = pd.concat([df_results, additional_columns], axis=1)
+
+        df_results_combined = df_results_combined.applymap(
+            lambda x: x.replace("\n", "\\n").replace("\r", "\\r")
+            if isinstance(x, str)
+            else x
+        )
+        df_results_combined.to_csv(f"results_{self.run_name}.csv", index=False)
 
         print(f"Saved results to results_{self.run_name}.csv")
 
@@ -203,6 +269,7 @@ class Evaluation:
             headers={
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {settings.TIDB_AI_API_KEY}",
+                "Origin": "evaluation",
             },
             json={
                 "messages": messages,
@@ -263,7 +330,7 @@ def fetch_rag_data(langfuse_client: Langfuse, tracing_id: str):
         "output": (
             tracing_data.data.output["content"]
             if tracing_data.data.output is not None
-               and "content" in tracing_data.data.output
+            and "content" in tracing_data.data.output
             else None
         ),
         "source_tracing_id": tracing_id,

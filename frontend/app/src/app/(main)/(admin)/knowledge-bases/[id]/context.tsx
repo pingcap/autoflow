@@ -12,7 +12,3 @@ export function KBProvider ({ children, value }: { children: ReactNode, value: K
     </KBContext.Provider>
   );
 }
-
-export function useKB () {
-  return useContext(KBContext);
-}

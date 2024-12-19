@@ -38,8 +38,8 @@ const processor = unified()
     components: {
       MessageVerifyResult: ({ children, label, success }: { children: ReactNode, label: string, success: boolean }) => {
         return (
-          <div className={cn('not-prose whitespace-break-spaces p-2 rounded text-xs', success ? 'bg-green-500/10' : 'bg-red-500/10')}>
-            <div className={cn('mb-2 flex gap-1 items-center', success ? 'text-green-500' : 'text-red-500')}>
+          <div className={cn('not-prose whitespace-break-spaces p-2 rounded text-xs', success ? 'bg-success/10' : 'bg-destructive/10')}>
+            <div className={cn('mb-2 flex gap-1 items-center', success ? 'text-success' : 'text-destructive')}>
               {success ? <CheckIcon className="size-3" /> : <XIcon className="size-3" />}
               <span>{label}</span>
             </div>

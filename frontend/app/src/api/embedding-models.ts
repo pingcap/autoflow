@@ -58,17 +58,7 @@ export async function listEmbeddingModelOptions () {
     .then(handleResponse(embeddingModelOptionSchema.array()));
 }
 
-/**
- * @deprecated
- */
-export async function getEmbeddingModel () {
-  return await fetch(requestUrl(`/api/v1/admin/embedding-models`), {
-    headers: await authenticationHeaders(),
-  })
-    .then(handleNullableResponse(embeddingModelSchema));
-}
-
-export async function getEmbeddingModelById (id: number) {
+export async function getEmbeddingModel (id: number) {
   return await fetch(requestUrl(`/api/v1/admin/embedding-models/${id}`), {
     headers: await authenticationHeaders(),
   })
@@ -76,7 +66,7 @@ export async function getEmbeddingModelById (id: number) {
 }
 
 export async function listEmbeddingModels (params: PageParams) {
-  return await fetch(requestUrl(`/api/v1/admin/embedding-models`), {
+  return await fetch(requestUrl(`/api/v1/admin/embedding-models`, params), {
     headers: await authenticationHeaders(),
   })
     .then(handleResponse(zodPage(embeddingModelSchema)));

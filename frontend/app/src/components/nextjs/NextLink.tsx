@@ -23,7 +23,7 @@ export const NextLink = forwardRef<HTMLAnchorElement, NextLinkProps>(({ classNam
       return;
     }
     if (event.ctrlKey || event.shiftKey || event.metaKey || event.altKey) {
-      event.persist()
+      event.persist();
       return;
     }
     onClick?.(event);
@@ -45,7 +45,7 @@ export const NextLink = forwardRef<HTMLAnchorElement, NextLinkProps>(({ classNam
     <Link
       {...props}
       onClick={handleClick}
-      className={cn(buttonVariants({ variant, size }), navigating && '!cursor-wait', className)}
+      className={cn(buttonVariants({ variant, size }), 'aria-disabled:pointer-events-none aria-disabled:opacity-50', navigating && '!cursor-wait', className)}
       replace={replace}
       aria-disabled={disabled}
       href={href}

@@ -4,49 +4,67 @@ Here is a documentation page that shows how to setup a same tool like https://ti
 
 ## Step 1: Deployment
 
-As this tool is open source, you can deploy it on your own server. We provide a guide to deploy the entire RAG using Docker Compose.
+You can deploy self-hosted Autoflow on your server with Docker Compose.
 
 [Read the deployment guide](./deploy-with-docker)
 
 
 ## Step 2: Configure
 
-After deployment, you need to configure the tool to use your own settings.
+After deployment, you need to login to the admin dashboard to configure the tool withyour own settings.
 
 ### Configure the LLM - Large Language Model
 
-The LLM is used for extracting knowledge from docs and generating responses. You can change the default LLM to another one.
+Go to the **Models > LLMs** page to [configure the LLM model](./llm).
 
-[Configure  LLM](./llm)
+> The LLM is used for extracting knowledge from docs and generating responses. You can change the default LLM to another one.
 
+
+![Set up LLM model](https://github.com/user-attachments/assets/c343c1bb-1c82-4fab-a3b9-72987d271a45)
 
 ### Configure the Embedding Model
 
-The Embedding Model is a machine learning model that is trained to generate embeddings for a given input. We must translate text to vectors with this model before insert vector to database.
+Go to the **Models > Embedding Models** page to [configure the embedding model](./embedding-model).
 
-[Configure  Embedding Service](./embedding-model)
+> The Embedding Model is a machine learning model that is trained to generate embeddings for a given input. We must translate text to vectors with this model before insert vector to database.
+
+![Set up Embedding model](https://github.com/user-attachments/assets/2d78b771-d759-481c-a2ef-92333281ff1e)
 
 ### Configure the Reranker [Optional]
 
-The Reranker is a machine learning model that is trained to rerank the results retrieved from the database. We use this model to improve performance of answers.
+> The Reranker is an essential tool that optimizes the order of results from initial searches. It is optional but recommended.
 
-[Configure Reranker](./reranker-model)
+Go to the **Models > Rerankers** page to configure [the reranker model](./reranker-model).
 
-> Note: Reranker is used to improve the performance of the answers. If you don't have a reranker model, you can skip this step.
-> But we recommend you to use a reranker model to improve the performance of the answers.
+![Set up Reranker](https://github.com/user-attachments/assets/96d187f2-23f6-49fd-a2bb-7c241a438b07)
 
 
-## Step 3: Add Data Source
+## Step 3: Add a New Knowledge Base and Upload Documents
 
-After deployment and configuration, you need to add data source to the tool for example your own docs, knowledge base, etc.
+Go to the **Knowledge Base** page to add a new knowledge base and upload documents.
 
-[Add Data Source](./data-source)
+![Add Knowledge Base](https://github.com/user-attachments/assets/f78be4ac-0211-48bf-9706-bb36240414cd)
 
-> After adding data source, there will be a period of time for the tool to index the data. During this time, the tool will not be able to provide answers to users.
+After adding a new knowledge base, you can upload your documents from local or crawl from the web in the **Data Source** subpage.
 
-## Step 4: Usage
+![Add Data Source to Knowledge Base](https://github.com/user-attachments/assets/506db914-d73a-4625-a119-461fdb73ba8e)
 
-After deployment, configuration and adding data source, you can use the tool to chat with users to answer their questions.
+> After adding data source, there will be a period of time for indexing the data.
+
+For more details, please refer to [Knowledge Base](./knowledge-base) documentation.
+
+## Step 4: Set up the Chat Engine
+
+Go to the **Chat Engines** page to [set up the chat engine](./chat-engine).
+
+> The chat engine is used to chat with users.
+
+![Set up Chat Engine](https://github.com/user-attachments/assets/2572dc02-ce77-4d2f-a4ba-68bc6858d44c)
+
+
+## Step 5: Usage
+
+After deployment, configuration and uploading documents, you can use the tool to chat with users to answer their questions.
 
 pingcap/autoflow provides several features to help you chat with users:
 

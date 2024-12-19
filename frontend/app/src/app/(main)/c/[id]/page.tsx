@@ -23,10 +23,11 @@ const cachedGetChat = cache((id: string) => getChat(id)
     }
   }));
 
-export default async function ChatDetailPage ({ params }: { params: { id: string } }) {
+export default async function ChatDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const id = params.id;
   const me = await auth();
-  const bid = cookies().get('bid')?.value;
+  const bid = (await cookies()).get('bid')?.value;
 
   let chat: Chat | undefined;
   let messages: ChatMessage[];
@@ -84,7 +85,8 @@ export default async function ChatDetailPage ({ params }: { params: { id: string
   );
 }
 
-export async function generateMetadata ({ params }: { params: { id: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const params = await props.params;
   try {
     const chat = await cachedGetChat(params.id);
 

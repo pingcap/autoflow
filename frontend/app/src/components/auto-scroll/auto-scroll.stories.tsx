@@ -79,7 +79,7 @@ export const Document: Story = {
   },
 };
 
-function AutoScrollByObservingChildren ({ target }: { target: RefObject<HTMLElement> }) {
+function AutoScrollByObservingChildren ({ target }: { target: RefObject<HTMLElement | null> }) {
   const requestScroll = useRequestScroll();
 
   useEffect(() => {

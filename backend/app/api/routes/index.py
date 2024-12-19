@@ -1,10 +1,14 @@
 from fastapi import APIRouter
-from pydantic import BaseModel
 from sqlmodel import text
 
 from app.api.deps import SessionDep
+from app.api.routes.models import SystemConfigStatusResponse
 from app.site_settings import SiteSetting
-from app.rag.chat import check_rag_required_config, check_rag_optional_config
+from app.rag.chat import (
+    check_rag_required_config,
+    check_rag_optional_config,
+    check_rag_config_need_migration,
+)
 
 router = APIRouter()
 
@@ -20,38 +24,14 @@ def site_config() -> dict:
     return SiteSetting.get_client_settings()
 
 
-class RequiredConfigStatus(BaseModel):
-    default_llm: bool
-    default_embedding_model: bool
-    datasource: bool
-    knowledge_base: bool
-
-
-class OptionalConfigStatus(BaseModel):
-    langfuse: bool
-    default_reranker: bool
-
-
-class SystemConfigStatusResponse(BaseModel):
-    required: RequiredConfigStatus
-    optional: OptionalConfigStatus
-
-
 @router.get("/system/bootstrap-status")
 def system_bootstrap_status(session: SessionDep) -> SystemConfigStatusResponse:
-    has_default_llm, has_default_embedding_model, has_datasource, has_knowledge_base = (
-        check_rag_required_config(session)
-    )
-    langfuse, default_reranker = check_rag_optional_config(session)
+    required_config_check_status = check_rag_required_config(session)
+    optional_config_check_status = check_rag_optional_config(session)
+    need_migration_status = check_rag_config_need_migration(session)
+
     return SystemConfigStatusResponse(
-        required=RequiredConfigStatus(
-            default_llm=has_default_llm,
-            default_embedding_model=has_default_embedding_model,
-            datasource=has_datasource,
-            knowledge_base=has_knowledge_base
-        ),
-        optional=OptionalConfigStatus(
-            langfuse=langfuse,
-            default_reranker=default_reranker,
-        ),
+        required=required_config_check_status,
+        optional=optional_config_check_status,
+        need_migration=need_migration_status,
     )

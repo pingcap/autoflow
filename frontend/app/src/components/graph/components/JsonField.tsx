@@ -20,7 +20,7 @@ export const JsonField = forwardRef<JsonFieldInstance, JsonFieldProps>(({
   defaultValue,
   disabled,
 }, ref) => {
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null | undefined>();
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const defaultValueString = useMemo(() => {

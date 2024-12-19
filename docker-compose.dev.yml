@@ -1,0 +1,67 @@
+name: tidb-ai-build
+
+services:
+  backend:
+    build:
+      context: backend
+      dockerfile: Dockerfile
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    ports:
+      - "8006:80"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/shared/data
+    depends_on:
+      - redis
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./frontend/Dockerfile
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    ports:
+      - "3001:3000"
+    environment:
+      BASE_URL: http://backend
+    depends_on:
+      - backend
+
+  background:
+    build:
+      context: backend
+      dockerfile: Dockerfile
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    ports:
+      - "5556:5555"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/shared/data
+    command: /usr/bin/supervisord
+    depends_on:
+      - redis
+
+  local-embedding-reranker:
+    build:
+      context: backend/local_embedding_reranker
+      dockerfile: Dockerfile
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    ports:
+      - "5002:5001"
+    environment:
+      - PRE_LOAD_DEFAULT_EMBEDDING_MODEL=true
+      - PRE_LOAD_DEFAULT_RERANKER_MODEL=false
+      - TRANSFORMERS_OFFLINE=1
+    profiles:
+      - local-embedding-reranker
+
+  redis:
+    image: redis:6.0.16 
+    volumes:
+      - ./redis-data:/data
+    command: ["redis-server", "--loglevel", "warning"]

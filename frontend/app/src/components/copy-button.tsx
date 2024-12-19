@@ -25,7 +25,7 @@ export function CopyButton ({ text, className, onClick, autoCopy, ...props }: Co
     <Button
       size="icon"
       variant="ghost"
-      className={cn('rounded-full w-7 h-7 transition-colors text-foreground', copied && '!text-green-500 hover:bg-green-500/10')}
+      className={cn('rounded-full w-7 h-7 transition-colors text-foreground', copied && 'text-success hover:text-success hover:bg-success/10')}
       onClick={(event) => {
         onClick?.(event);
         if (!event.defaultPrevented) {

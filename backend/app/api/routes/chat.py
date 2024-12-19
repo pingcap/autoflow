@@ -12,6 +12,7 @@ from fastapi.responses import StreamingResponse
 from fastapi_pagination import Params, Page
 
 from app.api.deps import SessionDep, OptionalUserDep, CurrentUserDep
+from app.rag.chat_config import ChatEngineConfig
 from app.repositories import chat_repo
 from app.models import Chat, ChatUpdate
 from app.rag.chat import (
@@ -19,7 +20,9 @@ from app.rag.chat import (
     ChatEvent,
     user_can_view_chat,
     user_can_edit_chat,
-    get_chat_message_subgraph, get_chat_message_recommend_questions,
+    get_chat_message_subgraph,
+    get_chat_message_recommend_questions,
+    remove_chat_message_recommend_questions,
 )
 from app.rag.types import (
     MessageRole,
@@ -27,7 +30,14 @@ from app.rag.types import (
     ChatEventType,
     ChatMessageSate,
 )
-from app.exceptions import ChatNotFound
+from app.exceptions import (
+    ChatNotFound,
+    KBNotFound,
+    LLMException,
+    EmbeddingModelException,
+    RerankerModelException,
+    InternalServerError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -77,13 +87,19 @@ def chats(
             chat_messages=chat_request.messages,
             engine_name=chat_request.chat_engine,
         )
-    except ChatNotFound:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Chat not found")
+    except ChatNotFound as e:
+        raise e
+    except KBNotFound as e:
+        raise e
+    except LLMException as e:
+        raise e
+    except EmbeddingModelException as e:
+        raise e
+    except RerankerModelException as e:
+        raise e
     except Exception as e:
         logger.exception(e)
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-        )
+        raise InternalServerError()
 
     if chat_request.stream:
         return StreamingResponse(
@@ -194,11 +210,14 @@ def get_chat_subgraph(session: SessionDep, user: OptionalUserDep, chat_message_i
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Access denied")
 
     entities, relations = get_chat_message_subgraph(session, chat_message)
+
     return SubgraphResponse(entities=entities, relationships=relations)
 
 
-@router.get("/chat-messages/{chat_message_id}/recommend-questions", response_model=List[str])
-def get_recommend_questions(session: SessionDep, chat_message_id: int):
+@router.get(
+    "/chat-messages/{chat_message_id}/recommended-questions", response_model=List[str]
+)
+def get_recommended_questions(session: SessionDep, chat_message_id: int):
     chat_message = chat_repo.get_message(session, chat_message_id)
     if not chat_message or len(chat_message.content) == 0:
         raise HTTPException(
@@ -207,3 +226,16 @@ def get_recommend_questions(session: SessionDep, chat_message_id: int):
 
     return get_chat_message_recommend_questions(session, chat_message)
 
+
+@router.post(
+    "/chat-messages/{chat_message_id}/recommended-questions", response_model=List[str]
+)
+def refresh_recommended_questions(session: SessionDep, chat_message_id: int):
+    chat_message = chat_repo.get_message(session, chat_message_id)
+    if not chat_message or len(chat_message.content) == 0:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Chat message not found"
+        )
+
+    remove_chat_message_recommend_questions(session, chat_message_id)
+    return get_chat_message_recommend_questions(session, chat_message)

@@ -2,19 +2,19 @@
 
 import { createLlm, listLlmOptions, type LLM, testLlm } from '@/api/llms';
 import { ProviderSelect } from '@/components/form/biz';
-import { FormInput, FormSwitch } from '@/components/form/control-widget';
-import { FormFieldBasicLayout, FormFieldContainedLayout } from '@/components/form/field-layout';
+import { FormInput } from '@/components/form/control-widget';
+import { FormFieldBasicLayout } from '@/components/form/field-layout';
 import { FormRootError } from '@/components/form/root-error';
+import { handleSubmitHelper } from '@/components/form/utils';
 import { CodeInput } from '@/components/form/widgets/CodeInput';
 import { ProviderDescription } from '@/components/provider-description';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
-import { getErrorMessage } from '@/lib/errors';
 import { zodJsonText } from '@/lib/zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2Icon } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useId } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import useSWR from 'swr';
@@ -38,6 +38,7 @@ const dictCredentialForm = unsetForm.extend({
 });
 
 export function CreateLLMForm ({ transitioning, onCreated }: { transitioning?: boolean, onCreated?: (llm: LLM) => void }) {
+  const id = useId();
   const { data: options, isLoading, error } = useSWR('api.llms.list-options', listLlmOptions);
 
   const form = useForm<any>({
@@ -87,25 +88,20 @@ export function CreateLLMForm ({ transitioning, onCreated }: { transitioning?: b
     }
   }, [provider]);
 
-  const handleSubmit = form.handleSubmit(async (values) => {
+  const handleSubmit = handleSubmitHelper(form, async (values) => {
     const { error, success } = await testLlm(values);
     if (!success) {
-      form.setError('root', { message: error || 'Unknown error' });
-      return;
+      throw new Error(error || 'Test LLM failed');
     }
-    try {
-      const llm = await createLlm(values);
-      toast('LLM successfully created.');
-      onCreated?.(llm);
-    } catch (error) {
-      form.setError('root', { message: getErrorMessage(error) });
-    }
+    const llm = await createLlm(values);
+    toast.success(`LLM ${llm.name} successfully created.`);
+    onCreated?.(llm);
   });
 
   return (
     <>
       <Form {...form}>
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <form id={id} className="space-y-4" onSubmit={handleSubmit}>
           <FormFieldBasicLayout name="name" label="Name">
             <FormInput />
           </FormFieldBasicLayout>
@@ -137,11 +133,8 @@ export function CreateLLMForm ({ transitioning, onCreated }: { transitioning?: b
               </Accordion>
             </>
           )}
-          <FormFieldContainedLayout name="is_default" label="Is Default LLM" description="Enable will unset original default LLM.">
-            <FormSwitch />
-          </FormFieldContainedLayout>
           <FormRootError title="Failed to create LLM" />
-          <Button disabled={form.formState.disabled || !provider || form.formState.isSubmitting || transitioning}>
+          <Button disabled={form.formState.disabled || !provider || form.formState.isSubmitting || transitioning} type="submit" form={id}>
             {(form.formState.isSubmitting || transitioning) && <Loader2Icon className="size-4 mr-1 animate-spin repeat-infinite" />}
             Create LLM
           </Button>

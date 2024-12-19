@@ -8,16 +8,6 @@ export interface DatasourceBase {
   name: string;
 }
 
-interface DeprecatedDatasourceBase extends DatasourceBase {
-  created_at: Date;
-  updated_at: Date;
-  user_id: string | null;
-  build_kg_index: boolean;
-  llm_id: number | null;
-}
-
-export type DeprecatedDatasource = DeprecatedDatasourceBase & DatasourceSpec
-
 type DatasourceSpec = ({
   data_source_type: 'file'
   config: { file_id: number, file_name: string }[]
@@ -43,18 +33,6 @@ export interface BaseCreateDatasourceParams {
   name: string;
 }
 
-export interface DeprecatedBaseCreateDatasourceParams extends BaseCreateDatasourceParams {
-  description: string;
-  /**
-   * @deprecated
-   */
-  build_kg_index: boolean;
-  /**
-   * @deprecated
-   */
-  llm_id: number | null;
-}
-
 export type CreateDatasourceSpecParams = ({
   data_source_type: 'file'
   config: { file_id: number, file_name: string }[]
@@ -66,7 +44,7 @@ export type CreateDatasourceSpecParams = ({
   config: { url: string }
 });
 
-export type CreateDatasourceParams = DeprecatedBaseCreateDatasourceParams & CreateDatasourceSpecParams;
+export type CreateDatasourceParams = BaseCreateDatasourceParams & CreateDatasourceSpecParams;
 
 export interface Upload {
   created_at?: Date;
@@ -92,16 +70,6 @@ export type DatasourceKgIndexError = {
   error: string | null
 }
 
-const deprecatedBaseDatasourceSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  created_at: zodJsonDate(),
-  updated_at: zodJsonDate(),
-  user_id: z.string().nullable(),
-  build_kg_index: z.boolean(),
-  llm_id: z.number().nullable(),
-});
-
 const datasourceSpecSchema = z.discriminatedUnion('data_source_type', [
   z.object({
     data_source_type: z.literal('file'),
@@ -123,9 +91,6 @@ const datasourceSpecSchema = z.discriminatedUnion('data_source_type', [
   })],
 ) satisfies ZodType<DatasourceSpec, any, any>;
 
-export const deprecatedDatasourceSchema = deprecatedBaseDatasourceSchema
-  .and(datasourceSpecSchema) satisfies ZodType<DeprecatedDatasource, any, any>;
-
 export const datasourceSchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -141,8 +106,7 @@ const uploadSchema = z.object({
   created_at: zodJsonDate().optional(),
   updated_at: zodJsonDate().optional(),
 }) satisfies ZodType<Upload, any, any>;
-
-const datasourceOverviewSchema = z.object({
+z.object({
   vector_index: indexSchema,
   documents: totalSchema,
   chunks: totalSchema,
@@ -150,34 +114,45 @@ const datasourceOverviewSchema = z.object({
   relationships: totalSchema.optional(),
 }) satisfies ZodType<DataSourceIndexProgress>;
 
-export async function listDataSources ({ page = 1, size = 10 }: PageParams = {}): Promise<Page<DeprecatedDatasource>> {
-  return fetch(requestUrl('/api/v1/admin/datasources', { page, size }), {
+export async function listDataSources (kbId: number, { page = 1, size = 10 }: PageParams = {}): Promise<Page<Datasource>> {
+  return fetch(requestUrl(`/api/v1/admin/knowledge_bases/${kbId}/datasources`, { page, size }), {
     headers: await authenticationHeaders(),
-  }).then(handleResponse(zodPage(deprecatedDatasourceSchema)));
+  }).then(handleResponse(zodPage(datasourceSchema)));
 }
 
-export async function getDatasource (id: number): Promise<DeprecatedDatasource> {
-  return fetch(requestUrl(`/api/v1/admin/datasources/${id}`), {
+export async function getDatasource (kbId: number, id: number): Promise<Datasource> {
+  return fetch(requestUrl(`/api/v1/admin/knowledge_bases/${kbId}/datasources/${id}`), {
     headers: await authenticationHeaders(),
-  }).then(handleResponse(deprecatedDatasourceSchema));
+  }).then(handleResponse(datasourceSchema));
 }
 
-export async function deleteDatasource (id: number): Promise<void> {
-  await fetch(requestUrl(`/api/v1/admin/datasources/${id}`), {
+export async function deleteDatasource (kbId: number, id: number): Promise<void> {
+  await fetch(requestUrl(`/api/v1/admin/knowledge_bases/${kbId}/datasources/${id}`), {
     method: 'DELETE',
     headers: await authenticationHeaders(),
   }).then(handleErrors);
 }
 
-export async function createDatasource (params: CreateDatasourceParams) {
-  return fetch(requestUrl(`/api/v1/admin/datasources`), {
+export async function createDatasource (kbId: number, params: CreateDatasourceParams) {
+  return fetch(requestUrl(`/api/v1/admin/knowledge_bases/${kbId}/datasources`), {
     method: 'POST',
     headers: {
       ...await authenticationHeaders(),
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(params),
-  }).then(handleResponse(deprecatedDatasourceSchema));
+  }).then(handleResponse(datasourceSchema));
+}
+
+export async function updateDatasource (kbId: number, id: number, params: { name: string }) {
+  return fetch(requestUrl(`/api/v1/admin/knowledge_bases/${kbId}/datasources/${id}`), {
+    method: 'PUT',
+    headers: {
+      ...await authenticationHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(params),
+  }).then(handleResponse(datasourceSchema));
 }
 
 export async function uploadFiles (files: File[]) {

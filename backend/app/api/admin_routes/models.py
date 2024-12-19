@@ -29,3 +29,9 @@ class KnowledgeBaseDescriptor(BaseModel):
 class DataSourceDescriptor(BaseModel):
     id: int
     name: str
+
+
+class ChatEngineDescriptor(BaseModel):
+    id: int
+    name: str
+    is_default: bool

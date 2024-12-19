@@ -14,26 +14,6 @@ export const mimeTypes = [
 
 const mimeValues: (typeof mimeTypes)[number]['value'] = mimeTypes.map(m => m.value) as never;
 
-//"id": 396505,
-//             "hash": "1022309282298755521",
-//             "name": "b (1).txt",
-//             "content": "abc",
-//             "mime_type": "text/plain",
-//             "source_uri": "uploads/01907db88850795d855b552663c18c9f/1731058150-01930b1b2df979fd80b6f9dea8d0328e.txt",
-//             "meta": {},
-//             "index_status": "completed",
-//             "index_result": null,
-//             "data_source": {
-//                 "id": 630003,
-//                 "name": "Test"
-//             },
-//             "knowledge_base": {
-//                 "id": 1,
-//                 "name": "Lorem Ipsum"
-//             },
-//             "last_modified_at": "2024-11-08T09:29:10"
-//
-
 export interface Document {
   id: number,
   name: string,
@@ -57,7 +37,7 @@ export interface Document {
   } | null
 }
 
-const documentSchema = z.object({
+export const documentSchema = z.object({
   id: z.number(),
   name: z.string(),
   created_at: zodJsonDate(),

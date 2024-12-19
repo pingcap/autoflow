@@ -1,6 +1,6 @@
 import { getChatMessageSubgraph } from '@/api/chats';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { type ChatMessageGroup, useChatMessageStreamState } from '@/components/chat/chat-hooks';
+import { type ChatMessageGroup, useChatInfo, useChatMessageStreamState, useCurrentChatController } from '@/components/chat/chat-hooks';
 import type { OngoingState } from '@/components/chat/chat-message-controller';
 import { AppChatStreamState, type StackVMState } from '@/components/chat/chat-stream-state';
 import { NetworkViewer } from '@/components/graph/components/NetworkViewer';
@@ -11,12 +11,14 @@ import { useEffect } from 'react';
 import useSWR from 'swr';
 
 export function KnowledgeGraphDebugInfo ({ group }: { group: ChatMessageGroup }) {
+  const { engine_options } = useChatInfo(useCurrentChatController()) ?? {};
   const auth = useAuth();
   const ongoing = useChatMessageStreamState(group.assistant);
-  const canEdit = !!auth.me?.is_superuser;
+  const kbId = engine_options?.knowledge_base?.linked_knowledge_base?.id;
+  const canEdit = !!auth.me?.is_superuser && kbId != null;
 
   const shouldFetch = (!ongoing || ongoing.finished || couldFetchKnowledgeGraphDebugInfo(ongoing));
-  const { data: span, isLoading, mutate } = useSWR(
+  const { data: span, isLoading, mutate, error } = useSWR(
     shouldFetch && `api.chats.get-message-subgraph?id=${group.user.id}`,
     () => getChatMessageSubgraph(group.user.id),
     {
@@ -27,10 +29,10 @@ export function KnowledgeGraphDebugInfo ({ group }: { group: ChatMessageGroup })
   );
 
   useEffect(() => {
-    if (shouldFetch && !isLoading && !span) {
+    if (shouldFetch && !error && !isLoading && !span) {
       mutate(undefined, true);
     }
-  }, [span, isLoading, shouldFetch]);
+  }, [span, isLoading, error, shouldFetch]);
 
   const network = useNetwork(span);
 
@@ -42,7 +44,7 @@ export function KnowledgeGraphDebugInfo ({ group }: { group: ChatMessageGroup })
       network={network}
       Details={() => canEdit
         ? (
-          <Link href={`/knowledge-graph?query=${encodeURIComponent(`message-subgraph:${group.user.id}`)}`} className="absolute top-2 right-2 text-xs underline">
+          <Link href={`/knowledge-bases/${kbId}/knowledge-graph-explorer?query=${encodeURIComponent(`message-subgraph:${group.user.id}`)}`} className="absolute top-2 right-2 text-xs underline">
             <PencilIcon className="w-3 h-3 mr-1 inline-block" />
             Edit graph
           </Link>

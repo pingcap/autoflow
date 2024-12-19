@@ -33,7 +33,9 @@ test('Embedded JS Widget controlled by js', async ({ page }) => {
   await test.step('Wait trigger visible and tidbai object ready', async () => {
     await page.goto('http://localhost:4001/widget-controlled.html');
     const trigger = page.getByRole('button', { name: 'Ask AI' });
-    await trigger.waitFor({ state: 'detached' });
+    await expect(trigger).toBeHidden();
+
+    await page.waitForFunction(() => (window as any).tidbai);
     expect(await page.evaluate('window.tidbai')).toMatchObject({ open: false });
   });
 

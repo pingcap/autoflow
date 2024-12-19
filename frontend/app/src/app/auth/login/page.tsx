@@ -1,8 +1,8 @@
 import { Signin } from '@/components/signin';
 import { headers } from 'next/headers';
 
-export default function Page () {
-  const referer = headers().get('Referer') ?? undefined;
+export default async function Page() {
+  const referer = (await headers()).get('Referer') ?? undefined;
 
   return (
     <div className="w-screen h-screen flex items-center justify-center bg-background">

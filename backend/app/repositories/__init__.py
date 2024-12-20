@@ -6,3 +6,4 @@ from .document import document_repo
 from .chunk import chunk_repo
 from .data_source import data_source_repo
 from .knowledge_base import knowledge_base_repo
+from .feedback import feedback_repo

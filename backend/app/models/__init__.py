@@ -9,6 +9,7 @@ from .feedback import (
     Feedback,
     FeedbackType,
     AdminFeedbackPublic,
+    FeedbackFilters,
 )
 from .semantic_cache import SemanticCache
 from .staff_action_log import StaffActionLog

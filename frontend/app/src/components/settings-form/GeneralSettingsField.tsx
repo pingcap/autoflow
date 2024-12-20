@@ -1,9 +1,9 @@
-import { FormRootErrorBeta } from '@/components/form/root-error';
+import { FormRootError } from '@/components/form/root-error';
 import { useGeneralSettingsFormContext } from '@/components/settings-form/context';
 import { Button } from '@/components/ui/button';
-import { Form as BetaForm, formDomEventHandlers } from '@/components/ui/form.beta';
+import { Form, formDomEventHandlers } from '@/components/ui/form.beta';
 import { getErrorMessage } from '@/lib/errors';
-import { useForm as useTanstackForm } from '@tanstack/react-form';
+import { useForm } from '@tanstack/react-form';
 import { Loader2Icon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { z, type ZodType } from 'zod';
@@ -27,7 +27,7 @@ export function fieldAccessor<Data, Key extends keyof Data> (key: Key): GeneralS
   };
 }
 
-export function GeneralSettingsFieldBeta<Data, FieldData> ({
+export function GeneralSettingsField<Data, FieldData> ({
   accessor, schema, children, readonly: fieldReadonly = false,
 }: {
   accessor: GeneralSettingsFieldAccessor<Data, FieldData>,
@@ -36,7 +36,7 @@ export function GeneralSettingsFieldBeta<Data, FieldData> ({
   children: ReactNode,
 }) {
   const { data, disabled, readonly, onUpdateField } = useGeneralSettingsFormContext<Data>();
-  const form = useTanstackForm<{ value: FieldData }>({
+  const form = useForm<{ value: FieldData }>({
     validators: {
       onChange: z.object({
         value: schema,
@@ -63,10 +63,10 @@ export function GeneralSettingsFieldBeta<Data, FieldData> ({
   });
 
   return (
-    <BetaForm<{ value: FieldData }, undefined> disabled={disabled || readonly || fieldReadonly} form={form}>
+    <Form<{ value: FieldData }, undefined> disabled={disabled || readonly || fieldReadonly} form={form}>
       <form className="space-y-6" {...formDomEventHandlers(form)}>
         {children}
-        <FormRootErrorBeta />
+        <FormRootError />
         {!readonly && (
           <form.Subscribe selector={state => [state.isDirty, state.isSubmitting] as const}>
             {([isDirty, isSubmitting]) => (isDirty || isSubmitting) && (
@@ -81,6 +81,6 @@ export function GeneralSettingsFieldBeta<Data, FieldData> ({
           </form.Subscribe>
         )}
       </form>
-    </BetaForm>
+    </Form>
   );
 }

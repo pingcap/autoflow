@@ -3,7 +3,7 @@ import { useFormContext as useTanstackFormContext } from '@/components/ui/form.b
 import { getErrorMessage } from '@/lib/errors';
 import type { FormState } from '@tanstack/react-form';
 
-export function FormRootErrorBeta ({ title = 'Operation failed' }: { title?: string }) {
+export function FormRootError ({ title = 'Operation failed' }: { title?: string }) {
   const { form, submissionError } = useTanstackFormContext();
 
   return (
@@ -31,5 +31,3 @@ function getFormError (state: FormState<any>, error: unknown) {
   }
   return undefined;
 }
-
-export { FormRootErrorBeta as FormRootError };

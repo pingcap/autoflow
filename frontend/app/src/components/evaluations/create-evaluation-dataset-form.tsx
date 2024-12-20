@@ -1,7 +1,7 @@
 import { uploadFiles } from '@/api/datasources';
 import { createEvaluationDataset } from '@/api/evaluations';
 import { FormInput } from '@/components/form/control-widget';
-import { withCreateEntityFormBeta as withCreateEntityForm } from '@/components/form/create-entity-form';
+import { withCreateEntityForm as withCreateEntityForm } from '@/components/form/create-entity-form';
 import { formFieldLayout } from '@/components/form/field-layout';
 import { FileInput } from '@/components/form/widgets/FileInput';
 import { zodFile } from '@/lib/zod';

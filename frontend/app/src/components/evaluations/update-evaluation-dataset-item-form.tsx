@@ -4,7 +4,7 @@ import { FormTextarea } from '@/components/form/control-widget';
 import { formFieldLayout } from '@/components/form/field-layout';
 import { CodeInput } from '@/components/form/widgets/CodeInput';
 import { createAccessorHelper, GeneralSettingsForm } from '@/components/settings-form';
-import { GeneralSettingsFieldBeta } from '@/components/settings-form/GeneralSettingsField';
+import { GeneralSettingsField } from '@/components/settings-form/GeneralSettingsField';
 import { z } from 'zod';
 
 const field = formFieldLayout<{ value: any }>();
@@ -39,26 +39,26 @@ export function UpdateEvaluationDatasetItemForm ({ evaluationDatasetId, evaluati
           void mutateEvaluationDataset(evaluationDatasetId);
         }}
       >
-        <GeneralSettingsFieldBeta accessor={query} schema={textSchema}>
+        <GeneralSettingsField accessor={query} schema={textSchema}>
           <field.Basic name="value" label="Query">
             <CodeInput language="markdown" />
           </field.Basic>
-        </GeneralSettingsFieldBeta>
-        <GeneralSettingsFieldBeta accessor={reference} schema={textSchema}>
+        </GeneralSettingsField>
+        <GeneralSettingsField accessor={reference} schema={textSchema}>
           <field.Basic name="value" label="Reference">
             <CodeInput language="markdown" />
           </field.Basic>
-        </GeneralSettingsFieldBeta>
-        <GeneralSettingsFieldBeta accessor={retrievedContexts} schema={textListSchema}>
+        </GeneralSettingsField>
+        <GeneralSettingsField accessor={retrievedContexts} schema={textListSchema}>
           <field.PrimitiveArray name="value" label="Retrieved Contexts" newItemValue={() => ''}>
             <FormTextarea />
           </field.PrimitiveArray>
-        </GeneralSettingsFieldBeta>
-        <GeneralSettingsFieldBeta accessor={extra} schema={jsonSchema}>
+        </GeneralSettingsField>
+        <GeneralSettingsField accessor={extra} schema={jsonSchema}>
           <field.Basic name="value" label="Extra">
             <CodeInput language="json" />
           </field.Basic>
-        </GeneralSettingsFieldBeta>
+        </GeneralSettingsField>
       </GeneralSettingsForm>
     </div>
   );

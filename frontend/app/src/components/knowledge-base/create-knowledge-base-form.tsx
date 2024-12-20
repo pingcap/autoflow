@@ -1,14 +1,14 @@
 import { createKnowledgeBase } from '@/api/knowledge-base';
 import { EmbeddingModelSelect, LLMSelect } from '@/components/form/biz';
 import { FormInput, FormTextarea } from '@/components/form/control-widget';
-import { withCreateEntityFormBeta } from '@/components/form/create-entity-form';
+import { withCreateEntityForm } from '@/components/form/create-entity-form';
 import { FormIndexMethods } from '@/components/knowledge-base/form-index-methods';
 import { mutateKnowledgeBases } from '@/components/knowledge-base/hooks';
 import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 import { z } from 'zod';
 
-const Form = withCreateEntityFormBeta(z.object({
+const Form = withCreateEntityForm(z.object({
   name: z.string().min(1),
   description: z.string(),
   index_methods: z.enum(['knowledge_graph', 'vector']).array(),

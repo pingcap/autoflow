@@ -1,6 +1,6 @@
 import { createApiKey, type CreateApiKeyResponse } from '@/api/api-keys';
 import { FormInput } from '@/components/form/control-widget';
-import { withCreateEntityFormBeta } from '@/components/form/create-entity-form';
+import { withCreateEntityForm } from '@/components/form/create-entity-form';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -11,7 +11,7 @@ export interface CreateApiKeyFormProps {
   onCreated?: (data: CreateApiKeyResponse) => void;
 }
 
-const FormImpl = withCreateEntityFormBeta(schema, createApiKey, {
+const FormImpl = withCreateEntityForm(schema, createApiKey, {
   submitTitle: 'Create API Key',
   submittingTitle: 'Creating API Key...',
 });

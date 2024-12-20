@@ -6,7 +6,7 @@ import { FormInput, FormSwitch, FormTextarea } from '@/components/form/control-w
 import { formFieldLayout } from '@/components/form/field-layout';
 import { mutateKnowledgeBases } from '@/components/knowledge-base/hooks';
 import { fieldAccessor, type GeneralSettingsFieldAccessor, GeneralSettingsForm, shallowPick } from '@/components/settings-form';
-import { GeneralSettingsFieldBeta as GeneralSettingsField } from '@/components/settings-form/GeneralSettingsField';
+import { GeneralSettingsField as GeneralSettingsField } from '@/components/settings-form/GeneralSettingsField';
 import type { KeyOfType } from '@/lib/typing-utils';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';

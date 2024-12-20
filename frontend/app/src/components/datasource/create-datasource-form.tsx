@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Form, formDomEventHandlers, FormField, FormItem, FormLabel, useFormContext } from '@/components/ui/form.beta';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { zodFile } from '@/lib/zod';
-import { useForm as useTanstackForm } from '@tanstack/react-form';
+import { useForm } from '@tanstack/react-form';
 import { FileDownIcon, GlobeIcon, PaperclipIcon } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
@@ -28,7 +28,7 @@ export function CreateDatasourceForm ({ knowledgeBaseId, transitioning, onCreate
 
   const [submissionError, setSubmissionError] = useState<unknown>(undefined);
 
-  const form = useTanstackForm<CreateDatasourceFormParams>({
+  const form = useForm<CreateDatasourceFormParams>({
     validators: {
       onSubmit: createDatasourceSchema,
     },

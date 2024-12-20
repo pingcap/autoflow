@@ -1,6 +1,6 @@
 import { createEvaluationDatasetItem, type EvaluationDatasetItem } from '@/api/evaluations';
 import { FormTextarea } from '@/components/form/control-widget';
-import { withCreateEntityFormBeta } from '@/components/form/create-entity-form';
+import { withCreateEntityForm } from '@/components/form/create-entity-form';
 import { formFieldLayout } from '@/components/form/field-layout';
 import { CodeInput } from '@/components/form/widgets/CodeInput';
 import { zodJson } from '@/lib/zod';
@@ -34,7 +34,7 @@ const schema = z.object({
 const field = formFieldLayout<typeof schema>();
 
 export function CreateEvaluationDatasetItemForm ({ evaluationDatasetId, transitioning, onCreated }: { evaluationDatasetId: number, transitioning?: boolean, onCreated?: (item: EvaluationDatasetItem) => void }) {
-  const FormImpl = useMemo(() => withCreateEntityFormBeta(schema, params => createEvaluationDatasetItem(evaluationDatasetId, params)), [evaluationDatasetId]);
+  const FormImpl = useMemo(() => withCreateEntityForm(schema, params => createEvaluationDatasetItem(evaluationDatasetId, params)), [evaluationDatasetId]);
 
   return (
     <FormImpl

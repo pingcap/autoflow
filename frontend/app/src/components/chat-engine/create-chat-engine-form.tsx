@@ -5,7 +5,7 @@ import { FormSection, FormSectionsProvider, useFormSectionFields } from '@/compo
 import { KBSelect, LLMSelect, RerankerSelect } from '@/components/form/biz';
 import { FormCheckbox, FormInput, FormSwitch } from '@/components/form/control-widget';
 import { formFieldLayout } from '@/components/form/field-layout';
-import { FormRootErrorBeta as FormRootError } from '@/components/form/root-error';
+import { FormRootError } from '@/components/form/root-error';
 import { onSubmitHelper } from '@/components/form/utils';
 import { PromptInput } from '@/components/form/widgets/PromptInput';
 import { SecondaryNavigatorItem, SecondaryNavigatorLayout, SecondaryNavigatorList, SecondaryNavigatorMain } from '@/components/secondary-navigator-list';

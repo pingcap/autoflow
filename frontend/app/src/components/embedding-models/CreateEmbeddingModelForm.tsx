@@ -4,7 +4,7 @@ import { type CreateEmbeddingModel, createEmbeddingModel, type EmbeddingModel, l
 import { ProviderSelect } from '@/components/form/biz';
 import { FormInput } from '@/components/form/control-widget';
 import { formFieldLayout } from '@/components/form/field-layout';
-import { FormRootErrorBeta as FormRootError } from '@/components/form/root-error';
+import { FormRootError } from '@/components/form/root-error';
 import { onSubmitHelper } from '@/components/form/utils';
 import { CodeInput } from '@/components/form/widgets/CodeInput';
 import { ProviderDescription } from '@/components/provider-description';
@@ -12,7 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Form, formDomEventHandlers, FormSubmit } from '@/components/ui/form.beta';
 import { useModelProvider } from '@/hooks/use-model-provider';
 import { zodJsonText } from '@/lib/zod';
-import { useForm as useTanstackForm } from '@tanstack/react-form';
+import { useForm } from '@tanstack/react-form';
 import { useId, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
@@ -42,7 +42,7 @@ export function CreateEmbeddingModelForm ({ transitioning, onCreated }: { transi
   const { data: options, isLoading, error } = useSWR('api.embedding-models.list-options', listEmbeddingModelOptions);
   const [submissionError, setSubmissionError] = useState<unknown>();
 
-  const form = useTanstackForm<CreateEmbeddingModel | Omit<CreateEmbeddingModel, 'model' | 'credentials'>>({
+  const form = useForm<CreateEmbeddingModel | Omit<CreateEmbeddingModel, 'model' | 'credentials'>>({
     validators: {
       onSubmit: unsetForm,
     },

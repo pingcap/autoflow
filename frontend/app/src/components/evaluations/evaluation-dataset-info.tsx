@@ -2,7 +2,7 @@ import { type EvaluationDataset, updateEvaluationDataset } from '@/api/evaluatio
 import { mutateEvaluationDatasets, useEvaluationDataset } from '@/components/evaluations/hooks';
 import { FormInput } from '@/components/form/control-widget';
 import { formFieldLayout } from '@/components/form/field-layout';
-import { createAccessorHelper, GeneralSettingsFieldBeta as GeneralSettingsField, GeneralSettingsForm } from '@/components/settings-form';
+import { createAccessorHelper, GeneralSettingsField as GeneralSettingsField, GeneralSettingsForm } from '@/components/settings-form';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';

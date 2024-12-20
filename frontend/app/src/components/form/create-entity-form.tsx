@@ -1,7 +1,7 @@
 import { formFieldLayout, type TypedFormFieldLayouts } from '@/components/form/field-layout';
-import { FormRootErrorBeta } from '@/components/form/root-error';
-import { Form as FormBeta, formDomEventHandlers, FormSubmit } from '@/components/ui/form.beta';
-import { useForm as useTanstackForm } from '@tanstack/react-form';
+import { FormRootError } from '@/components/form/root-error';
+import { Form, formDomEventHandlers, FormSubmit } from '@/components/ui/form.beta';
+import { useForm } from '@tanstack/react-form';
 import { type FunctionComponent, type ReactNode, useId, useState } from 'react';
 import { z } from 'zod';
 
@@ -16,7 +16,7 @@ export interface CreateEntityFormBetaProps<R, I> {
 interface CreateEntityFormComponent<R, I> extends FunctionComponent<CreateEntityFormBetaProps<R, I>>, TypedFormFieldLayouts<I> {
 }
 
-export function withCreateEntityFormBeta<T, R, I = any> (
+export function withCreateEntityForm<T, R, I = any> (
   schema: z.ZodType<T, any, I>,
   createApi: (data: T) => Promise<R>,
   { submitTitle = 'Create', submittingTitle }: {
@@ -37,7 +37,7 @@ export function withCreateEntityFormBeta<T, R, I = any> (
     const id = useId();
     const [submissionError, setSubmissionError] = useState<unknown>();
 
-    const form = useTanstackForm<I>({
+    const form = useForm<I>({
       validators: {
         onSubmit: schema,
       },
@@ -56,19 +56,19 @@ export function withCreateEntityFormBeta<T, R, I = any> (
     });
 
     return (
-      <FormBeta form={form} disabled={transitioning} submissionError={submissionError}>
+      <Form form={form} disabled={transitioning} submissionError={submissionError}>
         <form
           id={id}
           className="max-w-screen-sm space-y-4"
           {...formDomEventHandlers(form, transitioning)}
         >
           {children}
-          <FormRootErrorBeta />
+          <FormRootError />
           <FormSubmit form={id} transitioning={transitioning} submittingChildren={submittingTitle}>
             {submitTitle}
           </FormSubmit>
         </form>
-      </FormBeta>
+      </Form>
     );
   }
 
@@ -76,5 +76,3 @@ export function withCreateEntityFormBeta<T, R, I = any> (
 
   return CreateEntityFormBeta as CreateEntityFormComponent<R, I>;
 }
-
-export { withCreateEntityFormBeta as withCreateEntityForm };

@@ -1,7 +1,7 @@
 import { createEvaluationTask, type CreateEvaluationTaskParams } from '@/api/evaluations';
 import { ChatEngineSelect, EvaluationDatasetSelect } from '@/components/form/biz';
 import { FormInput } from '@/components/form/control-widget';
-import { withCreateEntityFormBeta as withCreateEntityForm } from '@/components/form/create-entity-form';
+import { withCreateEntityForm as withCreateEntityForm } from '@/components/form/create-entity-form';
 import { formFieldLayout } from '@/components/form/field-layout';
 import type { ComponentProps } from 'react';
 import { z, type ZodType } from 'zod';

@@ -6,7 +6,7 @@ import { FormCheckbox, FormInput, FormSwitch } from '@/components/form/control-w
 import { formFieldLayout } from '@/components/form/field-layout';
 import { PromptInput } from '@/components/form/widgets/PromptInput';
 import { SecondaryNavigatorItem, SecondaryNavigatorLayout, SecondaryNavigatorList, SecondaryNavigatorMain } from '@/components/secondary-navigator-list';
-import { fieldAccessor, type GeneralSettingsFieldAccessor, GeneralSettingsFieldBeta as GeneralSettingsField, GeneralSettingsForm, shallowPick } from '@/components/settings-form';
+import { fieldAccessor, type GeneralSettingsFieldAccessor, GeneralSettingsField as GeneralSettingsField, GeneralSettingsForm, shallowPick } from '@/components/settings-form';
 import type { KeyOfType } from '@/lib/typing-utils';
 import { capitalCase } from 'change-case-all';
 import { format } from 'date-fns';

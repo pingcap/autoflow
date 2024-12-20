@@ -55,3 +55,13 @@ class Chat(UUIDBaseModel, UpdatableBaseModel, table=True):
 class ChatUpdate(BaseModel):
     title: Optional[str] = None
     visibility: Optional[ChatVisibility] = None
+
+
+class ChatFilters(BaseModel):
+    created_at_start: Optional[datetime] = None
+    created_at_end: Optional[datetime] = None
+    updated_at_start: Optional[datetime] = None
+    updated_at_end: Optional[datetime] = None
+    chat_origin: Optional[str] = None
+    # user_id: Optional[UUID] = None          # no use now
+    engine_id: Optional[int] = None

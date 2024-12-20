@@ -4,11 +4,11 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, UTC, date, timedelta
 from collections import defaultdict
 
-from sqlmodel import select, Session, or_, func, case, desc
+from sqlmodel import select, Session, or_, func, case, desc, col
 from fastapi_pagination import Params, Page
 from fastapi_pagination.ext.sqlmodel import paginate
 
-from app.models import Chat, User, ChatMessage, ChatUpdate
+from app.models import Chat, User, ChatMessage, ChatUpdate, ChatFilters
 from app.repositories.base_repo import BaseRepo
 from app.exceptions import ChatNotFound, ChatMessageNotFound
 
@@ -21,6 +21,7 @@ class ChatRepo(BaseRepo):
         session: Session,
         user: User | None,
         browser_id: str | None,
+        filters: ChatFilters,
         params: Params | None = Params(),
     ) -> Page[Chat]:
         query = select(Chat).where(Chat.deleted_at == None)
@@ -31,6 +32,23 @@ class ChatRepo(BaseRepo):
                 )
         else:
             query = query.where(Chat.browser_id == browser_id, Chat.user_id == None)
+
+        # filters
+        if filters.created_at_start:
+            query = query.where(Chat.created_at >= filters.created_at_start)
+        if filters.created_at_end:
+            query = query.where(Chat.created_at <= filters.created_at_end)
+        if filters.updated_at_start:
+            query = query.where(Chat.updated_at >= filters.updated_at_start)
+        if filters.updated_at_end:
+            query = query.where(Chat.updated_at <= filters.updated_at_end)
+        if filters.chat_origin:
+            query = query.where(col(Chat.origin).contains(filters.chat_origin))
+        # if filters.user_id:
+        #     query = query.where(Chat.user_id == filters.user_id)
+        if filters.engine_id:
+            query = query.where(Chat.engine_id == filters.engine_id)
+
         query = query.order_by(Chat.created_at.desc())
         return paginate(session, query, params)
 

@@ -14,7 +14,7 @@ from .feedback import (
 from .semantic_cache import SemanticCache
 from .staff_action_log import StaffActionLog
 from .chat_engine import ChatEngine, ChatEngineUpdate
-from .chat import Chat, ChatUpdate, ChatVisibility
+from .chat import Chat, ChatUpdate, ChatVisibility, ChatFilters
 from .chat_message import ChatMessage
 from .document import Document, DocIndexTaskStatus
 from .chunk import Chunk, KgIndexStatus

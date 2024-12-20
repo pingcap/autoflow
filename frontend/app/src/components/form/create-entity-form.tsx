@@ -1,72 +1,8 @@
-import { FormRootError, FormRootErrorBeta } from '@/components/form/root-error';
-import { handleSubmitHelper } from '@/components/form/utils';
-import { Button } from '@/components/ui/button';
-import { Form } from '@/components/ui/form';
+import { FormRootErrorBeta } from '@/components/form/root-error';
 import { Form as FormBeta, formDomEventHandlers, FormSubmit } from '@/components/ui/form.beta';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm as useTanstackForm } from '@tanstack/react-form';
 import { type ReactNode, useId, useState } from 'react';
-import { type DefaultValues, type FieldValues, useForm } from 'react-hook-form';
 import { z } from 'zod';
-
-/**
- * @deprecated
- */
-export interface CreateEntityFormProps<T extends FieldValues, R> {
-  defaultValues?: DefaultValues<T>;
-  onCreated?: (data: R) => void;
-  transitioning?: boolean;
-  children?: ReactNode;
-}
-
-/**
- * @deprecated
- */
-export function withCreateEntityForm<T extends FieldValues, R> (
-  schema: z.ZodType<T, any, any>,
-  createApi: (data: T) => Promise<R>,
-) {
-  const resolver = zodResolver(schema);
-
-  /**
-   * @deprecated
-   */
-  function CreateEntityForm (
-    {
-      defaultValues,
-      onCreated,
-      transitioning,
-      children,
-    }: CreateEntityFormProps<T, R>,
-  ) {
-    const id = useId();
-
-    const form = useForm<T>({
-      resolver,
-      defaultValues,
-    });
-
-    const handleSubmit = handleSubmitHelper(form, async data => {
-      const result = await createApi(data);
-
-      onCreated?.(result);
-    });
-
-    return (
-      <Form {...form}>
-        <form id={id} className="max-w-screen-sm space-y-4" onSubmit={handleSubmit}>
-          {children}
-          <FormRootError />
-          <Button type="submit" form={id} disabled={transitioning || form.formState.isSubmitting || form.formState.disabled}>
-            Create
-          </Button>
-        </form>
-      </Form>
-    );
-  }
-
-  return CreateEntityForm;
-}
 
 export interface CreateEntityFormBetaProps<T, R> {
   defaultValues?: T;
@@ -79,6 +15,10 @@ export interface CreateEntityFormBetaProps<T, R> {
 export function withCreateEntityFormBeta<T, R> (
   schema: z.ZodType<T, any, any>,
   createApi: (data: T) => Promise<R>,
+  { submitTitle = 'Create', submittingTitle }: {
+    submitTitle?: ReactNode
+    submittingTitle?: ReactNode
+  } = {},
 ) {
   return function CreateEntityFormBeta (
     {
@@ -119,11 +59,13 @@ export function withCreateEntityFormBeta<T, R> (
         >
           {children}
           <FormRootErrorBeta />
-          <FormSubmit form={id} transitioning={transitioning}>
-            Create
+          <FormSubmit form={id} transitioning={transitioning} submittingChildren={submittingTitle}>
+            {submitTitle}
           </FormSubmit>
         </form>
       </FormBeta>
     );
   };
 }
+
+export { withCreateEntityFormBeta as withCreateEntityForm };

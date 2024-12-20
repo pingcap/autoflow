@@ -1,8 +1,8 @@
 import { type EvaluationDataset, updateEvaluationDataset } from '@/api/evaluations';
 import { mutateEvaluationDatasets, useEvaluationDataset } from '@/components/evaluations/hooks';
 import { FormInput } from '@/components/form/control-widget';
-import { FormFieldBasicLayout } from '@/components/form/field-layout';
-import { createAccessorHelper, GeneralSettingsField, GeneralSettingsForm } from '@/components/settings-form';
+import { FormFieldBasicLayout } from '@/components/form/field-layout.beta';
+import { createAccessorHelper, GeneralSettingsFieldBeta as GeneralSettingsField, GeneralSettingsForm } from '@/components/settings-form';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';

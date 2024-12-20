@@ -6,7 +6,9 @@ import { cn } from '@/lib/utils';
 import { type DeepKeys, type DeepValue, type FieldApi, FieldValidators, type FormApi, useField } from '@tanstack/react-form';
 import { MinusIcon, PlusIcon } from 'lucide-react';
 import { cloneElement, type ReactElement, type ReactNode } from 'react';
-import { ControllerRenderProps, FieldValues } from 'react-hook-form';
+import { FieldValues } from 'react-hook-form';
+
+type WidgetProps<TFormData, TName extends DeepKeys<TFormData>> = Required<Omit<FormControlWidgetProps<TFormData, TName>, 'id' | 'aria-invalid' | 'aria-describedby'>>
 
 export interface FormFieldLayoutProps<
   TFieldValues extends FieldValues = FieldValues,
@@ -23,7 +25,7 @@ export interface FormFieldLayoutProps<
   defaultValue?: NoInfer<DeepValue<TFieldValues, TName>>;
   validators?: FieldValidators<TFieldValues, TName>;
 
-  children: ((props: ControllerRenderProps<TFieldValues, any>) => ReactNode) | ReactElement<FormControlWidgetProps<TFieldValues, any>>;
+  children: ((props: WidgetProps<TFieldValues, TName>) => ReactNode) | ReactElement<WidgetProps<TFieldValues, TName>>;
 }
 
 function renderWidget<
@@ -37,7 +39,7 @@ function renderWidget<
   fallbackValue?: DeepValue<TFieldValues, TName>,
 ) {
 
-  const data = {
+  const data: WidgetProps<TFieldValues, TName> = {
     value: field.state.value ?? fallbackValue as any,
     name: field.name,
     onChange: ((ev: any) => {
@@ -59,7 +61,7 @@ function renderWidget<
     }),
     onBlur: field.handleBlur,
     disabled: disabled || field.form.state.isSubmitting,
-    ref: field.mount,
+    ref: () => {},
   };
 
   if (typeof children === 'function') {

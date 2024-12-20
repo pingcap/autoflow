@@ -1,4 +1,4 @@
-import type { EvaluationTask } from '@/api/evaluations';
+import type { EvaluationTask, EvaluationTaskWithSummary } from '@/api/evaluations';
 import { EvaluationTaskInfo, EvaluationTaskInfoDisplay, EvaluationTaskInfoSkeleton } from '@/components/evaluations/evaluation-task-info';
 import type { Meta, StoryObj } from '@storybook/react';
 import type { ComponentType } from 'react';
@@ -24,7 +24,7 @@ const summary = {
     std_factual_correctness: 0.74,
     std_semantic_similarity: 0.83,
   },
-} satisfies EvaluationTask;
+} satisfies EvaluationTaskWithSummary;
 
 const meta = {
   title: 'Components/Evaluations/EvaluationTaskSummary',

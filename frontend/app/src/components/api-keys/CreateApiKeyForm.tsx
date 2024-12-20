@@ -1,11 +1,7 @@
-import { createApiKey, type CreateApiKey, type CreateApiKeyResponse } from '@/api/api-keys';
+import { createApiKey, type CreateApiKeyResponse } from '@/api/api-keys';
 import { FormInput } from '@/components/form/control-widget';
-import { FormFieldBasicLayout } from '@/components/form/field-layout';
-import { FormSubmit } from '@/components/form/submit';
-import { handleSubmitHelper } from '@/components/form/utils';
-import { Form } from '@/components/ui/form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { withCreateEntityFormBeta } from '@/components/form/create-entity-form';
+import { FormFieldBasicLayout } from '@/components/form/field-layout.beta';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -16,30 +12,17 @@ export interface CreateApiKeyFormProps {
   onCreated?: (data: CreateApiKeyResponse) => void;
 }
 
-export function CreateApiKeyForm ({ onCreated }: CreateApiKeyFormProps) {
-  const form = useForm<CreateApiKey>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      description: '',
-    },
-  });
+const FormImpl = withCreateEntityFormBeta(schema, createApiKey, {
+  submitTitle: 'Create API Key',
+  submittingTitle: 'Creating API Key...',
+});
 
+export function CreateApiKeyForm ({ onCreated }: CreateApiKeyFormProps) {
   return (
-    <Form {...form}>
-      <form
-        className="space-y-4"
-        onSubmit={handleSubmitHelper(form, async data => {
-          const response = await createApiKey(data);
-          onCreated?.(response);
-        })}
-      >
-        <FormFieldBasicLayout name="description" label="API Key Description">
-          <FormInput />
-        </FormFieldBasicLayout>
-        <FormSubmit submittingText="Creating API Key...">
-          Create API Key
-        </FormSubmit>
-      </form>
-    </Form>
+    <FormImpl onCreated={onCreated}>
+      <FormFieldBasicLayout name="description" label="API Key Description">
+        <FormInput />
+      </FormFieldBasicLayout>
+    </FormImpl>
   );
 }

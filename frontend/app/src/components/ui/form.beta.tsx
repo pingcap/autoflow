@@ -222,6 +222,7 @@ function FormMessage ({ ref, className, children, ...props }: ComponentProps<'p'
 
 function FormSubmit ({
   children,
+  submittingChildren,
   asChild,
   disabled,
   transitioning,
@@ -231,6 +232,7 @@ function FormSubmit ({
    * Used when to start a transition after created an entity. The loader indicator will be shown while transitioning.
    */
   transitioning?: boolean
+  submittingChildren?: ReactNode;
 }) {
   const { form } = useFormContext();
 
@@ -241,7 +243,7 @@ function FormSubmit ({
         : (form.state.isSubmitting || transitioning)
           ? <>
             <Loader2Icon className="animate-spin repeat-infinite" />
-            {children}
+            {submittingChildren ?? children}
           </>
           : children}
     </Button>

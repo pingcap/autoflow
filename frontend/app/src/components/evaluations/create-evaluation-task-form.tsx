@@ -1,8 +1,8 @@
 import { createEvaluationTask, type CreateEvaluationTaskParams } from '@/api/evaluations';
 import { ChatEngineSelect, EvaluationDatasetSelect } from '@/components/form/biz';
 import { FormInput } from '@/components/form/control-widget';
-import { withCreateEntityForm } from '@/components/form/create-entity-form';
-import { FormFieldBasicLayout } from '@/components/form/field-layout';
+import { withCreateEntityFormBeta as withCreateEntityForm } from '@/components/form/create-entity-form';
+import { FormFieldBasicLayout } from '@/components/form/field-layout.beta';
 import type { ComponentProps } from 'react';
 import { z, type ZodType } from 'zod';
 
@@ -18,13 +18,10 @@ const FormImpl = withCreateEntityForm(schema, createEvaluationTask);
 export function CreateEvaluationTaskForm ({ transitioning, onCreated }: Omit<ComponentProps<typeof FormImpl>, 'defaultValues' | 'children'>) {
   return (
     <FormImpl
-      defaultValues={{
-        name: '',
-      }}
       transitioning={transitioning}
       onCreated={onCreated}
     >
-      <FormFieldBasicLayout name="name" label="Name" required>
+      <FormFieldBasicLayout name="name" label="Name" required defaultValue="">
         <FormInput />
       </FormFieldBasicLayout>
       <FormFieldBasicLayout name="evaluation_dataset_id" label="Evaluation Dataset" required>

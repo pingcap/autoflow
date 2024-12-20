@@ -9,18 +9,25 @@ import { cn } from '@/lib/utils';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import * as SelectPrimitive from '@radix-ui/react-select';
 import type { SwitchProps } from '@radix-ui/react-switch';
+import type { DeepKeys, DeepValue } from '@tanstack/react-form';
 import { CheckIcon, ChevronDown, Loader2Icon, TriangleAlertIcon, XCircleIcon } from 'lucide-react';
 import * as React from 'react';
-import { type ComponentProps, type FC, forwardRef, type ReactElement, type ReactNode, useState } from 'react';
-import { ControllerRenderProps, FieldPath, FieldValues } from 'react-hook-form';
+import { type ComponentProps, type FC, forwardRef, type ReactElement, type ReactNode, type Ref, useState } from 'react';
 
 export interface FormControlWidgetProps<
-  TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
-> extends Partial<ControllerRenderProps<TFieldValues, TName>> {
+  TFormData = {},
+  TName extends DeepKeys<TFormData> = DeepKeys<TFormData>
+> {
   id?: string;
   'aria-describedby'?: string;
   'aria-invalid'?: boolean;
+
+  onChange?: (...event: any[]) => void;
+  onBlur?: () => void;
+  value?: DeepValue<TFormData, TName>;
+  disabled?: boolean;
+  name?: TName;
+  ref?: Ref<any>;
 }
 
 export { Input as FormInput, type InputProps as FormInputProps } from '@/components/ui/input';
@@ -244,7 +251,7 @@ function FormComboboxClearButton ({ onClick }: { onClick?: () => void }) {
     <TooltipProvider delayDuration={0}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span role='button' className="ml-2 opacity-50 hover:opacity-100" onClick={onClick}>
+          <span role="button" className="ml-2 opacity-50 hover:opacity-100" onClick={onClick}>
             <XCircleIcon className="size-4" />
           </span>
         </TooltipTrigger>

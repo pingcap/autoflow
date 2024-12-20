@@ -28,6 +28,9 @@ export interface EvaluationTask {
   created_at: Date;
   updated_at: Date;
   dataset_id: number;
+}
+
+export interface EvaluationTaskWithSummary extends EvaluationTask {
   summary: EvaluationTaskSummary;
 }
 
@@ -141,8 +144,11 @@ const evaluationTaskSchema = z.object({
   created_at: zodJsonDate(),
   updated_at: zodJsonDate(),
   dataset_id: z.number(),
-  summary: evaluationTaskSummarySchema,
 }) satisfies ZodType<EvaluationTask, any, any>;
+
+const evaluationTaskWithSummarySchema = evaluationTaskSchema.extend({
+  summary: evaluationTaskSummarySchema,
+});
 
 const evaluationTaskItemSchema = z.object({
   created_at: zodJsonDate(),
@@ -276,18 +282,18 @@ export async function createEvaluationTask (params: CreateEvaluationTaskParams):
     .then(handleResponse(evaluationTaskSchema));
 }
 
-export async function listEvaluationTasks ({ ...params }: PageParams & { keyword?: string }): Promise<Page<EvaluationTask>> {
+export async function listEvaluationTasks ({ ...params }: PageParams & { keyword?: string }): Promise<Page<EvaluationTaskWithSummary>> {
   return fetch(requestUrl('/api/v1/admin/evaluation/tasks', params), {
     headers: await authenticationHeaders(),
   })
-    .then(handleResponse(zodPage(evaluationTaskSchema)));
+    .then(handleResponse(zodPage(evaluationTaskWithSummarySchema)));
 }
 
-export async function getEvaluationTask (id: number): Promise<EvaluationTask> {
+export async function getEvaluationTaskWithSummary (id: number): Promise<EvaluationTaskWithSummary> {
   return fetch(requestUrl(`/api/v1/admin/evaluation/tasks/${id}/summary`), {
     headers: await authenticationHeaders(),
   })
-    .then(handleResponse(evaluationTaskSchema));
+    .then(handleResponse(evaluationTaskWithSummarySchema));
 }
 
 export async function cancelEvaluationTask (id: number): Promise<void> {

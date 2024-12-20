@@ -46,7 +46,6 @@ export function FormSection ({ value, children }: { value: string, children?: Re
     });
 
     return () => {
-      console.log('unregister', field);
       setMap?.(map => {
         if (!map.get(value)?.has(field.name)) {
           return map;

@@ -51,7 +51,7 @@ export function CreateEvaluationDatasetItemForm ({ evaluationDatasetId, transiti
       <FormFieldBasicLayout name="reference" label="Reference" required>
         <FormTextarea />
       </FormFieldBasicLayout>
-      <FormPrimitiveArrayFieldBasicLayout name="retrieved_contexts" label="Retrieved Contexts" defaultValue={() => ''} required>
+      <FormPrimitiveArrayFieldBasicLayout name="retrieved_contexts" label="Retrieved Contexts" newItemValue={() => ''} required>
         <FormTextarea />
       </FormPrimitiveArrayFieldBasicLayout>
       <FormFieldBasicLayout name="extra" label="Extra">

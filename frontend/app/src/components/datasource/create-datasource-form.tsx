@@ -102,7 +102,7 @@ function DataSourceTypeSpecFields () {
             </FormFieldBasicLayout>
           )}
           {type === 'web_single_page' && (
-            <FormPrimitiveArrayFieldBasicLayout name="urls" label="Page URL" defaultValue={() => ''}>
+            <FormPrimitiveArrayFieldBasicLayout name="urls" label="Page URL" newItemValue={() => ''}>
               <FormInput placeholder="https://example.com/" />
             </FormPrimitiveArrayFieldBasicLayout>
           )}

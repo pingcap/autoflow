@@ -72,6 +72,7 @@ export function withCreateEntityForm<T extends FieldValues, R> (
 export interface CreateEntityFormBetaProps<T, R> {
   defaultValues?: T;
   onCreated?: (data: R) => void;
+  onInvalid?: () => void;
   transitioning?: boolean;
   children?: ReactNode;
 }
@@ -84,6 +85,7 @@ export function withCreateEntityFormBeta<T, R> (
     {
       defaultValues,
       onCreated,
+      onInvalid,
       transitioning,
       children,
     }: CreateEntityFormBetaProps<T, R>,
@@ -104,6 +106,9 @@ export function withCreateEntityFormBeta<T, R> (
             onSubmit: getErrorMessage(e),
           });
         }
+      },
+      onSubmitInvalid: () => {
+        onInvalid?.();
       },
     });
 

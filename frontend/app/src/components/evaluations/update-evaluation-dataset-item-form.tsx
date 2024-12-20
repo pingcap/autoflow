@@ -48,7 +48,7 @@ export function UpdateEvaluationDatasetItemForm ({ evaluationDatasetId, evaluati
           </FormFieldBasicLayout>
         </GeneralSettingsFieldBeta>
         <GeneralSettingsFieldBeta accessor={retrievedContexts} schema={textListSchema}>
-          <FormPrimitiveArrayFieldBasicLayout name="value" label="Retrieved Contexts" defaultValue={() => ''}>
+          <FormPrimitiveArrayFieldBasicLayout name="value" label="Retrieved Contexts" newItemValue={() => ''}>
             <FormTextarea />
           </FormPrimitiveArrayFieldBasicLayout>
         </GeneralSettingsFieldBeta>

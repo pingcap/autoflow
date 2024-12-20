@@ -1,12 +1,14 @@
 // This file contains new form components based on @tanstack/form
 // The components should be aligned with original form components.
 
+import { useRegisterFieldInFormSection } from '@/components/form-sections';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { Slot } from '@radix-ui/react-slot';
-import type { FieldApi, FormApi, ReactFormExtendedApi } from '@tanstack/react-form';
+import type { FieldValidators } from '@tanstack/react-form';
 import * as FormPrimitives from '@tanstack/react-form';
+import { type DeepValue, type FieldApi, type FormApi, type NoInfer, type ReactFormExtendedApi, useField } from '@tanstack/react-form';
 import { Loader2Icon } from 'lucide-react';
 import * as React from 'react';
 import { type ComponentProps, createContext, type FormEvent, type ReactNode, useContext, useId } from 'react';
@@ -70,11 +72,7 @@ function useFormField<
     throw new Error('useFormField() should be used within <FormField>');
   }
 
-  const field = FormPrimitives.useField<TFormData, TName, undefined, TFormValidator, FormPrimitives.DeepValue<TFormData, TName>>({
-    form,
-    name: fieldContext.name as TName,
-    mode: fieldContext.mode,
-  });
+  const field = form.getFieldMeta(fieldContext.name as TName);
 
   const { id } = itemContext;
 
@@ -111,23 +109,34 @@ function Form<
 function FormField<
   TFormData,
   TName extends FormPrimitives.DeepKeys<TFormData>,
+  TFieldValidator extends FormPrimitives.Validator<DeepValue<TFormData, TName>, unknown> | undefined = undefined,
   TFormValidator extends FormPrimitives.Validator<TFormData, unknown> | undefined = undefined,
-> ({ name, mode, render }: {
-  name: TName,
-  mode?: 'value' | 'array' | undefined,
+> ({ name, defaultValue, validators, mode, render }: {
+  name: TName
+  defaultValue?: NoInfer<DeepValue<TFormData, TName>>
+  mode?: 'value' | 'array' | undefined
+  validators?: FieldValidators<TFormData, TName, TFieldValidator, TFormValidator>;
   render: (
-    field: FieldApi<TFormData, TName, undefined, TFormValidator, FormPrimitives.DeepValue<TFormData, TName>>,
+    field: FieldApi<TFormData, TName, TFieldValidator, TFormValidator, FormPrimitives.DeepValue<TFormData, TName>>,
     form: ReactFormExtendedApi<TFormData, TFormValidator>,
     disabled: boolean | undefined,
   ) => ReactNode
 }) {
   const { form, disabled } = useFormContext<TFormData, TFormValidator>();
 
+  const field = useField<TFormData, TName, TFieldValidator, TFormValidator>({
+    form,
+    name,
+    mode,
+    defaultValue,
+    validators,
+  });
+
+  useRegisterFieldInFormSection(field);
+
   return (
     <FormFieldContext value={{ name, mode }}>
-      <form.Field name={name} mode={mode}>
-        {field => render(field, form, disabled)}
-      </form.Field>
+      {render(field, form, disabled)}
     </FormFieldContext>
   );
 }
@@ -144,7 +153,7 @@ function FormItem ({ className, ref, ...props }: ComponentProps<'div'>) {
 
 function FormLabel ({ ref, className, ...props }: ComponentProps<typeof Label>) {
   const { field, formItemId } = useFormField();
-  const error = field.state.meta.errors?.length > 0;
+  const error = !!field?.errors?.length;
 
   return (
     <Label
@@ -158,7 +167,7 @@ function FormLabel ({ ref, className, ...props }: ComponentProps<typeof Label>) 
 
 function FormControl ({ ref, ...props }: ComponentProps<typeof Slot>) {
   const { field, formItemId, formDescriptionId, formMessageId } = useFormField();
-  const error = field.state.meta.errors?.[0];
+  const error = field?.errors?.[0];
 
   return (
     <Slot
@@ -190,7 +199,7 @@ function FormDescription ({ ref, className, ...props }: ComponentProps<'p'>) {
 
 function FormMessage ({ ref, className, children, ...props }: ComponentProps<'p'>) {
   const { field, formMessageId } = useFormField();
-  const error = field.state.meta.errors?.[0];
+  const error = field?.errors?.[0];
   const body = error ? String(error) : children;
 
   if (!body) {

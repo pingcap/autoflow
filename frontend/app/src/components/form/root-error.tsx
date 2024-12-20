@@ -20,9 +20,9 @@ export function FormRootErrorBeta ({ title = 'Operation failed' }: { title?: str
 
   return (
     <form.Subscribe
-      selector={state => [state.errors[0]] as const}
+      selector={state => state.errors[0]}
     >
-      {([firstError]) => !!firstError && (
+      {(firstError) => !!firstError && (
         <Alert variant="destructive">
           <AlertTitle>{title}</AlertTitle>
           <AlertDescription>{firstError}</AlertDescription>

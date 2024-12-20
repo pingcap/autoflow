@@ -3,9 +3,9 @@ import { Button } from '@/components/ui/button';
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage, useFormContext } from '@/components/ui/form.beta';
 import { isChangeEvent } from '@/lib/react';
 import { cn } from '@/lib/utils';
-import { type DeepKeys, type DeepValue, type FieldApi, type FormApi, useField } from '@tanstack/react-form';
+import { type DeepKeys, type DeepValue, type FieldApi, FieldValidators, type FormApi, useField } from '@tanstack/react-form';
 import { MinusIcon, PlusIcon } from 'lucide-react';
-import { type ChangeEvent, cloneElement, type ReactElement, type ReactNode } from 'react';
+import { cloneElement, type ReactElement, type ReactNode } from 'react';
 import { ControllerRenderProps, FieldValues } from 'react-hook-form';
 
 export interface FormFieldLayoutProps<
@@ -16,8 +16,13 @@ export interface FormFieldLayoutProps<
   label: ReactNode;
   required?: boolean;
   description?: ReactNode;
-  // value = props.value ?? fallbackValue
+  /**
+   * Fallback value is used for display. This value will not submit to server.
+   */
   fallbackValue?: DeepValue<TFieldValues, TName>;
+  defaultValue?: NoInfer<DeepValue<TFieldValues, TName>>;
+  validators?: FieldValidators<TFieldValues, TName>;
+
   children: ((props: ControllerRenderProps<TFieldValues, any>) => ReactNode) | ReactElement<FormControlWidgetProps<TFieldValues, any>>;
 }
 
@@ -37,7 +42,17 @@ function renderWidget<
     name: field.name,
     onChange: ((ev: any) => {
       if (isChangeEvent(ev)) {
-        field.handleChange((ev as ChangeEvent<HTMLInputElement>).target.value as any);
+        const el = ev.currentTarget;
+        if (el instanceof HTMLInputElement) {
+          if (el.type === 'number') {
+            field.handleChange(el.valueAsNumber as any);
+            return;
+          } else if (el.type === 'date' || el.type === 'datetime-local') {
+            field.handleChange(el.valueAsDate as any);
+            return;
+          }
+        }
+        field.handleChange((el as HTMLInputElement).value as any);
       } else {
         field.handleChange(ev);
       }
@@ -63,11 +78,14 @@ export function FormFieldBasicLayout<
   description,
   required,
   fallbackValue,
+  defaultValue,
+  validators,
   children,
 }: FormFieldLayoutProps<TFieldValues, TName>) {
   return (
     <FormField<TFieldValues, TName>
       name={name}
+      defaultValue={defaultValue}
       render={(field, form, disabled) => (
         <FormItem>
           <FormLabel>
@@ -81,6 +99,7 @@ export function FormFieldBasicLayout<
           <FormMessage />
         </FormItem>
       )}
+      validators={validators}
     />
   );
 }
@@ -92,11 +111,14 @@ export function FormFieldInlineLayout<
   name,
   label,
   description,
+  defaultValue,
+  validators,
   children,
 }: FormFieldLayoutProps<TFieldValues, TName>) {
   return (
     <FormField<TFieldValues, TName>
       name={name}
+      defaultValue={defaultValue}
       render={(field, form, disabled) => (
         <FormItem>
           <div className="flex items-center gap-2">
@@ -109,6 +131,7 @@ export function FormFieldInlineLayout<
           <FormMessage />
         </FormItem>
       )}
+      validators={validators}
     />
   );
 }
@@ -122,12 +145,16 @@ export function FormFieldContainedLayout<
   description,
   required,
   fallbackValue,
+  defaultValue,
+  validators,
   children,
   unimportant = false,
 }: FormFieldLayoutProps<TFieldValues, TName> & { unimportant?: boolean }) {
   return (
     <FormField<TFieldValues, TName>
       name={name}
+      defaultValue={defaultValue}
+      validators={validators}
       render={(field, form, disabled) => (
         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
           <div className="space-y-0.5">
@@ -160,7 +187,9 @@ export function FormPrimitiveArrayFieldBasicLayout<
   children,
   required,
   defaultValue,
-}: FormFieldLayoutProps<TFieldValues, TName> & { defaultValue: () => any }) {
+  validators,
+  newItemValue,
+}: FormFieldLayoutProps<TFieldValues, TName> & { newItemValue: () => any }) {
   const { form } = useFormContext<TFieldValues>();
   const arrayField = useField<TFieldValues, TName>({
     name,
@@ -172,7 +201,9 @@ export function FormPrimitiveArrayFieldBasicLayout<
 
   return (
     <FormField
-      name="value"
+      name={name}
+      defaultValue={defaultValue}
+      validators={validators}
       render={() => (
         <FormItem>
           <FormLabel>
@@ -197,7 +228,7 @@ export function FormPrimitiveArrayFieldBasicLayout<
                           variant="secondary"
                           type="button"
                           onClick={() => {
-                            void arrayField.insertValue(index, defaultValue());
+                            void arrayField.insertValue(index, newItemValue());
                           }}
                         >
                           <PlusIcon className="size-4" />
@@ -226,7 +257,7 @@ export function FormPrimitiveArrayFieldBasicLayout<
             variant="outline"
             type="button"
             onClick={() => {
-              void arrayField.pushValue(defaultValue());
+              void arrayField.pushValue(newItemValue());
             }}
           >
             <PlusIcon className="w-4 mr-1" />

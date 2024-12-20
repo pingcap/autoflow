@@ -10,6 +10,7 @@ import { zodFile } from '@/lib/zod';
 import { useForm as useTanstackForm } from '@tanstack/react-form';
 import { FileDownIcon, GlobeIcon, PaperclipIcon } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useState } from 'react';
 import { z } from 'zod';
 
 const types = ['file', 'web_single_page', 'web_sitemap'] as const;
@@ -19,6 +20,8 @@ const isType = (value: string | null): value is typeof types[number] => types.in
 export function CreateDatasourceForm ({ knowledgeBaseId, transitioning, onCreated }: { knowledgeBaseId: number, transitioning?: boolean, onCreated?: () => void }) {
   const usp = useSearchParams()!;
   const uType = usp.get('type');
+
+  const [submissionError, setSubmissionError] = useState<unknown>(undefined);
 
   const form = useTanstackForm<CreateDatasourceFormParams>({
     validators: {
@@ -33,11 +36,11 @@ export function CreateDatasourceForm ({ knowledgeBaseId, transitioning, onCreate
       const createParams = await preCreate(data);
       await createDatasource(knowledgeBaseId, createParams);
       onCreated?.();
-    }),
+    }, setSubmissionError),
   });
 
   return (
-    <Form form={form} disabled={transitioning}>
+    <Form form={form} disabled={transitioning} submissionError={submissionError}>
       <form className="max-w-screen-sm space-y-4" {...formDomEventHandlers(form, transitioning)}>
         <DataSourceTypeField />
         <DataSourceTypeSpecFields />

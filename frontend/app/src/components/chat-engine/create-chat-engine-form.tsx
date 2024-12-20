@@ -44,6 +44,7 @@ const kgGraphDepthSchema = z.number().min(1).optional();
 
 export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultChatEngineOptions: ChatEngineOptions }) {
   const [transitioning, startTransition] = useTransition();
+  const [submissionError, setSubmissionError] = useState<unknown>(undefined);
   const router = useRouter();
   const id = useId();
 
@@ -54,14 +55,14 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
         router.push(`/chat-engines/${ce.id}`);
         router.refresh();
       });
-    }),
+    }, setSubmissionError),
     onSubmitInvalid () {
       toast.error('Validation failed', { description: 'Please check your chat engine configurations.' });
     },
   });
 
   return (
-    <Form form={form} disabled={transitioning}>
+    <Form form={form} disabled={transitioning} submissionError={submissionError}>
       <FormSectionsProvider>
         <form id={id} {...formDomEventHandlers(form, transitioning)}>
           <SecondaryNavigatorLayout defaultValue="Info">

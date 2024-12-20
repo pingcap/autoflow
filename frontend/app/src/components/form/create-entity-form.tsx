@@ -3,10 +3,9 @@ import { handleSubmitHelper } from '@/components/form/utils';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Form as FormBeta, formDomEventHandlers, FormSubmit } from '@/components/ui/form.beta';
-import { getErrorMessage } from '@/lib/errors';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm as useTanstackForm } from '@tanstack/react-form';
-import { type ReactNode, useId } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 import { type DefaultValues, type FieldValues, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -91,6 +90,7 @@ export function withCreateEntityFormBeta<T, R> (
     }: CreateEntityFormBetaProps<T, R>,
   ) {
     const id = useId();
+    const [submissionError, setSubmissionError] = useState<unknown>();
 
     const form = useTanstackForm<T>({
       validators: {
@@ -102,9 +102,7 @@ export function withCreateEntityFormBeta<T, R> (
           const data = await createApi(schema.parse(value));
           onCreated?.(data);
         } catch (e) {
-          formApi.setErrorMap({
-            onSubmit: getErrorMessage(e),
-          });
+          setSubmissionError(e);
         }
       },
       onSubmitInvalid: () => {
@@ -113,7 +111,7 @@ export function withCreateEntityFormBeta<T, R> (
     });
 
     return (
-      <FormBeta form={form} disabled={transitioning}>
+      <FormBeta form={form} disabled={transitioning} submissionError={submissionError}>
         <form
           id={id}
           className="max-w-screen-sm space-y-4"

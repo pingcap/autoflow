@@ -13,7 +13,7 @@ import { Form, formDomEventHandlers, FormSubmit } from '@/components/ui/form.bet
 import { useModelProvider } from '@/hooks/use-model-provider';
 import { zodJsonText } from '@/lib/zod';
 import { useForm as useTanstackForm } from '@tanstack/react-form';
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 import { z } from 'zod';
@@ -39,6 +39,7 @@ const dictCredentialForm = unsetForm.extend({
 export function CreateRerankerForm ({ transitioning, onCreated }: { transitioning?: boolean, onCreated?: (reranker: Reranker) => void }) {
   const id = useId();
   const { data: options, isLoading, error } = useSWR('api.rerankers.list-options', listRerankerOptions);
+  const [submissionError, setSubmissionError] = useState<unknown>();
 
   const form = useTanstackForm<CreateReranker | Omit<CreateReranker, 'model' | 'credentials'>>({
     validators: {
@@ -64,7 +65,7 @@ export function CreateRerankerForm ({ transitioning, onCreated }: { transitionin
         const reranker = await createReranker(values as CreateReranker);
         toast.success(`Reranker ${reranker.name} successfully created.`);
         onCreated?.(reranker);
-      })(props);
+      }, setSubmissionError)(props);
     },
     defaultValues: {
       name: '',
@@ -79,7 +80,7 @@ export function CreateRerankerForm ({ transitioning, onCreated }: { transitionin
 
   return (
     <>
-      <Form form={form} disabled={transitioning}>
+      <Form form={form} disabled={transitioning} submissionError={submissionError}>
         <form id={id} className="space-y-4 max-w-screen-sm" {...formDomEventHandlers(form, transitioning)}>
           <FormFieldBasicLayout name="name" label="Name">
             <FormInput />

@@ -13,7 +13,7 @@ import { Form, formDomEventHandlers, FormSubmit } from '@/components/ui/form.bet
 import { useModelProvider } from '@/hooks/use-model-provider';
 import { zodJsonText } from '@/lib/zod';
 import { useForm as useTanstackForm } from '@tanstack/react-form';
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 import { z } from 'zod';
@@ -38,6 +38,7 @@ const dictCredentialForm = unsetForm.extend({
 export function CreateEmbeddingModelForm ({ transitioning, onCreated }: { transitioning?: boolean, onCreated?: (embeddingModel: EmbeddingModel) => void }) {
   const id = useId();
   const { data: options, isLoading, error } = useSWR('api.embedding-models.list-options', listEmbeddingModelOptions);
+  const [submissionError, setSubmissionError] = useState<unknown>();
 
   const form = useTanstackForm<CreateEmbeddingModel | Omit<CreateEmbeddingModel, 'model' | 'credentials'>>({
     validators: {
@@ -63,7 +64,7 @@ export function CreateEmbeddingModelForm ({ transitioning, onCreated }: { transi
         const embeddingModel = await createEmbeddingModel(values as CreateEmbeddingModel);
         toast.success(`Embedding Model ${embeddingModel.name} successfully created.`);
         onCreated?.(embeddingModel);
-      })(props);
+      }, setSubmissionError)(props);
     },
     defaultValues: {
       name: '',
@@ -77,7 +78,7 @@ export function CreateEmbeddingModelForm ({ transitioning, onCreated }: { transi
 
   return (
     <>
-      <Form form={form} disabled={transitioning}>
+      <Form form={form} disabled={transitioning} submissionError={submissionError}>
         <form id={id} className="space-y-4 max-w-screen-sm" {...formDomEventHandlers(form, transitioning)}>
           <FormFieldBasicLayout name="name" label="Name">
             <FormInput />

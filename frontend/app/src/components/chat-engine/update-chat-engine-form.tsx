@@ -3,10 +3,10 @@
 import { type ChatEngine, type ChatEngineKnowledgeGraphOptions, type ChatEngineLLMOptions, type ChatEngineOptions, updateChatEngine } from '@/api/chat-engines';
 import { KBSelect, LLMSelect, RerankerSelect } from '@/components/form/biz';
 import { FormCheckbox, FormInput, FormSwitch } from '@/components/form/control-widget';
-import { FormFieldBasicLayout, FormFieldContainedLayout, FormFieldInlineLayout } from '@/components/form/field-layout';
+import { FormFieldBasicLayout, FormFieldContainedLayout, FormFieldInlineLayout } from '@/components/form/field-layout.beta';
 import { PromptInput } from '@/components/form/widgets/PromptInput';
 import { SecondaryNavigatorItem, SecondaryNavigatorLayout, SecondaryNavigatorList, SecondaryNavigatorMain } from '@/components/secondary-navigator-list';
-import { fieldAccessor, GeneralSettingsField, type GeneralSettingsFieldAccessor, GeneralSettingsForm, shallowPick } from '@/components/settings-form';
+import { fieldAccessor, type GeneralSettingsFieldAccessor, GeneralSettingsFieldBeta as GeneralSettingsField, GeneralSettingsForm, shallowPick } from '@/components/settings-form';
 import type { KeyOfType } from '@/lib/typing-utils';
 import { capitalCase } from 'change-case-all';
 import { format } from 'date-fns';
@@ -331,7 +331,7 @@ const kgUsingIntentSearchAccessor = kgOptionAccessor('using_intent_search');
 const kgUsingIntentSearchSchema = z.boolean().nullable();
 
 const kgDepthAccessor = kgOptionAccessor('depth');
-const kgDepthSchema = z.string().pipe(z.coerce.number().int().min(1)).nullable();
+const kgDepthSchema = z.number().int().min(1).nullable();
 
 const hideSourcesAccessor = optionAccessor('hide_sources');
 const hideSourcesSchema = z.boolean().nullable();

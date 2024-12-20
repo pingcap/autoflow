@@ -90,6 +90,9 @@ export function GeneralSettingsFieldBeta<Data, FieldData> ({
   const { data, disabled, readonly, onUpdateField } = useGeneralSettingsFormContext<Data>();
   const form = useTanstackForm<{ value: FieldData }>({
     validators: {
+      onChange: z.object({
+        value: schema,
+      }).strict() as ZodType<{ value: FieldData }, any, any>,
       onSubmit: z.object({
         value: schema,
       }).strict() as ZodType<{ value: FieldData }, any, any>,

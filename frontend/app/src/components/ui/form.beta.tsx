@@ -16,6 +16,7 @@ import { type ComponentProps, createContext, type FormEvent, type ReactNode, use
 const FormContext = createContext<{
   form: FormPrimitives.ReactFormExtendedApi<any, any>
   disabled?: boolean
+  submissionError?: unknown;
 } | undefined
 >(undefined);
 
@@ -92,15 +93,16 @@ interface FormProps<
 > {
   form: FormPrimitives.ReactFormExtendedApi<TFormData, TFormValidator>;
   disabled?: boolean;
+  submissionError?: unknown;
   children: ReactNode;
 }
 
 function Form<
   TFormData,
   TFormValidator extends FormPrimitives.Validator<TFormData, unknown> | undefined = undefined,
-> ({ children, disabled, form }: FormProps<TFormData, TFormValidator>) {
+> ({ children, disabled, submissionError, form }: FormProps<TFormData, TFormValidator>) {
   return (
-    <FormContext value={{ form: form as FormPrimitives.ReactFormExtendedApi<TFormData, TFormValidator>, disabled }}>
+    <FormContext value={{ form, submissionError, disabled }}>
       {children}
     </FormContext>
   );

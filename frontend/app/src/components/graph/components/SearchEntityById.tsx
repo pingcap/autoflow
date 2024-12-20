@@ -15,6 +15,9 @@ export interface SearchEntityProps extends UseEntitiesRequired {
   knowledgeBaseId: number
 }
 
+/**
+ * @deprecated
+ */
 export function SearchEntityById ({ knowledgeBaseId, ...props }: SearchEntityProps) {
   const { table, ids, setIds } = useGraphEntitiesByIdsTable(knowledgeBaseId, {
     columns: entityColumns,

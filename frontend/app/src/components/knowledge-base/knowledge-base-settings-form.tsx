@@ -3,7 +3,7 @@
 import { type KnowledgeBase, type KnowledgeBaseIndexMethod, updateKnowledgeBase } from '@/api/knowledge-base';
 import { EmbeddingModelSelect, LLMSelect } from '@/components/form/biz';
 import { FormInput, FormSwitch, FormTextarea } from '@/components/form/control-widget';
-import { FormFieldBasicLayout, FormFieldContainedLayout } from '@/components/form/field-layout.beta';
+import { formFieldLayout } from '@/components/form/field-layout';
 import { mutateKnowledgeBases } from '@/components/knowledge-base/hooks';
 import { fieldAccessor, type GeneralSettingsFieldAccessor, GeneralSettingsForm, shallowPick } from '@/components/settings-form';
 import { GeneralSettingsFieldBeta as GeneralSettingsField } from '@/components/settings-form/GeneralSettingsField';
@@ -12,6 +12,8 @@ import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 import { z } from 'zod';
+
+const field = formFieldLayout<{ value: any }>();
 
 export function KnowledgeBaseSettingsForm ({ knowledgeBase }: { knowledgeBase: KnowledgeBase }) {
   const router = useRouter();
@@ -35,44 +37,44 @@ export function KnowledgeBaseSettingsForm ({ knowledgeBase }: { knowledgeBase: K
         }
       }}>
       <GeneralSettingsField schema={nameSchema} accessor={nameAccessor}>
-        <FormFieldBasicLayout name="value" label="Name">
+        <field.Basic name="value" label="Name">
           <FormInput />
-        </FormFieldBasicLayout>
+        </field.Basic>
       </GeneralSettingsField>
       <GeneralSettingsField schema={descriptionSchema} accessor={descriptionAccessor}>
-        <FormFieldBasicLayout name="value" label="Description">
+        <field.Basic name="value" label="Description">
           <FormTextarea />
-        </FormFieldBasicLayout>
+        </field.Basic>
       </GeneralSettingsField>
       <GeneralSettingsField readonly schema={llmSchema} accessor={llmAccessor}>
-        <FormFieldBasicLayout name="value" label="LLM">
+        <field.Basic name="value" label="LLM">
           <LLMSelect />
-        </FormFieldBasicLayout>
+        </field.Basic>
       </GeneralSettingsField>
       <GeneralSettingsField readonly schema={embeddingModelSchema} accessor={embeddingModelAccessor}>
-        <FormFieldBasicLayout name="value" label="Embedding Model">
+        <field.Basic name="value" label="Embedding Model">
           <EmbeddingModelSelect />
-        </FormFieldBasicLayout>
+        </field.Basic>
       </GeneralSettingsField>
       <GeneralSettingsField readonly accessor={vectorAccessor} schema={vectorSchema}>
-        <FormFieldContainedLayout name="value" label="Vector Index" description="/// TBD">
+        <field.Contained name="value" label="Vector Index" description="/// TBD">
           <FormSwitch />
-        </FormFieldContainedLayout>
+        </field.Contained>
       </GeneralSettingsField>
       <GeneralSettingsField readonly accessor={kgAccessor} schema={kgSchema}>
-        <FormFieldContainedLayout name="value" label="Knowledge Graph Index" description="/// TBD">
+        <field.Contained name="value" label="Knowledge Graph Index" description="/// TBD">
           <FormSwitch />
-        </FormFieldContainedLayout>
+        </field.Contained>
       </GeneralSettingsField>
       <GeneralSettingsField readonly schema={createdAtSchema} accessor={createdAtAccessor}>
-        <FormFieldBasicLayout name="value" label="Created At">
+        <field.Basic name="value" label="Created At">
           <FormInput />
-        </FormFieldBasicLayout>
+        </field.Basic>
       </GeneralSettingsField>
       <GeneralSettingsField readonly schema={updatedAtSchema} accessor={updatedAtAccessor}>
-        <FormFieldBasicLayout name="value" label="Updated At">
+        <field.Basic name="value" label="Updated At">
           <FormInput />
-        </FormFieldBasicLayout>
+        </field.Basic>
       </GeneralSettingsField>
     </GeneralSettingsForm>
   );

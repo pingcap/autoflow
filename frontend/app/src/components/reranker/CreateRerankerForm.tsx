@@ -3,7 +3,7 @@
 import { type CreateReranker, createReranker, listRerankerOptions, type Reranker, testReranker } from '@/api/rerankers';
 import { ProviderSelect } from '@/components/form/biz';
 import { FormInput } from '@/components/form/control-widget';
-import { FormFieldBasicLayout } from '@/components/form/field-layout.beta';
+import { formFieldLayout } from '@/components/form/field-layout';
 import { FormRootErrorBeta as FormRootError } from '@/components/form/root-error';
 import { onSubmitHelper } from '@/components/form/utils';
 import { CodeInput } from '@/components/form/widgets/CodeInput';
@@ -35,6 +35,8 @@ const dictCredentialForm = unsetForm.extend({
   model: z.string().min(1, 'Must not empty'),
   credentials: zodJsonText(),
 });
+
+const field = formFieldLayout<CreateReranker>();
 
 export function CreateRerankerForm ({ transitioning, onCreated }: { transitioning?: boolean, onCreated?: (reranker: Reranker) => void }) {
   const id = useId();
@@ -82,40 +84,40 @@ export function CreateRerankerForm ({ transitioning, onCreated }: { transitionin
     <>
       <Form form={form} disabled={transitioning} submissionError={submissionError}>
         <form id={id} className="space-y-4 max-w-screen-sm" {...formDomEventHandlers(form, transitioning)}>
-          <FormFieldBasicLayout name="name" label="Name">
+          <field.Basic name="name" label="Name">
             <FormInput />
-          </FormFieldBasicLayout>
-          <FormFieldBasicLayout name="provider" label="Provider" description={provider && <ProviderDescription provider={provider} />}>
+          </field.Basic>
+          <field.Basic name="provider" label="Provider" description={provider && <ProviderDescription provider={provider} />}>
             <ProviderSelect options={options} isLoading={isLoading} error={error} />
-          </FormFieldBasicLayout>
+          </field.Basic>
           {provider && (
             <>
-              <FormFieldBasicLayout name="model" label="Model" description={provider.reranker_model_description}>
+              <field.Basic name="model" label="Model" description={provider.reranker_model_description}>
                 <FormInput />
-              </FormFieldBasicLayout>
-              <FormFieldBasicLayout name="credentials" label={provider.credentials_display_name} description={provider.credentials_description}>
+              </field.Basic>
+              <field.Basic name="credentials" label={provider.credentials_display_name} description={provider.credentials_description}>
                 {provider.credentials_type === 'str'
                   ? <FormInput placeholder={provider.default_credentials} />
                   : <CodeInput language="json" placeholder={JSON.stringify(provider.default_credentials, undefined, 2)} />
                 }
-              </FormFieldBasicLayout>
+              </field.Basic>
               <Accordion type="multiple">
                 <AccordionItem value="advanced-settings">
                   <AccordionTrigger>
                     Advanced Settings
                   </AccordionTrigger>
                   <AccordionContent className="px-4">
-                    <FormFieldBasicLayout name="config" label="Config" description={provider.config_description}>
+                    <field.Basic name="config" label="Config" description={provider.config_description}>
                       <CodeInput language="json" />
-                    </FormFieldBasicLayout>
+                    </field.Basic>
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
             </>
           )}
-          <FormFieldBasicLayout name="top_n" label="Top N">
+          <field.Basic name="top_n" label="Top N">
             <FormInput type="number" min={1} step={1} />
-          </FormFieldBasicLayout>
+          </field.Basic>
           <FormRootError title="Failed to create Reranker" />
           <FormSubmit disabled={!options} transitioning={transitioning} form={id}>
             Create Reranker

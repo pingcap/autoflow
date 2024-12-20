@@ -4,7 +4,7 @@ import { type ChatEngineOptions, createChatEngine } from '@/api/chat-engines';
 import { FormSection, FormSectionsProvider, useFormSectionFields } from '@/components/form-sections';
 import { KBSelect, LLMSelect, RerankerSelect } from '@/components/form/biz';
 import { FormCheckbox, FormInput, FormSwitch } from '@/components/form/control-widget';
-import { FormFieldBasicLayout, FormFieldContainedLayout, FormFieldInlineLayout } from '@/components/form/field-layout.beta';
+import { formFieldLayout } from '@/components/form/field-layout';
 import { FormRootErrorBeta as FormRootError } from '@/components/form/root-error';
 import { onSubmitHelper } from '@/components/form/utils';
 import { PromptInput } from '@/components/form/widgets/PromptInput';
@@ -32,11 +32,13 @@ const schema = z.object({
       }),
     }),
     knowledge_graph: z.object({
-      depth: z.number().min(1).optional(),
+      depth: z.number().min(1).nullable().optional(),
     }).passthrough().optional(),
     llm: z.object({}).passthrough().optional(),
   }).passthrough(),
 });
+
+const field = formFieldLayout<typeof schema>();
 
 const nameSchema = z.string().min(1);
 const kbSchema = z.number();
@@ -79,87 +81,87 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
             </SecondaryNavigatorList>
 
             <Section title="Info">
-              <FormFieldBasicLayout required name="name" label="Name" defaultValue="" validators={{ onSubmit: nameSchema, onBlur: nameSchema }}>
+              <field.Basic required name="name" label="Name" defaultValue="" validators={{ onSubmit: nameSchema, onBlur: nameSchema }}>
                 <FormInput />
-              </FormFieldBasicLayout>
+              </field.Basic>
               <SubSection title="Models">
-                <FormFieldBasicLayout name="llm_id" label="LLM">
+                <field.Basic name="llm_id" label="LLM">
                   <LLMSelect />
-                </FormFieldBasicLayout>
-                <FormFieldBasicLayout name="fast_llm_id" label="Fast LLM">
+                </field.Basic>
+                <field.Basic name="fast_llm_id" label="Fast LLM">
                   <LLMSelect />
-                </FormFieldBasicLayout>
+                </field.Basic>
               </SubSection>
               <SubSection title="External Engine Config">
-                <FormFieldBasicLayout name="engine_options.external_engine_config.stream_chat_api_url" label="External Chat Engine API URL (StackVM)" fallbackValue={defaultChatEngineOptions.external_engine_config?.stream_chat_api_url ?? ''}>
+                <field.Basic name="engine_options.external_engine_config.stream_chat_api_url" label="External Chat Engine API URL (StackVM)" fallbackValue={defaultChatEngineOptions.external_engine_config?.stream_chat_api_url ?? ''}>
                   <FormInput />
-                </FormFieldBasicLayout>
-                <FormFieldBasicLayout name="engine_options.llm.generate_goal_prompt" label="Generate Goal Prompt" fallbackValue={defaultChatEngineOptions.llm?.generate_goal_prompt} description={llmPromptDescriptions.generate_goal_prompt}>
+                </field.Basic>
+                <field.Basic name="engine_options.llm.generate_goal_prompt" label="Generate Goal Prompt" fallbackValue={defaultChatEngineOptions.llm?.generate_goal_prompt} description={llmPromptDescriptions.generate_goal_prompt}>
                   <PromptInput />
-                </FormFieldBasicLayout>
+                </field.Basic>
               </SubSection>
             </Section>
             <Section title="Retrieval">
-              <FormFieldBasicLayout required name="engine_options.knowledge_base.linked_knowledge_base.id" label="Select Knowledge Base" validators={{ onBlur: kbSchema, onSubmit: kbSchema }}>
+              <field.Basic required name="engine_options.knowledge_base.linked_knowledge_base.id" label="Select Knowledge Base" validators={{ onBlur: kbSchema, onSubmit: kbSchema }}>
                 <KBSelect />
-              </FormFieldBasicLayout>
-              <FormFieldBasicLayout name="reranker_id" label="Reranker">
+              </field.Basic>
+              <field.Basic name="reranker_id" label="Reranker">
                 <RerankerSelect />
-              </FormFieldBasicLayout>
+              </field.Basic>
               <SubSection title="Knowledge Graph">
-                <FormFieldContainedLayout name="engine_options.knowledge_graph.enabled" label="Enable Knowledge Graph" fallbackValue={defaultChatEngineOptions.knowledge_graph?.enabled} description="/// Description TBD">
+                <field.Contained name="engine_options.knowledge_graph.enabled" label="Enable Knowledge Graph" fallbackValue={defaultChatEngineOptions.knowledge_graph?.enabled} description="/// Description TBD">
                   <FormSwitch />
-                </FormFieldContainedLayout>
-                <FormFieldBasicLayout name="engine_options.knowledge_graph.depth" label="Depth" fallbackValue={defaultChatEngineOptions.knowledge_graph?.depth} validators={{ onBlur: kgGraphDepthSchema, onSubmit: kgGraphDepthSchema }}>
+                </field.Contained>
+                <field.Basic name="engine_options.knowledge_graph.depth" label="Depth" fallbackValue={defaultChatEngineOptions.knowledge_graph?.depth} validators={{ onBlur: kgGraphDepthSchema, onSubmit: kgGraphDepthSchema }}>
                   <FormInput type="number" min={1} step={1} />
-                </FormFieldBasicLayout>
-                <FormFieldInlineLayout name="engine_options.knowledge_graph.include_meta" label="Include Meta" fallbackValue={defaultChatEngineOptions.knowledge_graph?.include_meta} description="/// Description TBD">
+                </field.Basic>
+                <field.Inline name="engine_options.knowledge_graph.include_meta" label="Include Meta" fallbackValue={defaultChatEngineOptions.knowledge_graph?.include_meta} description="/// Description TBD">
                   <FormCheckbox />
-                </FormFieldInlineLayout>
-                <FormFieldInlineLayout name="engine_options.knowledge_graph.with_degree" label="With Degree" fallbackValue={defaultChatEngineOptions.knowledge_graph?.with_degree} description="/// Description TBD">
+                </field.Inline>
+                <field.Inline name="engine_options.knowledge_graph.with_degree" label="With Degree" fallbackValue={defaultChatEngineOptions.knowledge_graph?.with_degree} description="/// Description TBD">
                   <FormCheckbox />
-                </FormFieldInlineLayout>
-                <FormFieldInlineLayout name="engine_options.knowledge_graph.using_intent_search" label="Using intent search" fallbackValue={defaultChatEngineOptions.knowledge_graph?.using_intent_search} description="/// Description TBD">
+                </field.Inline>
+                <field.Inline name="engine_options.knowledge_graph.using_intent_search" label="Using intent search" fallbackValue={defaultChatEngineOptions.knowledge_graph?.using_intent_search} description="/// Description TBD">
                   <FormCheckbox />
-                </FormFieldInlineLayout>
-                {(['intent_graph_knowledge', 'normal_graph_knowledge'] as const).map(field => (
-                  <FormFieldBasicLayout key={field} name={`engine_options.llm.${field}`} label={capitalCase(field)} fallbackValue={defaultChatEngineOptions.llm?.[field]} description={llmPromptDescriptions[field]}>
+                </field.Inline>
+                {(['intent_graph_knowledge', 'normal_graph_knowledge'] as const).map(name => (
+                  <field.Basic key={name} name={`engine_options.llm.${name}`} label={capitalCase(name)} fallbackValue={defaultChatEngineOptions.llm?.[name]} description={llmPromptDescriptions[name]}>
                     <PromptInput />
-                  </FormFieldBasicLayout>
+                  </field.Basic>
                 ))}
               </SubSection>
             </Section>
             <Section title="Generation">
-              {(['condense_question_prompt', 'condense_answer_prompt', 'text_qa_prompt', 'refine_prompt'] as const).map(field => (
-                <FormFieldBasicLayout key={field} name={`engine_options.llm.${field}`} label={capitalCase(field)} fallbackValue={defaultChatEngineOptions.llm?.[field]} description={llmPromptDescriptions[field]}>
+              {(['condense_question_prompt', 'condense_answer_prompt', 'text_qa_prompt', 'refine_prompt'] as const).map(name => (
+                <field.Basic key={name} name={`engine_options.llm.${name}`} label={capitalCase(name)} fallbackValue={defaultChatEngineOptions.llm?.[name]} description={llmPromptDescriptions[name]}>
                   <PromptInput />
-                </FormFieldBasicLayout>
+                </field.Basic>
               ))}
             </Section>
             <Section title="Features">
-              <FormFieldInlineLayout name="engine_options.hide_sources" label="Hide Reference Sources" description="/// Description TBD">
+              <field.Inline name="engine_options.hide_sources" label="Hide Reference Sources" description="/// Description TBD">
                 <FormCheckbox />
-              </FormFieldInlineLayout>
+              </field.Inline>
               <SubSection title="Clarify Question">
-                <FormFieldContainedLayout unimportant name="engine_options.clarify_question" label="Clarify Question" description="/// Description TBD">
+                <field.Contained unimportant name="engine_options.clarify_question" label="Clarify Question" description="/// Description TBD">
                   <FormSwitch />
-                </FormFieldContainedLayout>
-                <FormFieldBasicLayout name="engine_options.llm.clarifying_question_prompt" label="Clarifying Question Prompt" fallbackValue={defaultChatEngineOptions.llm?.clarifying_question_prompt} description={llmPromptDescriptions.clarifying_question_prompt}>
+                </field.Contained>
+                <field.Basic name="engine_options.llm.clarifying_question_prompt" label="Clarifying Question Prompt" fallbackValue={defaultChatEngineOptions.llm?.clarifying_question_prompt} description={llmPromptDescriptions.clarifying_question_prompt}>
                   <PromptInput />
-                </FormFieldBasicLayout>
+                </field.Basic>
               </SubSection>
               <SubSection title="Post Verification">
-                <FormFieldBasicLayout name="engine_options.post_verification_url" label="Post Verifycation Service URL" fallbackValue={defaultChatEngineOptions.post_verification_url ?? ''}>
+                <field.Basic name="engine_options.post_verification_url" label="Post Verifycation Service URL" fallbackValue={defaultChatEngineOptions.post_verification_url ?? ''}>
                   <FormInput />
-                </FormFieldBasicLayout>
-                <FormFieldBasicLayout name="engine_options.post_verification_token" label="Post Verifycation Service Token" fallbackValue={defaultChatEngineOptions.post_verification_token ?? ''}>
+                </field.Basic>
+                <field.Basic name="engine_options.post_verification_token" label="Post Verifycation Service Token" fallbackValue={defaultChatEngineOptions.post_verification_token ?? ''}>
                   <FormInput />
-                </FormFieldBasicLayout>
+                </field.Basic>
               </SubSection>
               <SubSection title="Further Recommended Questions">
-                <FormFieldBasicLayout name="engine_options.llm.further_questions_prompt" label="Further Questions Prompt" fallbackValue={defaultChatEngineOptions.llm?.further_questions_prompt} description={llmPromptDescriptions.further_questions_prompt}>
+                <field.Basic name="engine_options.llm.further_questions_prompt" label="Further Questions Prompt" fallbackValue={defaultChatEngineOptions.llm?.further_questions_prompt} description={llmPromptDescriptions.further_questions_prompt}>
                   <PromptInput />
-                </FormFieldBasicLayout>
+                </field.Basic>
               </SubSection>
             </Section>
           </SecondaryNavigatorLayout>

@@ -1,7 +1,7 @@
 import { createEvaluationDatasetItem, type EvaluationDatasetItem } from '@/api/evaluations';
 import { FormTextarea } from '@/components/form/control-widget';
 import { withCreateEntityFormBeta } from '@/components/form/create-entity-form';
-import { FormFieldBasicLayout, FormPrimitiveArrayFieldBasicLayout } from '@/components/form/field-layout.beta';
+import { formFieldLayout } from '@/components/form/field-layout';
 import { CodeInput } from '@/components/form/widgets/CodeInput';
 import { zodJson } from '@/lib/zod';
 import { useMemo } from 'react';
@@ -31,6 +31,8 @@ const schema = z.object({
     .pipe(zodJson()),
 });
 
+const field = formFieldLayout<typeof schema>();
+
 export function CreateEvaluationDatasetItemForm ({ evaluationDatasetId, transitioning, onCreated }: { evaluationDatasetId: number, transitioning?: boolean, onCreated?: (item: EvaluationDatasetItem) => void }) {
   const FormImpl = useMemo(() => withCreateEntityFormBeta(schema, params => createEvaluationDatasetItem(evaluationDatasetId, params)), [evaluationDatasetId]);
 
@@ -45,18 +47,18 @@ export function CreateEvaluationDatasetItemForm ({ evaluationDatasetId, transiti
       transitioning={transitioning}
       onCreated={onCreated}
     >
-      <FormFieldBasicLayout name="query" label="Query" required>
+      <field.Basic name="query" label="Query" required>
         <FormTextarea />
-      </FormFieldBasicLayout>
-      <FormFieldBasicLayout name="reference" label="Reference" required>
+      </field.Basic>
+      <field.Basic name="reference" label="Reference" required>
         <FormTextarea />
-      </FormFieldBasicLayout>
-      <FormPrimitiveArrayFieldBasicLayout name="retrieved_contexts" label="Retrieved Contexts" newItemValue={() => ''} required>
+      </field.Basic>
+      <field.PrimitiveArray name="retrieved_contexts" label="Retrieved Contexts" newItemValue={() => ''} required>
         <FormTextarea />
-      </FormPrimitiveArrayFieldBasicLayout>
-      <FormFieldBasicLayout name="extra" label="Extra">
+      </field.PrimitiveArray>
+      <field.Basic name="extra" label="Extra">
         <CodeInput language="json" />
-      </FormFieldBasicLayout>
+      </field.Basic>
     </FormImpl>
   );
 }

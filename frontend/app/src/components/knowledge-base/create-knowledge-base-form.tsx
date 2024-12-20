@@ -2,7 +2,6 @@ import { createKnowledgeBase } from '@/api/knowledge-base';
 import { EmbeddingModelSelect, LLMSelect } from '@/components/form/biz';
 import { FormInput, FormTextarea } from '@/components/form/control-widget';
 import { withCreateEntityFormBeta } from '@/components/form/create-entity-form';
-import { FormFieldBasicLayout } from '@/components/form/field-layout.beta';
 import { FormIndexMethods } from '@/components/knowledge-base/form-index-methods';
 import { mutateKnowledgeBases } from '@/components/knowledge-base/hooks';
 import { useRouter } from 'next/navigation';
@@ -41,21 +40,21 @@ export function CreateKnowledgeBaseForm ({}: {}) {
         index_methods: ['vector'],
       }}
     >
-      <FormFieldBasicLayout name="name" label="Name">
+      <Form.Basic name="name" label="Name">
         <FormInput placeholder="The name of the knowledge base" />
-      </FormFieldBasicLayout>
-      <FormFieldBasicLayout name="description" label="Description">
+      </Form.Basic>
+      <Form.Basic name="description" label="Description">
         <FormTextarea placeholder="The description of the knowledge base" />
-      </FormFieldBasicLayout>
-      <FormFieldBasicLayout name="llm_id" label="LLM" description="Specify the LLM used in building the index. If not specified, the default model will be used.">
+      </Form.Basic>
+      <Form.Basic name="llm_id" label="LLM" description="Specify the LLM used in building the index. If not specified, the default model will be used.">
         <LLMSelect />
-      </FormFieldBasicLayout>
-      <FormFieldBasicLayout name="embedding_model_id" label="Embedding Model" description="Specify the embedding model used to convert the corpus into vector embedding. If not specified, the default model will be used.">
+      </Form.Basic>
+      <Form.Basic name="embedding_model_id" label="Embedding Model" description="Specify the embedding model used to convert the corpus into vector embedding. If not specified, the default model will be used.">
         <EmbeddingModelSelect />
-      </FormFieldBasicLayout>
-      <FormFieldBasicLayout name="index_methods" label="Index Methods">
+      </Form.Basic>
+      <Form.Basic name="index_methods" label="Index Methods">
         <FormIndexMethods />
-      </FormFieldBasicLayout>
+      </Form.Basic>
     </Form>
   );
 }

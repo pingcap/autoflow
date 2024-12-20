@@ -1,6 +1,6 @@
 import { type BaseCreateDatasourceParams, createDatasource, type CreateDatasourceSpecParams, uploadFiles } from '@/api/datasources';
 import { FormInput } from '@/components/form/control-widget';
-import { FormFieldBasicLayout, FormPrimitiveArrayFieldBasicLayout } from '@/components/form/field-layout.beta';
+import { formFieldLayout } from '@/components/form/field-layout';
 import { onSubmitHelper } from '@/components/form/utils';
 import { FilesInput } from '@/components/form/widgets/FilesInput';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,11 @@ import { z } from 'zod';
 const types = ['file', 'web_single_page', 'web_sitemap'] as const;
 
 const isType = (value: string | null): value is typeof types[number] => types.includes(value as any);
+
+const field = formFieldLayout<CreateDatasourceFormParams>();
+const fileField = formFieldLayout<CreateDatasourceFormParams & { data_source_type: 'file' }>();
+const sitemapField = formFieldLayout<CreateDatasourceFormParams & { data_source_type: 'web_sitemap' }>();
+const pagesField = formFieldLayout<CreateDatasourceFormParams & { data_source_type: 'web_single_page' }>();
 
 export function CreateDatasourceForm ({ knowledgeBaseId, transitioning, onCreated }: { knowledgeBaseId: number, transitioning?: boolean, onCreated?: () => void }) {
   const usp = useSearchParams()!;
@@ -44,9 +49,9 @@ export function CreateDatasourceForm ({ knowledgeBaseId, transitioning, onCreate
       <form className="max-w-screen-sm space-y-4" {...formDomEventHandlers(form, transitioning)}>
         <DataSourceTypeField />
         <DataSourceTypeSpecFields />
-        <FormFieldBasicLayout name="name" label="Datasource Name">
+        <field.Basic name="name" label="Datasource Name">
           <FormInput />
-        </FormFieldBasicLayout>
+        </field.Basic>
         <Button type="submit" disabled={form.state.isSubmitting}>
           Create
         </Button>
@@ -100,19 +105,19 @@ function DataSourceTypeSpecFields () {
       {(type) => (
         <>
           {type === 'file' && (
-            <FormFieldBasicLayout name="files" label="Files" description="Currently support Markdown (*.md), PDF (*.pdf), Microsoft Word (*.docx), Microsoft PowerPoint (*.pptx), Microsoft Excel (*.xlsx) and Text (*.txt) files.">
+            <fileField.Basic name="files" label="Files" description="Currently support Markdown (*.md), PDF (*.pdf), Microsoft Word (*.docx), Microsoft PowerPoint (*.pptx), Microsoft Excel (*.xlsx) and Text (*.txt) files.">
               <FilesInput accept={['text/plain', 'application/pdf', '.md', '.docx', '.pptx', '.xlsx']} />
-            </FormFieldBasicLayout>
+            </fileField.Basic>
           )}
           {type === 'web_single_page' && (
-            <FormPrimitiveArrayFieldBasicLayout name="urls" label="Page URL" newItemValue={() => ''}>
+            <pagesField.PrimitiveArray name="urls" label="Page URL" newItemValue={() => ''}>
               <FormInput placeholder="https://example.com/" />
-            </FormPrimitiveArrayFieldBasicLayout>
+            </pagesField.PrimitiveArray>
           )}
           {type === 'web_sitemap' && (
-            <FormFieldBasicLayout name="url" label="Sitemap URL">
+            <sitemapField.Basic name="url" label="Sitemap URL">
               <FormInput placeholder="https://example.com/sitemap.xml" />
-            </FormFieldBasicLayout>
+            </sitemapField.Basic>
           )}
         </>
       )}

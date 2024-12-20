@@ -2,7 +2,7 @@ import { createEvaluationTask, type CreateEvaluationTaskParams } from '@/api/eva
 import { ChatEngineSelect, EvaluationDatasetSelect } from '@/components/form/biz';
 import { FormInput } from '@/components/form/control-widget';
 import { withCreateEntityFormBeta as withCreateEntityForm } from '@/components/form/create-entity-form';
-import { FormFieldBasicLayout } from '@/components/form/field-layout.beta';
+import { formFieldLayout } from '@/components/form/field-layout';
 import type { ComponentProps } from 'react';
 import { z, type ZodType } from 'zod';
 
@@ -14,6 +14,7 @@ const schema = z.object({
 }) satisfies ZodType<CreateEvaluationTaskParams, any, any>;
 
 const FormImpl = withCreateEntityForm(schema, createEvaluationTask);
+const field = formFieldLayout<typeof schema>();
 
 export function CreateEvaluationTaskForm ({ transitioning, onCreated }: Omit<ComponentProps<typeof FormImpl>, 'defaultValues' | 'children'>) {
   return (
@@ -21,18 +22,18 @@ export function CreateEvaluationTaskForm ({ transitioning, onCreated }: Omit<Com
       transitioning={transitioning}
       onCreated={onCreated}
     >
-      <FormFieldBasicLayout name="name" label="Name" required defaultValue="">
+      <field.Basic name="name" label="Name" required defaultValue="">
         <FormInput />
-      </FormFieldBasicLayout>
-      <FormFieldBasicLayout name="evaluation_dataset_id" label="Evaluation Dataset" required>
+      </field.Basic>
+      <field.Basic name="evaluation_dataset_id" label="Evaluation Dataset" required>
         <EvaluationDatasetSelect />
-      </FormFieldBasicLayout>
-      <FormFieldBasicLayout name="chat_engine" label="Chat Engine">
+      </field.Basic>
+      <field.Basic name="chat_engine" label="Chat Engine">
         <ChatEngineSelect />
-      </FormFieldBasicLayout>
-      <FormFieldBasicLayout name="run_size" label="Run Size">
+      </field.Basic>
+      <field.Basic name="run_size" label="Run Size">
         <FormInput type="number" min={1} step={1} />
-      </FormFieldBasicLayout>
+      </field.Basic>
     </FormImpl>
   );
 }

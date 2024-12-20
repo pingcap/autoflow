@@ -1,7 +1,6 @@
 import { createApiKey, type CreateApiKeyResponse } from '@/api/api-keys';
 import { FormInput } from '@/components/form/control-widget';
 import { withCreateEntityFormBeta } from '@/components/form/create-entity-form';
-import { FormFieldBasicLayout } from '@/components/form/field-layout.beta';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -20,9 +19,9 @@ const FormImpl = withCreateEntityFormBeta(schema, createApiKey, {
 export function CreateApiKeyForm ({ onCreated }: CreateApiKeyFormProps) {
   return (
     <FormImpl onCreated={onCreated}>
-      <FormFieldBasicLayout name="description" label="API Key Description">
+      <FormImpl.Basic name="description" label="API Key Description">
         <FormInput />
-      </FormFieldBasicLayout>
+      </FormImpl.Basic>
     </FormImpl>
   );
 }

@@ -2,7 +2,7 @@ import { uploadFiles } from '@/api/datasources';
 import { createEvaluationDataset } from '@/api/evaluations';
 import { FormInput } from '@/components/form/control-widget';
 import { withCreateEntityFormBeta as withCreateEntityForm } from '@/components/form/create-entity-form';
-import { FormFieldBasicLayout } from '@/components/form/field-layout.beta';
+import { formFieldLayout } from '@/components/form/field-layout';
 import { FileInput } from '@/components/form/widgets/FileInput';
 import { zodFile } from '@/lib/zod';
 import type { ComponentProps } from 'react';
@@ -12,6 +12,8 @@ const schema = z.object({
   name: z.string().min(1),
   upload_file: zodFile().optional(),
 });
+
+const field = formFieldLayout<typeof schema>();
 
 const FormImpl = withCreateEntityForm(schema, async ({ upload_file, ...params }) => {
   if (upload_file != null) {
@@ -36,12 +38,12 @@ export function CreateEvaluationDatasetForm ({ transitioning, onCreated }: Omit<
       transitioning={transitioning}
       onCreated={onCreated}
     >
-      <FormFieldBasicLayout name="name" label="Name" required>
+      <field.Basic name="name" label="Name" required>
         <FormInput />
-      </FormFieldBasicLayout>
-      <FormFieldBasicLayout name="upload_file" label="Upload File">
+      </field.Basic>
+      <field.Basic name="upload_file" label="Upload File">
         <FileInput accept={['.csv']} />
-      </FormFieldBasicLayout>
+      </field.Basic>
     </FormImpl>
   );
 }

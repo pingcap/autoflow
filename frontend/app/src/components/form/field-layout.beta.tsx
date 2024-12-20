@@ -9,10 +9,8 @@ import { cloneElement, type ReactElement, type ReactNode } from 'react';
 
 type WidgetProps<TFormData, TName extends DeepKeys<TFormData>> = Required<Omit<FormControlWidgetProps<DeepValue<TFormData, TName>>, 'id' | 'aria-invalid' | 'aria-describedby'>>
 
-type DefaultFormData = Record<string, any>
-
 export interface FormFieldLayoutProps<
-  TFormData extends DefaultFormData,
+  TFormData,
   TName extends DeepKeys<TFormData> = DeepKeys<TFormData>
 > {
   name: TName;
@@ -30,7 +28,7 @@ export interface FormFieldLayoutProps<
 }
 
 function renderWidget<
-  TFormData extends DefaultFormData,
+  TFormData,
   TName extends DeepKeys<TFormData> = DeepKeys<TFormData>
 > (
   children: FormFieldLayoutProps<TFormData, TName>['children'],
@@ -42,7 +40,7 @@ function renderWidget<
 
   const data: WidgetProps<TFormData, TName> = {
     value: field.state.value ?? fallbackValue as any,
-    name: field.name as TName,
+    name: field.name,
     onChange: ((ev: any) => {
       if (isChangeEvent(ev)) {
         const el = ev.currentTarget;
@@ -73,7 +71,7 @@ function renderWidget<
 }
 
 export function FormFieldBasicLayout<
-  TFormData extends DefaultFormData,
+  TFormData,
   TName extends DeepKeys<TFormData> = DeepKeys<TFormData>
 > ({
   name,
@@ -108,7 +106,7 @@ export function FormFieldBasicLayout<
 }
 
 export function FormFieldInlineLayout<
-  TFormData extends DefaultFormData,
+  TFormData,
   TName extends DeepKeys<TFormData> = DeepKeys<TFormData>
 > ({
   name,
@@ -140,7 +138,7 @@ export function FormFieldInlineLayout<
 }
 
 export function FormFieldContainedLayout<
-  TFormData extends DefaultFormData,
+  TFormData,
   TName extends DeepKeys<TFormData> = DeepKeys<TFormData>
 > ({
   name,
@@ -178,10 +176,10 @@ export function FormFieldContainedLayout<
   );
 }
 
-type DeepKeysOfType<T, Value> = string & keyof { [P in DeepKeys<T> as DeepValue<T, P> extends Value ? P : never]: any }
+export type DeepKeysOfType<T, Value> = string & keyof { [P in DeepKeys<T> as DeepValue<T, P> extends Value ? P : never]: any }
 
 export function FormPrimitiveArrayFieldBasicLayout<
-  TFormData extends DefaultFormData,
+  TFormData,
   TName extends DeepKeysOfType<TFormData, any[]> = DeepKeysOfType<TFormData, any[]>
 > ({
   name,

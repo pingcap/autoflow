@@ -1,11 +1,13 @@
 import { updateEvaluationDatasetItem, type UpdateEvaluationDatasetItemParams } from '@/api/evaluations';
 import { mutateEvaluationDataset, useEvaluationDatasetItem } from '@/components/evaluations/hooks';
 import { FormTextarea } from '@/components/form/control-widget';
-import { FormFieldBasicLayout, FormPrimitiveArrayFieldBasicLayout } from '@/components/form/field-layout.beta';
+import { formFieldLayout } from '@/components/form/field-layout';
 import { CodeInput } from '@/components/form/widgets/CodeInput';
 import { createAccessorHelper, GeneralSettingsForm } from '@/components/settings-form';
 import { GeneralSettingsFieldBeta } from '@/components/settings-form/GeneralSettingsField';
 import { z } from 'zod';
+
+const field = formFieldLayout<{ value: any }>();
 
 export function UpdateEvaluationDatasetItemForm ({ evaluationDatasetId, evaluationDatasetItemId }: { evaluationDatasetId: number, evaluationDatasetItemId: number }) {
   const {
@@ -38,24 +40,24 @@ export function UpdateEvaluationDatasetItemForm ({ evaluationDatasetId, evaluati
         }}
       >
         <GeneralSettingsFieldBeta accessor={query} schema={textSchema}>
-          <FormFieldBasicLayout name="value" label="Query">
+          <field.Basic name="value" label="Query">
             <CodeInput language="markdown" />
-          </FormFieldBasicLayout>
+          </field.Basic>
         </GeneralSettingsFieldBeta>
         <GeneralSettingsFieldBeta accessor={reference} schema={textSchema}>
-          <FormFieldBasicLayout name="value" label="Reference">
+          <field.Basic name="value" label="Reference">
             <CodeInput language="markdown" />
-          </FormFieldBasicLayout>
+          </field.Basic>
         </GeneralSettingsFieldBeta>
         <GeneralSettingsFieldBeta accessor={retrievedContexts} schema={textListSchema}>
-          <FormPrimitiveArrayFieldBasicLayout name="value" label="Retrieved Contexts" newItemValue={() => ''}>
+          <field.PrimitiveArray name="value" label="Retrieved Contexts" newItemValue={() => ''}>
             <FormTextarea />
-          </FormPrimitiveArrayFieldBasicLayout>
+          </field.PrimitiveArray>
         </GeneralSettingsFieldBeta>
         <GeneralSettingsFieldBeta accessor={extra} schema={jsonSchema}>
-          <FormFieldBasicLayout name="value" label="Extra">
+          <field.Basic name="value" label="Extra">
             <CodeInput language="json" />
-          </FormFieldBasicLayout>
+          </field.Basic>
         </GeneralSettingsFieldBeta>
       </GeneralSettingsForm>
     </div>

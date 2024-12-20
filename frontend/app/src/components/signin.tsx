@@ -2,7 +2,7 @@
 
 import { login } from '@/api/auth';
 import { FormInput } from '@/components/form/control-widget';
-import { FormFieldBasicLayout } from '@/components/form/field-layout.beta';
+import { formFieldLayout } from '@/components/form/field-layout';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Form, formDomEventHandlers } from '@/components/ui/form.beta';
@@ -11,6 +11,11 @@ import { useForm } from '@tanstack/react-form';
 import { Loader2Icon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
+
+const field = formFieldLayout<{
+  username: string
+  password: string
+}>();
 
 export function Signin ({ noRedirect = false, callbackUrl }: { noRedirect?: boolean, callbackUrl?: string }) {
   const [transitioning, startTransition] = useTransition();
@@ -53,12 +58,12 @@ export function Signin ({ noRedirect = false, callbackUrl }: { noRedirect?: bool
       )}
       <Form form={form} disabled={transitioning}>
         <form className="space-y-2" {...formDomEventHandlers(form, transitioning)}>
-          <FormFieldBasicLayout name="username" label="Username">
+          <field.Basic name="username" label="Username">
             <FormInput placeholder="x@example.com" />
-          </FormFieldBasicLayout>
-          <FormFieldBasicLayout name="password" label="Password">
+          </field.Basic>
+          <field.Basic name="password" label="Password">
             <FormInput type="password" />
-          </FormFieldBasicLayout>
+          </field.Basic>
           <Button className="!mt-4 w-full" type="submit" disabled={loading}>
             {loading && <Loader2Icon className="w-4 h-4 mr-2 animate-spin repeat-infinite" />}
             {transitioning ? 'Redirecting...' : loading ? 'Logging in...' : 'Login'}

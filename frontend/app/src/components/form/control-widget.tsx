@@ -8,6 +8,7 @@ import type { KeyOfType } from '@/lib/typing-utils';
 import { cn } from '@/lib/utils';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import type { SwitchProps } from '@radix-ui/react-switch';
+import type { DeepKeys } from '@tanstack/react-form';
 import { CheckIcon, ChevronDown, Loader2Icon, TriangleAlertIcon, XCircleIcon } from 'lucide-react';
 import * as React from 'react';
 import { type ChangeEvent, type ComponentProps, type FC, forwardRef, type Key, type ReactElement, type ReactNode, type Ref, useState } from 'react';
@@ -21,7 +22,7 @@ export interface FormControlWidgetProps<T, Optional extends boolean = false> {
   onBlur?: () => void;
   value?: T;
   disabled?: boolean;
-  name?: string;
+  name?: any; // type issue
   ref?: Ref<any>;
 }
 

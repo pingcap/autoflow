@@ -3,7 +3,7 @@
 import { type CreateEmbeddingModel, createEmbeddingModel, type EmbeddingModel, listEmbeddingModelOptions, testEmbeddingModel } from '@/api/embedding-models';
 import { ProviderSelect } from '@/components/form/biz';
 import { FormInput } from '@/components/form/control-widget';
-import { FormFieldBasicLayout } from '@/components/form/field-layout.beta';
+import { formFieldLayout } from '@/components/form/field-layout';
 import { FormRootErrorBeta as FormRootError } from '@/components/form/root-error';
 import { onSubmitHelper } from '@/components/form/utils';
 import { CodeInput } from '@/components/form/widgets/CodeInput';
@@ -34,6 +34,8 @@ const dictCredentialForm = unsetForm.extend({
   model: z.string().min(1, 'Must not empty'),
   credentials: z.object({}).passthrough(),
 });
+
+const field = formFieldLayout<CreateEmbeddingModel>();
 
 export function CreateEmbeddingModelForm ({ transitioning, onCreated }: { transitioning?: boolean, onCreated?: (embeddingModel: EmbeddingModel) => void }) {
   const id = useId();
@@ -80,35 +82,35 @@ export function CreateEmbeddingModelForm ({ transitioning, onCreated }: { transi
     <>
       <Form form={form} disabled={transitioning} submissionError={submissionError}>
         <form id={id} className="space-y-4 max-w-screen-sm" {...formDomEventHandlers(form, transitioning)}>
-          <FormFieldBasicLayout name="name" label="Name">
+          <field.Basic name="name" label="Name">
             <FormInput />
-          </FormFieldBasicLayout>
-          <FormFieldBasicLayout name="provider" label="Provider" description={provider && <ProviderDescription provider={provider} />}>
+          </field.Basic>
+          <field.Basic name="provider" label="Provider" description={provider && <ProviderDescription provider={provider} />}>
             <ProviderSelect options={options} isLoading={isLoading} error={error} />
-          </FormFieldBasicLayout>
+          </field.Basic>
           {provider && (
             <>
-              <FormFieldBasicLayout name="model" label="Model" description={provider.embedding_model_description}>
+              <field.Basic name="model" label="Model" description={provider.embedding_model_description}>
                 <FormInput />
-              </FormFieldBasicLayout>
-              <FormFieldBasicLayout name="credentials" label={provider.credentials_display_name} description={provider.credentials_description}>
+              </field.Basic>
+              <field.Basic name="credentials" label={provider.credentials_display_name} description={provider.credentials_description}>
                 {provider.credentials_type === 'str'
                   ? <FormInput placeholder={provider.default_credentials} />
                   : <CodeInput language="json" placeholder={JSON.stringify(provider.default_credentials, undefined, 2)} />
                 }
-              </FormFieldBasicLayout>
-              <FormFieldBasicLayout name="vector_dimension" label="Vector Dimensions">
+              </field.Basic>
+              <field.Basic name="vector_dimension" label="Vector Dimensions">
                 <FormInput type="number" min={1} />
-              </FormFieldBasicLayout>
+              </field.Basic>
               <Accordion type="multiple">
                 <AccordionItem value="advanced-settings">
                   <AccordionTrigger>
                     Advanced Settings
                   </AccordionTrigger>
                   <AccordionContent className="px-4">
-                    <FormFieldBasicLayout name="config" label="Config" description={provider.config_description}>
+                    <field.Basic name="config" label="Config" description={provider.config_description}>
                       <CodeInput language="json" />
-                    </FormFieldBasicLayout>
+                    </field.Basic>
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>

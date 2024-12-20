@@ -1,38 +1,43 @@
+import { formFieldLayout, type TypedFormFieldLayouts } from '@/components/form/field-layout';
 import { FormRootErrorBeta } from '@/components/form/root-error';
 import { Form as FormBeta, formDomEventHandlers, FormSubmit } from '@/components/ui/form.beta';
 import { useForm as useTanstackForm } from '@tanstack/react-form';
-import { type ReactNode, useId, useState } from 'react';
+import { type FunctionComponent, type ReactNode, useId, useState } from 'react';
 import { z } from 'zod';
 
-export interface CreateEntityFormBetaProps<T, R> {
-  defaultValues?: T;
+export interface CreateEntityFormBetaProps<R, I> {
+  defaultValues?: I;
   onCreated?: (data: R) => void;
   onInvalid?: () => void;
   transitioning?: boolean;
   children?: ReactNode;
 }
 
-export function withCreateEntityFormBeta<T, R> (
-  schema: z.ZodType<T, any, any>,
+interface CreateEntityFormComponent<R, I> extends FunctionComponent<CreateEntityFormBetaProps<R, I>>, TypedFormFieldLayouts<I> {
+}
+
+export function withCreateEntityFormBeta<T, R, I = any> (
+  schema: z.ZodType<T, any, I>,
   createApi: (data: T) => Promise<R>,
   { submitTitle = 'Create', submittingTitle }: {
     submitTitle?: ReactNode
     submittingTitle?: ReactNode
   } = {},
-) {
-  return function CreateEntityFormBeta (
+): CreateEntityFormComponent<R, I> {
+
+  function CreateEntityFormBeta (
     {
       defaultValues,
       onCreated,
       onInvalid,
       transitioning,
       children,
-    }: CreateEntityFormBetaProps<T, R>,
+    }: CreateEntityFormBetaProps<R, I>,
   ) {
     const id = useId();
     const [submissionError, setSubmissionError] = useState<unknown>();
 
-    const form = useTanstackForm<T>({
+    const form = useTanstackForm<I>({
       validators: {
         onSubmit: schema,
       },
@@ -65,7 +70,11 @@ export function withCreateEntityFormBeta<T, R> (
         </form>
       </FormBeta>
     );
-  };
+  }
+
+  Object.assign(CreateEntityFormBeta, formFieldLayout<I>());
+
+  return CreateEntityFormBeta as CreateEntityFormComponent<R, I>;
 }
 
 export { withCreateEntityFormBeta as withCreateEntityForm };

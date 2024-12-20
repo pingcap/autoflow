@@ -225,6 +225,13 @@ def get_llm(
             if not config.get("context_window"):
                 llm.context_window = 200 * 1000
             return llm
+        case LLMProvider.GITEEAI:
+            return OpenAILike(
+                model=model,
+                api_base="https://ai.gitee.com/v1",
+                api_key=credentials,
+                **config
+            )
         case LLMProvider.GEMINI:
             os.environ["GOOGLE_API_KEY"] = credentials
             return Gemini(model=model, api_key=credentials, **config)
@@ -329,6 +336,13 @@ def get_embed_model(
         case EmbeddingProvider.LOCAL:
             return LocalEmbedding(
                 model=model,
+                **config,
+            )
+        case EmbeddingProvider.GITEEAI:
+            return OpenAILikeEmbedding(
+                model=model,
+                api_base="https://ai.gitee.com/v1",
+                api_key=credentials,
                 **config,
             )
         case EmbeddingProvider.OPENAI_LIKE:

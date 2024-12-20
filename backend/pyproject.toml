@@ -58,6 +58,7 @@ dependencies = [
     "retry>=0.9.2",
     "langchain-openai>=0.2.9",
     "ragas>=0.2.6",
+    "llama-index-embeddings-bedrock<=0.3.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"

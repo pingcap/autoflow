@@ -58,6 +58,22 @@ admin_embed_model_options: List[EmbeddingModelOption] = [
         default_credentials="*****",
     ),
     EmbeddingModelOption(
+        provider=EmbeddingProvider.BEDROCK,
+        provider_display_name="Bedrock",
+        provider_description="Amazon Bedrock is a fully managed foundation models service.",
+        provider_url="https://docs.aws.amazon.com/bedrock/",
+        default_embedding_model="amazon.titan-embed-text-v2:0",
+        embedding_model_description="",
+        credentials_display_name="AWS Bedrock Credentials JSON",
+        credentials_description="The JSON Object of AWS Credentials, refer to https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html#cli-configure-files-global",
+        credentials_type="dict",
+        default_credentials={
+            "aws_access_key_id": "****",
+            "aws_secret_access_key": "****",
+            "aws_region_name": "us-west-2",
+        },
+    ),
+    EmbeddingModelOption(
         provider=EmbeddingProvider.OLLAMA,
         provider_display_name="Ollama",
         provider_description="Ollama is a lightweight framework for building and running large language models and embed models.",

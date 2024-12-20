@@ -7,10 +7,12 @@ import { type DeepKeys, type DeepValue, type FieldApi, FieldValidators, type For
 import { MinusIcon, PlusIcon } from 'lucide-react';
 import { cloneElement, type ReactElement, type ReactNode } from 'react';
 
-type WidgetProps<TFormData, TName extends DeepKeys<TFormData>> = Required<Omit<FormControlWidgetProps<TFormData, TName>, 'id' | 'aria-invalid' | 'aria-describedby'>>
+type WidgetProps<TFormData, TName extends DeepKeys<TFormData>> = Required<Omit<FormControlWidgetProps<DeepValue<TFormData, TName>>, 'id' | 'aria-invalid' | 'aria-describedby'>>
+
+type DefaultFormData = Record<string, any>
 
 export interface FormFieldLayoutProps<
-  TFormData,
+  TFormData extends DefaultFormData,
   TName extends DeepKeys<TFormData> = DeepKeys<TFormData>
 > {
   name: TName;
@@ -28,7 +30,7 @@ export interface FormFieldLayoutProps<
 }
 
 function renderWidget<
-  TFormData,
+  TFormData extends DefaultFormData,
   TName extends DeepKeys<TFormData> = DeepKeys<TFormData>
 > (
   children: FormFieldLayoutProps<TFormData, TName>['children'],
@@ -71,7 +73,7 @@ function renderWidget<
 }
 
 export function FormFieldBasicLayout<
-  TFormData,
+  TFormData extends DefaultFormData,
   TName extends DeepKeys<TFormData> = DeepKeys<TFormData>
 > ({
   name,
@@ -106,7 +108,7 @@ export function FormFieldBasicLayout<
 }
 
 export function FormFieldInlineLayout<
-  TFormData,
+  TFormData extends DefaultFormData,
   TName extends DeepKeys<TFormData> = DeepKeys<TFormData>
 > ({
   name,
@@ -138,7 +140,7 @@ export function FormFieldInlineLayout<
 }
 
 export function FormFieldContainedLayout<
-  TFormData,
+  TFormData extends DefaultFormData,
   TName extends DeepKeys<TFormData> = DeepKeys<TFormData>
 > ({
   name,
@@ -179,7 +181,7 @@ export function FormFieldContainedLayout<
 type DeepKeysOfType<T, Value> = string & keyof { [P in DeepKeys<T> as DeepValue<T, P> extends Value ? P : never]: any }
 
 export function FormPrimitiveArrayFieldBasicLayout<
-  TFormData,
+  TFormData extends DefaultFormData,
   TName extends DeepKeysOfType<TFormData, any[]> = DeepKeysOfType<TFormData, any[]>
 > ({
   name,

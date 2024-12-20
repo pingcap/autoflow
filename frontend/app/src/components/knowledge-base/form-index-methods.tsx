@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { forwardRef, type ReactNode, useId } from 'react';
 
-export const FormIndexMethods = forwardRef<any, FormControlWidgetProps<CreateKnowledgeBaseParams, 'index_methods'>>(({ value, onChange }, ref) => {
+export const FormIndexMethods = forwardRef<any, FormControlWidgetProps<CreateKnowledgeBaseParams['index_methods']>>(({ value, onChange }, ref) => {
   return (
     <div className="space-y-2" ref={ref}>
       <IndexMethod

@@ -26,6 +26,9 @@ export interface SettingsFieldProps {
   children?: (props: ControllerRenderProps) => ReactElement<any>;
 }
 
+/**
+ * @deprecated
+ */
 export function SettingsField ({ name, item, arrayItemSchema, objectSchema, onChanged, disabled, children }: SettingsFieldProps) {
   const router = useRouter();
   const [transitioning, startTransition] = useTransition();

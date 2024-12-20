@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { Slot } from '@radix-ui/react-slot';
 import type { FieldValidators } from '@tanstack/react-form';
 import * as FormPrimitives from '@tanstack/react-form';
-import { type DeepValue, type FieldApi, type FormApi, type NoInfer, type ReactFormExtendedApi, useField } from '@tanstack/react-form';
+import { type DeepValue, type FieldApi, type FormApi, type ReactFormExtendedApi, useField } from '@tanstack/react-form';
 import { Loader2Icon } from 'lucide-react';
 import * as React from 'react';
 import { type ComponentProps, createContext, type FormEvent, type ReactNode, useContext, useId } from 'react';
@@ -65,25 +65,30 @@ function useFormField<
   const fieldContext = useContext(FormFieldContext);
   const itemContext = useContext(FormItemContext);
 
-  if (!itemContext) {
-    throw new Error('useFormField() should be used within <FormItem>');
-  }
-
   if (!fieldContext) {
     throw new Error('useFormField() should be used within <FormField>');
   }
 
   const field = form.getFieldMeta(fieldContext.name as TName);
 
-  const { id } = itemContext;
+  const id = itemContext?.id;
 
-  return {
+  const idProps = id ? {
     id: id,
-    name: fieldContext.name as TName,
     formItemId: `${id}-form-item`,
     formDescriptionId: `${id}-form-item-description`,
     formMessageId: `${id}-form-item-message`,
+  } : {
+    id: undefined,
+    formItemId: undefined,
+    formDescriptionId: undefined,
+    formMessageId: undefined,
+  };
+
+  return {
+    name: fieldContext.name as TName,
     field,
+    ...idProps,
   };
 }
 
@@ -109,13 +114,13 @@ function Form<
 }
 
 function FormField<
-  TFormData,
-  TName extends FormPrimitives.DeepKeys<TFormData>,
+  TFormData = any,
+  TName extends FormPrimitives.DeepKeys<TFormData> = any,
   TFieldValidator extends FormPrimitives.Validator<DeepValue<TFormData, TName>, unknown> | undefined = undefined,
   TFormValidator extends FormPrimitives.Validator<TFormData, unknown> | undefined = undefined,
 > ({ name, defaultValue, validators, mode, render }: {
   name: TName
-  defaultValue?: NoInfer<DeepValue<TFormData, TName>>
+  defaultValue?: DeepValue<TFormData, TName>
   mode?: 'value' | 'array' | undefined
   validators?: FieldValidators<TFormData, TName, TFieldValidator, TFormValidator>;
   render: (
@@ -126,11 +131,11 @@ function FormField<
 }) {
   const { form, disabled } = useFormContext<TFormData, TFormValidator>();
 
-  const field = useField<TFormData, TName, TFieldValidator, TFormValidator>({
+  const field = useField<TFormData, TName, TFieldValidator, TFormValidator, DeepValue<TFormData, TName>>({
     form,
     name,
     mode,
-    defaultValue,
+    defaultValue: defaultValue as never /** type issue */,
     validators,
   });
 

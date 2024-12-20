@@ -6,13 +6,12 @@ import { cn } from '@/lib/utils';
 import { type DeepKeys, type DeepValue, type FieldApi, FieldValidators, type FormApi, useField } from '@tanstack/react-form';
 import { MinusIcon, PlusIcon } from 'lucide-react';
 import { cloneElement, type ReactElement, type ReactNode } from 'react';
-import { FieldValues } from 'react-hook-form';
 
 type WidgetProps<TFormData, TName extends DeepKeys<TFormData>> = Required<Omit<FormControlWidgetProps<TFormData, TName>, 'id' | 'aria-invalid' | 'aria-describedby'>>
 
 export interface FormFieldLayoutProps<
-  TFieldValues extends FieldValues = FieldValues,
-  TName extends DeepKeys<TFieldValues> = DeepKeys<TFieldValues>
+  TFormData,
+  TName extends DeepKeys<TFormData> = DeepKeys<TFormData>
 > {
   name: TName;
   label: ReactNode;
@@ -21,27 +20,27 @@ export interface FormFieldLayoutProps<
   /**
    * Fallback value is used for display. This value will not submit to server.
    */
-  fallbackValue?: DeepValue<TFieldValues, TName>;
-  defaultValue?: NoInfer<DeepValue<TFieldValues, TName>>;
-  validators?: FieldValidators<TFieldValues, TName>;
+  fallbackValue?: DeepValue<TFormData, TName>;
+  defaultValue?: NoInfer<DeepValue<TFormData, TName>>;
+  validators?: FieldValidators<TFormData, TName>;
 
-  children: ((props: WidgetProps<TFieldValues, TName>) => ReactNode) | ReactElement<WidgetProps<TFieldValues, TName>>;
+  children: ((props: WidgetProps<TFormData, TName>) => ReactNode) | ReactElement<WidgetProps<TFormData, TName>>;
 }
 
 function renderWidget<
-  TFieldValues extends FieldValues = FieldValues,
-  TName extends DeepKeys<TFieldValues> = DeepKeys<TFieldValues>
+  TFormData,
+  TName extends DeepKeys<TFormData> = DeepKeys<TFormData>
 > (
-  children: FormFieldLayoutProps<TFieldValues, TName>['children'],
-  field: FieldApi<TFieldValues, TName>,
-  form: FormApi<TFieldValues>,
+  children: FormFieldLayoutProps<TFormData, TName>['children'],
+  field: FieldApi<TFormData, TName>,
+  form: FormApi<TFormData>,
   disabled: boolean | undefined,
-  fallbackValue?: DeepValue<TFieldValues, TName>,
+  fallbackValue?: DeepValue<TFormData, TName>,
 ) {
 
-  const data: WidgetProps<TFieldValues, TName> = {
+  const data: WidgetProps<TFormData, TName> = {
     value: field.state.value ?? fallbackValue as any,
-    name: field.name,
+    name: field.name as TName,
     onChange: ((ev: any) => {
       if (isChangeEvent(ev)) {
         const el = ev.currentTarget;
@@ -72,8 +71,8 @@ function renderWidget<
 }
 
 export function FormFieldBasicLayout<
-  TFieldValues extends FieldValues = FieldValues,
-  TName extends DeepKeys<TFieldValues> = DeepKeys<TFieldValues>
+  TFormData,
+  TName extends DeepKeys<TFormData> = DeepKeys<TFormData>
 > ({
   name,
   label,
@@ -83,9 +82,9 @@ export function FormFieldBasicLayout<
   defaultValue,
   validators,
   children,
-}: FormFieldLayoutProps<TFieldValues, TName>) {
+}: FormFieldLayoutProps<TFormData, TName>) {
   return (
-    <FormField<TFieldValues, TName>
+    <FormField<TFormData, TName>
       name={name}
       defaultValue={defaultValue}
       render={(field, form, disabled) => (
@@ -95,7 +94,7 @@ export function FormFieldBasicLayout<
             {required && <sup className="text-destructive" aria-hidden>*</sup>}
           </FormLabel>
           <FormControl>
-            {renderWidget<TFieldValues, TName>(children, field, form, disabled, fallbackValue)}
+            {renderWidget<TFormData, TName>(children, field, form, disabled, fallbackValue)}
           </FormControl>
           {description && <FormDescription className="break-words">{description}</FormDescription>}
           <FormMessage />
@@ -107,8 +106,8 @@ export function FormFieldBasicLayout<
 }
 
 export function FormFieldInlineLayout<
-  TFieldValues extends FieldValues = FieldValues,
-  TName extends DeepKeys<TFieldValues> = DeepKeys<TFieldValues>
+  TFormData,
+  TName extends DeepKeys<TFormData> = DeepKeys<TFormData>
 > ({
   name,
   label,
@@ -116,16 +115,16 @@ export function FormFieldInlineLayout<
   defaultValue,
   validators,
   children,
-}: FormFieldLayoutProps<TFieldValues, TName>) {
+}: FormFieldLayoutProps<TFormData, TName>) {
   return (
-    <FormField<TFieldValues, TName>
+    <FormField<TFormData, TName>
       name={name}
       defaultValue={defaultValue}
       render={(field, form, disabled) => (
         <FormItem>
           <div className="flex items-center gap-2">
             <FormControl>
-              {renderWidget<TFieldValues, TName>(children, field, form, disabled)}
+              {renderWidget<TFormData, TName>(children, field, form, disabled)}
             </FormControl>
             <FormLabel>{label}</FormLabel>
           </div>
@@ -139,8 +138,8 @@ export function FormFieldInlineLayout<
 }
 
 export function FormFieldContainedLayout<
-  TFieldValues extends FieldValues = FieldValues,
-  TName extends DeepKeys<TFieldValues> = DeepKeys<TFieldValues>
+  TFormData,
+  TName extends DeepKeys<TFormData> = DeepKeys<TFormData>
 > ({
   name,
   label,
@@ -151,9 +150,9 @@ export function FormFieldContainedLayout<
   validators,
   children,
   unimportant = false,
-}: FormFieldLayoutProps<TFieldValues, TName> & { unimportant?: boolean }) {
+}: FormFieldLayoutProps<TFormData, TName> & { unimportant?: boolean }) {
   return (
-    <FormField<TFieldValues, TName>
+    <FormField<TFormData, TName>
       name={name}
       defaultValue={defaultValue}
       validators={validators}
@@ -169,7 +168,7 @@ export function FormFieldContainedLayout<
             </FormDescription>}
           </div>
           <FormControl>
-            {renderWidget<TFieldValues, TName>(children, field, form, disabled, fallbackValue)}
+            {renderWidget<TFormData, TName>(children, field, form, disabled, fallbackValue)}
           </FormControl>
         </FormItem>
       )}
@@ -180,8 +179,8 @@ export function FormFieldContainedLayout<
 type DeepKeysOfType<T, Value> = string & keyof { [P in DeepKeys<T> as DeepValue<T, P> extends Value ? P : never]: any }
 
 export function FormPrimitiveArrayFieldBasicLayout<
-  TFieldValues extends FieldValues = FieldValues,
-  TName extends DeepKeysOfType<TFieldValues, any[]> = DeepKeysOfType<TFieldValues, any[]>
+  TFormData,
+  TName extends DeepKeysOfType<TFormData, any[]> = DeepKeysOfType<TFormData, any[]>
 > ({
   name,
   label,
@@ -191,9 +190,9 @@ export function FormPrimitiveArrayFieldBasicLayout<
   defaultValue,
   validators,
   newItemValue,
-}: FormFieldLayoutProps<TFieldValues, TName> & { newItemValue: () => any }) {
-  const { form } = useFormContext<TFieldValues>();
-  const arrayField = useField<TFieldValues, TName>({
+}: FormFieldLayoutProps<TFormData, TName> & { newItemValue: () => any }) {
+  const { form } = useFormContext<TFormData>();
+  const arrayField = useField<TFormData, TName>({
     name,
     form,
     mode: 'array',

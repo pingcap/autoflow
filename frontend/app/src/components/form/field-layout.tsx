@@ -16,24 +16,23 @@ import { z } from 'zod';
  * - If T is {@link CreateEntityFormBetaProps} or return type of {@link import('@/components/form/create-entity-form').withCreateEntityForm}, TFormData is the form input type
  * - If T is Record<string, any>, TFormData is itself
  */
-export function formFieldLayout<T> () {
-  type TFormData =
-    T extends z.ZodType<any, any, any>
-      ? z.input<T>
-      : T extends CreateEntityFormBetaProps<any, infer I>
+export function formFieldLayout<T> (): TypedFormFieldLayouts<
+  T extends z.ZodType<any, any, any>
+    ? z.input<T>
+    : T extends CreateEntityFormBetaProps<any, infer I>
+      ? I
+      : T extends ComponentType<CreateEntityFormBetaProps<any, infer I>>
         ? I
-        : T extends ComponentType<CreateEntityFormBetaProps<any, infer I>>
-          ? I
-          : T extends Record<string, any>
-            ? T
-            : never;
-
+        : T extends Record<string, any>
+          ? T
+          : never
+> {
   return {
-    Basic: FormFieldBasicLayout as <TName extends DeepKeys<TFormData>> (props: ComponentProps<typeof FormFieldBasicLayout<TFormData, TName>>) => ReactNode,
-    Contained: FormFieldContainedLayout as <TName extends DeepKeys<TFormData>> (props: ComponentProps<typeof FormFieldContainedLayout<TFormData, TName>>) => ReactNode,
-    Inline: FormFieldInlineLayout as <TName extends DeepKeys<TFormData>> (props: ComponentProps<typeof FormFieldInlineLayout<TFormData, TName>>) => ReactNode,
-    PrimitiveArray: FormPrimitiveArrayFieldBasicLayout as <TName extends DeepKeysOfType<TFormData, any[]>> (props: ComponentProps<typeof FormPrimitiveArrayFieldBasicLayout<TFormData, TName>>) => ReactNode,
-  } satisfies TypedFormFieldLayouts<TFormData>;
+    Basic: FormFieldBasicLayout,
+    Contained: FormFieldContainedLayout,
+    Inline: FormFieldInlineLayout,
+    PrimitiveArray: FormPrimitiveArrayFieldBasicLayout,
+  } satisfies TypedFormFieldLayouts<unknown> as never;
 }
 
 export interface TypedFormFieldLayouts<TFormData> {

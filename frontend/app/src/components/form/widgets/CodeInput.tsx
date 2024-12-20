@@ -6,7 +6,7 @@ import mergeRefs from 'merge-refs';
 import type * as monaco from 'monaco-editor';
 import { forwardRef, useEffect, useRef, useState } from 'react';
 
-export interface CodeInputProps extends FormControlWidgetProps {
+export interface CodeInputProps extends FormControlWidgetProps<string> {
   className?: string;
   placeholder?: string;
   language: 'json' | 'markdown';

@@ -13,6 +13,7 @@ const controlled = script.dataset.controlled === 'true';
 const trigger = controlled ? true : document.getElementById('tidb-ai-trigger');
 const chatEngine = script.dataset.chatEngine;
 const scriptDataMeasurementId = script.dataset.measurementId;
+const apiBase = script.dataset.apiBase;
 
 loadConfig().then(async ({ settings, bootstrapStatus, experimentalFeatures }) => {
   const measurementId = scriptDataMeasurementId ?? settings.ga_id;
@@ -36,6 +37,7 @@ loadConfig().then(async ({ settings, bootstrapStatus, experimentalFeatures }) =>
     <GtagProvider configured gtagFn={gtagFn} gtagId={measurementId}>
       <Widget
         ref={refFn}
+        apiBase={apiBase}
         container={div}
         trigger={trigger}
         exampleQuestions={settings.custom_js_example_questions}

@@ -11,8 +11,8 @@ import { Dialog, DialogClose, DialogDescription, DialogHeader, DialogOverlay, Di
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { type ExperimentalFeatures, ExperimentalFeaturesProvider } from '@/experimental/experimental-features-provider';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { XIcon } from 'lucide-react'
+import { XIcon } from 'lucide-react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState, useSyncExternalStore } from 'react';
 import './Widget.css';
 
 export interface WidgetProps {
@@ -25,7 +25,8 @@ export interface WidgetProps {
   buttonIcon: string;
   icon: string;
   disableAutoThemeDetect?: boolean;
-  chatEngine?: string
+  chatEngine?: string;
+  apiBase?: string;
 }
 
 export interface WidgetInstance {
@@ -34,13 +35,14 @@ export interface WidgetInstance {
   initialized: true;
 }
 
-export const Widget = forwardRef<WidgetInstance, WidgetProps>(({ container, trigger, experimentalFeatures, disableAutoThemeDetect = false, bootstrapStatus, exampleQuestions, icon, buttonIcon, buttonLabel, chatEngine }, ref) => {
+export const Widget = forwardRef<WidgetInstance, WidgetProps>(({ container, trigger, experimentalFeatures, disableAutoThemeDetect = false, bootstrapStatus, exampleQuestions, icon, buttonIcon, buttonLabel, chatEngine, apiBase }, ref) => {
   const [open, setOpen] = useState(false);
   const [dark, setDark] = useState(() => matchMedia('(prefers-color-scheme: dark)').matches);
   const openRef = useRef(open);
   const darkRef = useRef(dark);
   const [scrollTarget, setScrollTarget] = useState<HTMLDivElement | null>(null);
   const gtagFn = useGtagFn();
+  const shouldDisplayTrigger = useShouldDisplayTrigger(apiBase);
 
   useEffect(() => {
     openRef.current = open;
@@ -135,7 +137,7 @@ export const Widget = forwardRef<WidgetInstance, WidgetProps>(({ container, trig
                 gtagFn('event', 'tidbai.events.close-widget-dialog');
               }
             }}>
-              {!trigger && <DialogTrigger asChild>
+              {!trigger && shouldDisplayTrigger && <DialogTrigger asChild>
                 <Button id="tidb-ai-widget-trigger" className="hidden sm:flex fixed right-8 bottom-8 gap-2 items-center" onClick={() => {
                   gtagFn('event', 'tidbai.events.open-widget-dialog');
                 }}>
@@ -149,9 +151,9 @@ export const Widget = forwardRef<WidgetInstance, WidgetProps>(({ container, trig
                 <DialogOverlay />
                 <DialogPrimitive.Content
                   className="fixed left-[50%] top-[50%] z-50 grid translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-0 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg w-[calc(100%-32px)] lg:w-[50vw] outline-none">
-                  <DialogHeader className='relative p-8 pb-0'>
-                    <DialogClose className='absolute right-8 top-8 transition-opacity opacity-70 hover:opacity-100'>
-                      <XIcon className='size-4' />
+                  <DialogHeader className="relative p-8 pb-0">
+                    <DialogClose className="absolute right-8 top-8 transition-opacity opacity-70 hover:opacity-100">
+                      <XIcon className="size-4" />
                     </DialogClose>
                     <DialogTitle className="flex items-center gap-4">
                       <img className="h-8" src={icon} alt="logo" height={32} />
@@ -209,3 +211,20 @@ export const Widget = forwardRef<WidgetInstance, WidgetProps>(({ container, trig
     </PortalProvider>
   );
 });
+
+function useShouldDisplayTrigger (apiBase?: string) {
+  const location = useSyncExternalStore(fire => {
+    window.addEventListener('hashchange', fire);
+    return () => {
+      window.removeEventListener('hashchange', fire);
+    };
+  }, () => window.location);
+
+  if (!apiBase) {
+    // We are on autoflow pages.
+
+    return location.pathname === '/';
+  }
+
+  return true;
+}

@@ -1,24 +1,28 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, APIRouter
 from fastapi.responses import FileResponse
 
-from app.models import Upload
-from app.rag.datasource import FileDataSource
-from app.file_storage import default_file_storage
+from sqlmodel import select, Session, col
+from app.api.deps import SessionDep
+from app.models import Document
+from app.repositories import document_repo
+import os
 
 router = APIRouter()
 
-@router.get("/documents/{document_id}/download")
-def download_file(document_id: int):
-    isfound = False    
-    for f_config in FileDataSource.config:
-        if f_config["file_id"] == document_id:
-            isfound = True
-    # 找到了就返回文件
-    if isfound == True:
-        upload = FileDataSource.session.get(Upload, document_id)
-        return FileResponse(path=upload.path, filename=upload.name, media_type='application/octet-stream')
-    # 没找到应该 302 到对应的 url，但先404
+@router.get("/documents/{doc_id}/download")
+def download_file(
+    doc_id: int,
+    session: SessionDep
+):
+    doc = session.get(Document, doc_id)
+    if not doc:
+        raise HTTPException(status_code = 404, detail = "File not found")
+    
+    DATA_PATH = "../data"
+    source_uri = os.path.join(DATA_PATH, doc.source_uri) 
+    if os.path.exists(source_uri):
+        return FileResponse(path = source_uri, filename = doc.name, media_type = doc.mime_type)
     else:
-        raise HTTPException(status_code=404, detail="lmw : File not found")
+        raise HTTPException(status_code = 404, detail = "File not found")
 
 

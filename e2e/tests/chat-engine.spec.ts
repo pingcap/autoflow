@@ -6,7 +6,7 @@ test.describe('Chat Engine', () => {
     test('Create with default configuration', async ({ page }) => {
       await loginViaApi(page);
       await page.goto('/chat-engines');
-      await page.getByRole('button', { name: 'Create Chat Engine' }).click();
+      await page.getByRole('button', { name: 'New Chat Engine' }).click();
       await page.waitForURL('/chat-engines/new');
 
       const name = 'All default configuration';
@@ -19,7 +19,8 @@ test.describe('Chat Engine', () => {
 
       // Select default knowledge base
       await page.getByRole('button', { name: 'Select Knowledge Base' }).click();
-      await page.getByRole('option', { name: 'Default' }).click();
+      await page.getByRole('option', { name: 'My Knowledge Base' }).click();
+      await expect(page.getByRole('button', { name: 'Select Knowledge Base' })).toHaveText(/My Knowledge Base/);
 
       // Create
       await page.getByRole('button', { name: 'Create Chat Engine' }).click();

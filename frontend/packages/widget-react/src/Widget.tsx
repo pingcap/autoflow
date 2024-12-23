@@ -36,14 +36,14 @@ export interface WidgetInstance {
   initialized: true;
 }
 
-export const Widget = forwardRef<WidgetInstance, WidgetProps>(({ container, trigger, experimentalFeatures, disableAutoThemeDetect = false, bootstrapStatus, exampleQuestions, icon, buttonIcon, buttonLabel, chatEngine, src, apiBase }, ref) => {
+export const Widget = forwardRef<WidgetInstance, WidgetProps>(({ container, trigger, experimentalFeatures, disableAutoThemeDetect = false, bootstrapStatus, exampleQuestions, icon, buttonIcon, buttonLabel, chatEngine, src }, ref) => {
   const [open, setOpen] = useState(false);
   const [dark, setDark] = useState(() => matchMedia('(prefers-color-scheme: dark)').matches);
   const openRef = useRef(open);
   const darkRef = useRef(dark);
   const [scrollTarget, setScrollTarget] = useState<HTMLDivElement | null>(null);
   const gtagFn = useGtagFn();
-  const shouldDisplayTrigger = useShouldDisplayTrigger(src, apiBase);
+  const shouldDisplayTrigger = useShouldDisplayTrigger(src);
 
   useEffect(() => {
     openRef.current = open;
@@ -231,7 +231,7 @@ window.addEventListener('popstate', (e) => {
   window.dispatchEvent(new CustomEvent('tidbaihistorychange', { detail: { type: 'popstate', params: [e.state] } }));
 });
 
-function useShouldDisplayTrigger (src: string, apiBase?: string) {
+function useShouldDisplayTrigger (src: string) {
   const pathname = useSyncExternalStore(fire => {
     const callback = () => {
       setTimeout(() => {
@@ -246,17 +246,16 @@ function useShouldDisplayTrigger (src: string, apiBase?: string) {
   }, () => window.location.pathname);
 
   return useMemo(() => {
+    // if src is relative, assume is on main site.
+    if (src.startsWith('/')) {
+      return pathname === '/';
+    }
     const srcUrl = new URL(src);
 
-    if (!apiBase) {
+    // if page's origin is same with script src, assume is on main site.
+    if (location.origin === srcUrl.origin) {
       return pathname === '/';
-    } else {
-      const apiBaseUri = new URL(apiBase);
-      if (apiBaseUri.origin === srcUrl.origin) {
-        return pathname;
-      }
     }
     return true;
-  }, [pathname, src, apiBase]);
-
+  }, [pathname, src]);
 }

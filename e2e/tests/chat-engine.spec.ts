@@ -40,7 +40,9 @@ test.describe('Chat Engine', () => {
         expect(chatEngine.name).toBe(name);
         expect(chatEngine.engine_options).toStrictEqual({
           knowledge_base: {
-            linked_knowledge_base: 1,
+            linked_knowledge_base: {
+              id: 1,
+            },
           },
         });
         expect(chatEngine.llm_id).toBeNull();

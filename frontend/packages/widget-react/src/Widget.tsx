@@ -231,15 +231,21 @@ window.addEventListener('popstate', (e) => {
 });
 
 function useShouldDisplayTrigger (apiBase?: string) {
-  const location = useSyncExternalStore(fire => {
-    window.addEventListener('tidbaihistorychange', fire);
-    return () => {
-      window.removeEventListener('tidbaihistorychange', fire);
+  const pathname = useSyncExternalStore(fire => {
+    const callback = () => {
+      setTimeout(() => {
+        fire();
+      }, 1);
     };
-  }, () => window.location);
+
+    window.addEventListener('tidbaihistorychange', callback);
+    return () => {
+      window.removeEventListener('tidbaihistorychange', callback);
+    };
+  }, () => window.location.pathname);
 
   if (!apiBase) {
-    return location.pathname === '/';
+    return pathname === '/';
   }
 
   return true;

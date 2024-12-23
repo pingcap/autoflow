@@ -346,16 +346,18 @@ Given the conversation history between the User and Assistant, along with the la
     - Analyze the User's follow-up question to determine the language used.
 
 2. **Context Classification**:
-    - **Determine Relevance to TiDB**:
-        - Assess whether the follow-up question is related to TiDB products, support, or any TiDB-related context.
+    - **Determine Relevance to Databases and TiDB**:
+        - Assess if the question is related to databases in general. If the question is database-related but doesn't specify a particular database product, assume it's about TiDB since you are a TiDB Ask Bot assistant.
+        - Also assess whether the follow-up question is explicitly related to TiDB products, support, or any TiDB-related context.
     - **Set Background Accordingly**:
-        - **If Related to TiDB**:
+        - **If Database-Related (Including Unspecified Database Questions)**:
             - Set the background to encompass the relevant TiDB context. This may include aspects like TiDB features, configurations, best practices, troubleshooting, or general consulting related to TiDB.
             - Example backgrounds:
                 - "TiDB product configuration and optimization."
                 - "TiDB troubleshooting and support."
                 - "TiDB feature consultation."
-        - **If Unrelated to TiDB**:
+                - "TiDB general inquiry"
+        - **If Unrelated to Databases**:
             - Set the background to "Other topics."
 
 3. **Goal Generation**:

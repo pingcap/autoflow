@@ -1010,6 +1010,17 @@ class TiDBGraphStore(KnowledgeGraphStore):
         ).all()
 
         return [
-            {"text": chunk.text, "document_id": chunk.document_id, "meta": chunk.meta}
+            {
+                "id": chunk.id,
+                "text": chunk.text,
+                "document_id": chunk.document_id,
+                "meta": {
+                    "language": chunk.meta.get("language"),
+                    "product": chunk.meta.get("product"),
+                    "resource": chunk.meta.get("resource"),
+                    "source_uri": chunk.meta.get("source_uri"),
+                    "tidb_version": chunk.meta.get("tidb_version"),
+                }
+            }
             for chunk in chunks
         ]

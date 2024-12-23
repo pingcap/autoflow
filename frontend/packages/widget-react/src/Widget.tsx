@@ -212,17 +212,33 @@ export const Widget = forwardRef<WidgetInstance, WidgetProps>(({ container, trig
   );
 });
 
+// Listen the browser state change to determine when to display the default trigger button.
+const __pushState = history.pushState;
+const __replaceState = history.replaceState;
+
+history.replaceState = (...params) => {
+  window.dispatchEvent(new CustomEvent('tidbaihistorychange', { detail: { type: 'replaceState', params } }));
+  __replaceState.call(history, ...params);
+};
+
+history.pushState = (...params) => {
+  window.dispatchEvent(new CustomEvent('tidbaihistorychange', { detail: { type: 'pushState', params } }));
+  __pushState.call(history, ...params);
+};
+
+window.addEventListener('popstate', (e) => {
+  window.dispatchEvent(new CustomEvent('tidbaihistorychange', { detail: { type: 'popstate', params: [e.state] } }));
+});
+
 function useShouldDisplayTrigger (apiBase?: string) {
   const location = useSyncExternalStore(fire => {
-    window.addEventListener('hashchange', fire);
+    window.addEventListener('tidbaihistorychange', fire);
     return () => {
-      window.removeEventListener('hashchange', fire);
+      window.removeEventListener('tidbaihistorychange', fire);
     };
   }, () => window.location);
 
   if (!apiBase) {
-    // We are on autoflow pages.
-
     return location.pathname === '/';
   }
 

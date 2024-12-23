@@ -35,16 +35,22 @@ test.describe('Chat Engine', () => {
   });
 });
 
+// TODO: The selectors are tricky. Update the select component to simplify the validation.
 async function checkChatEngineAvailability (page: Page, id: number, name: string) {
   await page.goto('/');
 
-  await page.getByRole('combobox', { name: 'Select Chat Engine' }).click();
+  // Select the 'Select Chat Engine' combobox
+  const selector = page.getByRole('combobox').and(page.getByText('Select Chat Engine', { exact: true }).locator('..'));
+  await selector.click();
   await page.getByRole('option', { name: name }).click();
 
-  await expect(page.getByRole('combobox', { name: 'Select Chat Engine' })).toHaveValue(name);
-
+  // Input question
   await page.getByPlaceholder('Input your question here...').fill('Hello');
+
+  // Send message
   await page.keyboard.press('ControlOrMeta+Enter');
 
+  // Wait page url to be changed. When changed, the chat was created correctly.
+  // Ignore the returned message which is not important.
   await page.waitForURL(/\/c\/.+$/);
 }

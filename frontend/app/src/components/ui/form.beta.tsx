@@ -1,17 +1,22 @@
 // This file contains new form components based on @tanstack/form
 // The components should be aligned with original form components.
 
+import { useRegisterFieldInFormSection } from '@/components/form-sections';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { Slot } from '@radix-ui/react-slot';
-import type { FieldApi, FormApi } from '@tanstack/react-form';
+import type { FieldValidators } from '@tanstack/react-form';
 import * as FormPrimitives from '@tanstack/react-form';
+import { type DeepValue, type FieldApi, type FormApi, type ReactFormExtendedApi, useField } from '@tanstack/react-form';
+import { Loader2Icon } from 'lucide-react';
 import * as React from 'react';
 import { type ComponentProps, createContext, type FormEvent, type ReactNode, useContext, useId } from 'react';
 
 const FormContext = createContext<{
-  form: FormPrimitives.ReactFormExtendedApi<any, any>,
+  form: FormPrimitives.ReactFormExtendedApi<any, any>
   disabled?: boolean
+  submissionError?: unknown;
 } | undefined
 >(undefined);
 
@@ -60,29 +65,30 @@ function useFormField<
   const fieldContext = useContext(FormFieldContext);
   const itemContext = useContext(FormItemContext);
 
-  if (!itemContext) {
-    throw new Error('useFormField() should be used within <FormItem>');
-  }
-
   if (!fieldContext) {
     throw new Error('useFormField() should be used within <FormField>');
   }
 
-  const field = FormPrimitives.useField<TFormData, TName, undefined, TFormValidator, FormPrimitives.DeepValue<TFormData, TName>>({
-    form,
-    name: fieldContext.name as TName,
-    mode: fieldContext.mode,
-  });
+  const field = form.getFieldMeta(fieldContext.name as TName);
 
-  const { id } = itemContext;
+  const id = itemContext?.id;
 
-  return {
+  const idProps = id ? {
     id: id,
-    name: fieldContext.name as TName,
     formItemId: `${id}-form-item`,
     formDescriptionId: `${id}-form-item-description`,
     formMessageId: `${id}-form-item-message`,
+  } : {
+    id: undefined,
+    formItemId: undefined,
+    formDescriptionId: undefined,
+    formMessageId: undefined,
+  };
+
+  return {
+    name: fieldContext.name as TName,
     field,
+    ...idProps,
   };
 }
 
@@ -92,40 +98,52 @@ interface FormProps<
 > {
   form: FormPrimitives.ReactFormExtendedApi<TFormData, TFormValidator>;
   disabled?: boolean;
+  submissionError?: unknown;
   children: ReactNode;
 }
 
 function Form<
   TFormData,
   TFormValidator extends FormPrimitives.Validator<TFormData, unknown> | undefined = undefined,
-> ({ children, disabled, form }: FormProps<TFormData, TFormValidator>) {
+> ({ children, disabled, submissionError, form }: FormProps<TFormData, TFormValidator>) {
   return (
-    <FormContext value={{ form: form as FormPrimitives.ReactFormExtendedApi<TFormData, TFormValidator>, disabled }}>
+    <FormContext value={{ form, submissionError, disabled }}>
       {children}
     </FormContext>
   );
 }
 
 function FormField<
-  TFormData,
-  TName extends FormPrimitives.DeepKeys<TFormData>,
+  TFormData = any,
+  TName extends FormPrimitives.DeepKeys<TFormData> = any,
+  TFieldValidator extends FormPrimitives.Validator<DeepValue<TFormData, TName>, unknown> | undefined = undefined,
   TFormValidator extends FormPrimitives.Validator<TFormData, unknown> | undefined = undefined,
-> ({ name, mode, render }: {
-  name: TName,
-  mode?: 'value' | 'array' | undefined,
+> ({ name, defaultValue, validators, mode, render }: {
+  name: TName
+  defaultValue?: DeepValue<TFormData, TName>
+  mode?: 'value' | 'array' | undefined
+  validators?: FieldValidators<TFormData, TName, TFieldValidator, TFormValidator>;
   render: (
-    field: FieldApi<TFormData, TName, undefined, TFormValidator, FormPrimitives.DeepValue<TFormData, TName>>,
-    form: FormApi<TFormData, TFormValidator>,
+    field: FieldApi<TFormData, TName, TFieldValidator, TFormValidator, FormPrimitives.DeepValue<TFormData, TName>>,
+    form: ReactFormExtendedApi<TFormData, TFormValidator>,
     disabled: boolean | undefined,
   ) => ReactNode
 }) {
   const { form, disabled } = useFormContext<TFormData, TFormValidator>();
 
+  const field = useField<TFormData, TName, TFieldValidator, TFormValidator, DeepValue<TFormData, TName>>({
+    form,
+    name,
+    mode,
+    defaultValue: defaultValue as never /** type issue */,
+    validators,
+  });
+
+  useRegisterFieldInFormSection(field);
+
   return (
     <FormFieldContext value={{ name, mode }}>
-      <form.Field name={name} mode={mode}>
-        {field => render(field, form, disabled)}
-      </form.Field>
+      {render(field, form, disabled)}
     </FormFieldContext>
   );
 }
@@ -142,7 +160,7 @@ function FormItem ({ className, ref, ...props }: ComponentProps<'div'>) {
 
 function FormLabel ({ ref, className, ...props }: ComponentProps<typeof Label>) {
   const { field, formItemId } = useFormField();
-  const error = field.state.meta.errors.length > 0;
+  const error = !!field?.errors?.length;
 
   return (
     <Label
@@ -156,7 +174,7 @@ function FormLabel ({ ref, className, ...props }: ComponentProps<typeof Label>) 
 
 function FormControl ({ ref, ...props }: ComponentProps<typeof Slot>) {
   const { field, formItemId, formDescriptionId, formMessageId } = useFormField();
-  const error = field.state.meta.errors[0];
+  const error = field?.errors?.[0];
 
   return (
     <Slot
@@ -188,7 +206,7 @@ function FormDescription ({ ref, className, ...props }: ComponentProps<'p'>) {
 
 function FormMessage ({ ref, className, children, ...props }: ComponentProps<'p'>) {
   const { field, formMessageId } = useFormField();
-  const error = field.state.meta.errors[0];
+  const error = field?.errors?.[0];
   const body = error ? String(error) : children;
 
   if (!body) {
@@ -207,4 +225,34 @@ function FormMessage ({ ref, className, children, ...props }: ComponentProps<'p'
   );
 }
 
-export { useFormContext, Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription, formDomEventHandlers };
+function FormSubmit ({
+  children,
+  submittingChildren,
+  asChild,
+  disabled,
+  transitioning,
+  ...props
+}: Omit<ComponentProps<typeof Button>, 'formAction' | 'type'> & {
+  /*
+   * Used when to start a transition after created an entity. The loader indicator will be shown while transitioning.
+   */
+  transitioning?: boolean
+  submittingChildren?: ReactNode;
+}) {
+  const { form } = useFormContext();
+
+  return (
+    <Button {...props} type="submit" disabled={form.state.isSubmitting || transitioning || disabled}>
+      {asChild
+        ? children
+        : (form.state.isSubmitting || transitioning)
+          ? <>
+            <Loader2Icon className="animate-spin repeat-infinite" />
+            {submittingChildren ?? children}
+          </>
+          : children}
+    </Button>
+  );
+}
+
+export { useFormContext, Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription, FormSubmit, formDomEventHandlers };

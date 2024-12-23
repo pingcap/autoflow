@@ -2,7 +2,7 @@
 
 ## Contributing Guidelines
 
-pingcap/tidb.ai is an open-source project and we welcome contributions from the community. If you are interested in contributing to the project, please read the following guidelines.
+[pingcap/autoflow](https://github.com/pingcap/autoflow) is an open-source project and we welcome contributions from the community. If you are interested in contributing to the project, please read the following guidelines.
 
 ### Before You Get Started
 
@@ -27,15 +27,15 @@ docker compose -f docker-compose.build.yml up
 
 ### Your First Contribution
 
-All set to participate in the project? You can start by looking at the [open issues](https://github.com/pingcap/tidb.ai/issues) in this repo.
+All set to participate in the project? You can start by looking at the [open issues](https://github.com/pingcap/autoflow/issues) in this repo.
 
 
 ### Components of the Project
 
 The project is divided into several components, and you can contribute to any of the following components:
-* [Frontend](https://github.com/pingcap/tidb.ai/tree/main/frontend): The frontend of the project is built using Next.js.
+* [Frontend](https://github.com/pingcap/autoflow/tree/main/frontend): The frontend of the project is built using Next.js.
 * [Backend](https://github.com/pingcap/tidb.ai/tree/main/backend): The backend of the project is built using FastAPI.
-  * [Data Source](https://github.com/pingcap/tidb.ai/tree/main/backend/app/rag/datasource): The Data Source component is responsible for indexing the data from different type of sources. You can add more data source types to the project.
+  * [Data Source](https://github.com/pingcap/autoflow/tree/main/backend/app/rag/datasource): The Data Source component is responsible for indexing the data from different type of sources. You can add more data source types to the project.
   * [LLM](https://github.com/pingcap/tidb.ai/tree/main/backend/app/rag/llms): The LLM Engine component is responsible for extracting knowledge from docs and generating responses. You can add more LLM models support to the project.
   * [Reranker](https://github.com/pingcap/tidb.ai/blob/main/backend/app/rag/reranker_model_option.py): The Reranker Engine component is responsible for reranking the results retrieved from the database. You can add more Reranker models support to the project.
   * [Embedding](https://github.com/pingcap/tidb.ai/blob/main/backend/app/rag/embed_model_option.py): The Embedding Engine component is responsible for converting text into vectors. You can add more Embedding models support to the project.

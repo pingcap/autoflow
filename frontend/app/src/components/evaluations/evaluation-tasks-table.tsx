@@ -1,6 +1,6 @@
 'use client';
 
-import { cancelEvaluationTask, type EvaluationTask, listEvaluationTasks } from '@/api/evaluations';
+import { cancelEvaluationTask, type EvaluationTask, type EvaluationTaskWithSummary, listEvaluationTasks } from '@/api/evaluations';
 import { actions } from '@/components/cells/actions';
 import { datetime } from '@/components/cells/datetime';
 import { link } from '@/components/cells/link';
@@ -12,7 +12,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { createColumnHelper } from '@tanstack/table-core';
 import { useState } from 'react';
 
-const helper = createColumnHelper<EvaluationTask>();
+const helper = createColumnHelper<EvaluationTaskWithSummary>();
 
 const columns = [
   helper.accessor('id', { header: 'ID', cell: mono }),

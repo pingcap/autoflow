@@ -1,8 +1,8 @@
 import { type EvaluationDataset, updateEvaluationDataset } from '@/api/evaluations';
 import { mutateEvaluationDatasets, useEvaluationDataset } from '@/components/evaluations/hooks';
 import { FormInput } from '@/components/form/control-widget';
-import { FormFieldBasicLayout } from '@/components/form/field-layout';
-import { createAccessorHelper, GeneralSettingsField, GeneralSettingsForm } from '@/components/settings-form';
+import { formFieldLayout } from '@/components/form/field-layout';
+import { createAccessorHelper, GeneralSettingsField as GeneralSettingsField, GeneralSettingsForm } from '@/components/settings-form';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -18,6 +18,8 @@ export function EvaluationDatasetInfo ({ evaluationDatasetId }: { evaluationData
     return <EvaluationDatasetInfoSkeleton />;
   }
 }
+
+const field = formFieldLayout<Record<'value', any>>();
 
 export function EvaluationDatasetInfoDisplay ({ evaluationDataset }: { evaluationDataset: EvaluationDataset }) {
   const router = useRouter();
@@ -42,44 +44,44 @@ export function EvaluationDatasetInfoDisplay ({ evaluationDataset }: { evaluatio
           schema={whateverSchema}
           readonly
         >
-          <FormFieldBasicLayout name="value" label="ID">
+          <field.Basic name="value" label="ID">
             <FormInput />
-          </FormFieldBasicLayout>
+          </field.Basic>
         </GeneralSettingsField>
         <GeneralSettingsField
           accessor={name}
           schema={nameSchema}
         >
-          <FormFieldBasicLayout name="value" label="Name">
+          <field.Basic name="value" label="Name">
             <FormInput />
-          </FormFieldBasicLayout>
+          </field.Basic>
         </GeneralSettingsField>
         <GeneralSettingsField
           accessor={createdAt}
           schema={whateverSchema}
           readonly
         >
-          <FormFieldBasicLayout name="value" label="Created At">
+          <field.Basic name="value" label="Created At">
             <FormInput />
-          </FormFieldBasicLayout>
+          </field.Basic>
         </GeneralSettingsField>
         <GeneralSettingsField
           accessor={updatedAt}
           schema={whateverSchema}
           readonly
         >
-          <FormFieldBasicLayout name="value" label="Updated At">
+          <field.Basic name="value" label="Updated At">
             <FormInput />
-          </FormFieldBasicLayout>
+          </field.Basic>
         </GeneralSettingsField>
         <GeneralSettingsField
           accessor={userId}
           schema={whateverSchema}
           readonly
         >
-          <FormFieldBasicLayout name="value" label="User ID">
+          <field.Basic name="value" label="User ID">
             <FormInput />
-          </FormFieldBasicLayout>
+          </field.Basic>
         </GeneralSettingsField>
       </GeneralSettingsForm>
     </div>

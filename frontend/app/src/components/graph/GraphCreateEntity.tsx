@@ -20,6 +20,9 @@ import z from 'zod';
 
 const JsonEditor = lazy(() => import('./components/JsonEditor').then(res => ({ default: res.JsonEditor })));
 
+/**
+ * @deprecated
+ */
 export function GraphCreateEntity ({ className, knowledgeBaseId, onCreated }: { className?: string, knowledgeBaseId: number, onCreated: (entity: KnowledgeGraphEntity) => void }) {
   const useEntitiesReturns = useEntities();
   const { clearSelection, ...useEntitiesRequired } = useEntitiesReturns;

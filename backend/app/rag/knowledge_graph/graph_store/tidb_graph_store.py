@@ -716,7 +716,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
     def fetch_similar_entities(
         self,
         embedding: list,
-        top_k: int = 5,
+        top_k: int = 10,
         entity_type: EntityType = EntityType.original,
         session: Optional[Session] = None,
     ):
@@ -822,14 +822,31 @@ class TiDBGraphStore(KnowledgeGraphStore):
         relationships = []
 
         for entity, similarity in self._session.exec(entity_query).all():
-            entities.append({"entity": entity, "similarity_score": similarity})
+            entities.append(
+                {
+                    "id": entity.id,
+                    "name": entity.name,
+                    "description": entity.description,
+                    "metadata": entity.meta,
+                    "similarity_score": similarity,
+                }
+            )
 
         for relationship, similarity in self._session.exec(relationship_query).all():
             relationships.append(
                 {
-                    "relationship": relationship,
-                    "source_entity": relationship.source_entity,
-                    "target_entity": relationship.target_entity,
+                    "id": relationship.id,
+                    "relationship": relationship.description,
+                    "source_entity": {
+                        "id": relationship.source_entity.id,
+                        "name": relationship.source_entity.name,
+                        "description": relationship.source_entity.description,
+                    },
+                    "target_entity": {
+                        "id": relationship.target_entity.id,
+                        "name": relationship.target_entity.name,
+                        "description": relationship.target_entity.description,
+                    },
                     "similarity_score": similarity,
                 }
             )
@@ -857,7 +874,6 @@ class TiDBGraphStore(KnowledgeGraphStore):
             Dictionary containing most relevant paths from source nodes to neighbors
         """
         query_embedding = get_query_embedding(query, self._embed_model)
-
         # Get all source entities
         source_entities = self._session.exec(
             select(self._entity_model)
@@ -871,7 +887,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
         # Track visited nodes and discovered paths
         all_visited = set(entities_ids)
         current_level_nodes = set(entities_ids)
-        all_paths = []  # Store all discovered paths with their relevance scores
+        neighbors = []  # Store all discovered paths with their relevance scores
 
         for depth in range(max_depth):
             if not current_level_nodes:
@@ -879,7 +895,15 @@ class TiDBGraphStore(KnowledgeGraphStore):
 
             # Query relationships for current level
             relationships = self._session.exec(
-                select(self._relationship_model)
+                select(
+                    self._relationship_model,
+                    (
+                        1
+                        - self._relationship_model.description_vec.cosine_distance(
+                            query_embedding
+                        )
+                    ).label("similarity"),
+                )
                 .options(
                     defer(self._relationship_model.description_vec),
                     joinedload(self._relationship_model.source_entity)
@@ -899,115 +923,51 @@ class TiDBGraphStore(KnowledgeGraphStore):
                         ),
                     )
                 )
+                .order_by(desc("similarity"))
+                .having(text("similarity >= :threshold"))
+                .params(threshold=similarity_threshold)
+                .limit(max_neighbors)
             ).all()
 
             next_level_nodes = set()
 
-            for rel in relationships:
+            for rel, similarity in relationships:
                 # Determine direction and connected entity
                 if rel.source_entity_id in current_level_nodes:
-                    from_entity = rel.source_entity
-                    to_entity = rel.target_entity
-                    direction = "outgoing"
                     connected_id = rel.target_entity_id
                 else:
-                    from_entity = rel.target_entity
-                    to_entity = rel.source_entity
-                    direction = "incoming"
                     connected_id = rel.source_entity_id
 
                 # Skip if already visited
                 if connected_id in all_visited:
                     continue
 
-                # Calculate relationship relevance
-                similarity = 1 - cosine_distance(query_embedding, rel.description_vec)
-
-                if similarity >= similarity_threshold:
-                    # Find the original source node that led to this path
-                    for source_entity in source_entities:
-                        if source_entity.id == from_entity.id:
-                            path = {
-                                "source_entity": {
-                                    "id": from_entity.id,
-                                    "name": from_entity.name,
-                                    "description": from_entity.description,
-                                },
-                                "path": [
-                                    {
-                                        "from_entity": {
-                                            "id": from_entity.id,
-                                            "name": from_entity.name,
-                                            "description": from_entity.description,
-                                        },
-                                        "relationship": {
-                                            "id": rel.id,
-                                            "description": rel.description,
-                                        },
-                                        "to_entity": {
-                                            "id": to_entity.id,
-                                            "name": to_entity.name,
-                                            "description": to_entity.description,
-                                        },
-                                        "direction": direction,
-                                        "depth": depth + 1,
-                                    }
-                                ],
-                                "similarity_score": similarity,
-                            }
-                            all_paths.append(path)
-                            next_level_nodes.add(connected_id)
-                            all_visited.add(connected_id)
-
-                        # For paths longer than depth 1, find existing paths that end at from_entity
-                        elif depth > 0:
-                            matching_paths = [
-                                p
-                                for p in all_paths
-                                if p["path"][-1]["to_entity"].id == from_entity.id
-                            ]
-                            for existing_path in matching_paths:
-                                # Create new path by extending existing path
-                                new_path = {
-                                    "source_entity": existing_path["source_entity"],
-                                    "path": existing_path["path"]
-                                    + [
-                                        {
-                                            "from_entity": {
-                                                "id": from_entity.id,
-                                                "name": from_entity.name,
-                                                "description": from_entity.description,
-                                            },
-                                            "relationship": {
-                                                "id": rel.id,
-                                                "description": rel.description,
-                                            },
-                                            "to_entity": {
-                                                "id": to_entity.id,
-                                                "name": to_entity.name,
-                                                "description": to_entity.description,
-                                            },
-                                            "direction": direction,
-                                            "depth": depth + 1,
-                                        }
-                                    ],
-                                    # Combine similarities (you might want to adjust this formula)
-                                    "similarity_score": (
-                                        existing_path["similarity_score"] + similarity
-                                    )
-                                    / 2,
-                                }
-                                all_paths.append(new_path)
-                                next_level_nodes.add(connected_id)
-                                all_visited.add(connected_id)
+                neighbors.append(
+                    {
+                        "id": rel.id,
+                        "relationship": rel.description,
+                        "source_entity": {
+                            "id": rel.source_entity.id,
+                            "name": rel.source_entity.name,
+                            "description": rel.source_entity.description,
+                        },
+                        "target_entity": {
+                            "id": rel.target_entity.id,
+                            "name": rel.target_entity.name,
+                            "description": rel.target_entity.description,
+                        },
+                        "similarity_score": similarity,
+                    }
+                )
+                next_level_nodes.add(connected_id)
+                all_visited.add(connected_id)
 
             current_level_nodes = next_level_nodes
 
         # Sort all paths by similarity score and return top max_neighbors
-        all_paths.sort(key=lambda x: x["similarity_score"], reverse=True)
+        neighbors.sort(key=lambda x: x["similarity_score"], reverse=True)
 
-        return all_paths[:max_neighbors]
-
+        return {"relationships": neighbors[:max_neighbors]}
 
     def get_chunks_by_relationships(
         self,
@@ -1029,8 +989,9 @@ class TiDBGraphStore(KnowledgeGraphStore):
         session = session or self._session
 
         relationships = session.exec(
-            select(self._relationship_model)
-            .where(self._relationship_model.id.in_(relationships_ids))
+            select(self._relationship_model).where(
+                self._relationship_model.id.in_(relationships_ids)
+            )
         ).all()
 
         # Extract chunk IDs from relationships
@@ -1049,6 +1010,17 @@ class TiDBGraphStore(KnowledgeGraphStore):
         ).all()
 
         return [
-            {"text": chunk.text, "document_id": chunk.document_id, "meta": chunk.meta}
+            {
+                "id": chunk.id,
+                "text": chunk.text,
+                "document_id": chunk.document_id,
+                "meta": {
+                    "language": chunk.meta.get("language"),
+                    "product": chunk.meta.get("product"),
+                    "resource": chunk.meta.get("resource"),
+                    "source_uri": chunk.meta.get("source_uri"),
+                    "tidb_version": chunk.meta.get("tidb_version"),
+                }
+            }
             for chunk in chunks
         ]

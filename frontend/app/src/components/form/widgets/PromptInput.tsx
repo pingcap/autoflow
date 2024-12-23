@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { cn } from '@/lib/utils';
 import { forwardRef } from 'react';
 
-export interface PromptInputProps extends FormControlWidgetProps {
+export interface PromptInputProps extends FormControlWidgetProps<string> {
   className?: string;
 }
 
@@ -13,7 +13,7 @@ export const PromptInput = forwardRef<any, PromptInputProps>(({ className, ...pr
     <Dialog>
       <DialogTrigger ref={ref} className={cn(buttonVariants({ variant: 'outline' }), 'flex gap-1 w-full font-normal', className)}>
         {'Edit prompt'}
-        <span className="text-muted-foreground">({props.value.length} characters)</span>
+        <span className="text-muted-foreground">({props.value?.length} characters)</span>
       </DialogTrigger>
       <DialogContent className="h-2/3">
         <DialogHeader className="sr-only">

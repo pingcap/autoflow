@@ -1,6 +1,6 @@
 'use client';
 
-import { cancelEvaluationTask, type EvaluationTask, type EvaluationTaskSummary as EvaluationTaskSummaryType, getEvaluationTask } from '@/api/evaluations';
+import { cancelEvaluationTask, type EvaluationTaskSummary as EvaluationTaskSummaryType, type EvaluationTaskWithSummary, getEvaluationTaskWithSummary } from '@/api/evaluations';
 import { DangerousActionButton } from '@/components/dangerous-action-button';
 import { DateFormat } from '@/components/date-format';
 import { mutateEvaluationTasks } from '@/components/evaluations/hooks';
@@ -15,7 +15,7 @@ import { Bar, BarChart, CartesianGrid, Label, Pie, PieChart, XAxis } from 'recha
 import useSWR from 'swr';
 
 export function EvaluationTaskInfo ({ evaluationTaskId }: { evaluationTaskId: number }) {
-  const { data } = useSWR(`api.evaluation.tasks.${evaluationTaskId}`, () => getEvaluationTask(evaluationTaskId));
+  const { data } = useSWR(`api.evaluation.tasks.${evaluationTaskId}`, () => getEvaluationTaskWithSummary(evaluationTaskId));
 
   if (data) {
     return <EvaluationTaskInfoDisplay task={data} />;
@@ -56,7 +56,7 @@ export function EvaluationTaskInfoSkeleton () {
   );
 }
 
-export function EvaluationTaskInfoDisplay ({ task: { summary, ...task } }: { task: EvaluationTask }) {
+export function EvaluationTaskInfoDisplay ({ task: { summary, ...task } }: { task: EvaluationTaskWithSummary }) {
   const canCancel = summary.not_start > 0;
 
   return (
@@ -69,8 +69,8 @@ export function EvaluationTaskInfoDisplay ({ task: { summary, ...task } }: { tas
         <div>User ID: {task.user_id}</div>
         {canCancel && <div>
           <DangerousActionButton
-            size='sm'
-            variant='destructive'
+            size="sm"
+            variant="destructive"
             action={async () => {
               await cancelEvaluationTask(task.id);
               void mutateEvaluationTasks();

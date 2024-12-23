@@ -1,65 +1,75 @@
-import { createContext, type Dispatch, type ReactNode, type SetStateAction, useContext, useEffect, useRef, useState } from 'react';
-import { FormProvider, useFormContext } from 'react-hook-form';
+import type { FieldApi } from '@tanstack/react-form';
+import { createContext, type Dispatch, type ReactNode, type SetStateAction, useContext, useEffect, useState } from 'react';
 
-type FieldsMap = Map<string, Set<string>>;
+type FieldsMap = Map<string, Map<string, FieldApi<any, any>>>;
 type FormSectionsContextValues = readonly [FieldsMap, Dispatch<SetStateAction<FieldsMap>>];
 const FormSectionsContext = createContext<FormSectionsContextValues | undefined>(undefined);
 
-const EMPTY_SET = new Set<string>();
+const EMPTY_SET = new Map<string, FieldApi<any, any>>();
 
 export function FormSectionsProvider ({ children }: { children?: ReactNode }) {
-  const context = useState<Map<string, Set<string>>>(() => new Map());
+  const context = useState<Map<string, Map<string, FieldApi<any, any>>>>(() => new Map());
   return (
-    <FormSectionsContext.Provider value={context}>
+    <FormSectionsContext value={context}>
       {children}
-    </FormSectionsContext.Provider>
+    </FormSectionsContext>
   );
 }
 
-export function useFormSectionFields (section: string): ReadonlySet<string> {
+export function useFormSectionFields (section: string): ReadonlyMap<string, FieldApi<any, any>> {
   const [map] = useContext(FormSectionsContext) ?? [];
   return map?.get(section) ?? EMPTY_SET;
 }
 
+interface FormSectionContextValues {
+  register (field: FieldApi<any, any>): () => void;
+}
+
+const FormSectionContext = createContext<FormSectionContextValues>({
+  register (field: FieldApi<any, any>): () => void {
+    return () => {};
+  },
+});
+
 export function FormSection ({ value, children }: { value: string, children?: ReactNode }) {
-  const { ...form } = useFormContext();
   const [_, setMap] = useContext(FormSectionsContext) ?? [];
-  const deferred = useRef<(() => void)[]>([]);
 
-  useEffect(() => {
-    if (deferred.current.length > 0) {
-      const current = [...deferred.current];
-      deferred.current.splice(0, deferred.current.length);
+  const register = (field: FieldApi<any, any>) => {
+    setMap?.(map => {
+      map = new Map(map);
+      const fieldMap = new Map(map.get(value));
+      map.set(value, fieldMap);
 
-      for (let fn of current) {
-        fn();
-      }
-    }
-  });
+      fieldMap.set(field.name, field);
+
+      return map;
+    });
+
+    return () => {
+      setMap?.(map => {
+        if (!map.get(value)?.has(field.name)) {
+          return map;
+        }
+        const fieldMap = new Map(map.get(value));
+        map.set(value, fieldMap);
+
+        fieldMap.delete(field.name);
+
+        return map;
+      });
+    };
+  };
 
   return (
-    <FormProvider
-      {...form}
-      control={{
-        ...form.control,
-        register: (name, options) => {
-          deferred.current.push(() => {
-            setMap?.(map => {
-              if (map?.get(value)?.has(name)) {
-                return map;
-              }
-              if (!map) {
-                return new Map().set(value, new Set(name));
-              } else {
-                return new Map(map.set(value, new Set(map.get(value)).add(name)));
-              }
-            });
-          });
-          return form.control.register(name, options);
-        },
-      }}
-    >
+    <FormSectionContext value={{ register }}>
       {children}
-    </FormProvider>
+    </FormSectionContext>
   );
+}
+
+export function useRegisterFieldInFormSection (field: FieldApi<any, any, any, any>) {
+  const { register } = useContext(FormSectionContext);
+  useEffect(() => {
+    return register(field);
+  }, [field]);
 }

@@ -479,9 +479,9 @@ class TiDBGraphStore(KnowledgeGraphStore):
                 "target_entity_id": r.target_entity_id,
                 "description": r.description,
                 "rag_description": f"{r.source_entity.name} -> {r.description} -> {r.target_entity.name}",
-                "meta": r.meta,
+                # "meta": r.meta,
                 "weight": r.weight,
-                "last_modified_at": r.last_modified_at,
+                # "last_modified_at": r.last_modified_at,
             }
             for r in all_relationships
         ]

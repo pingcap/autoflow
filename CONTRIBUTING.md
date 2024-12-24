@@ -40,7 +40,24 @@ The project is divided into several components, and you can contribute to any of
   * [Reranker](https://github.com/pingcap/tidb.ai/blob/main/backend/app/rag/reranker_model_option.py): The Reranker Engine component is responsible for reranking the results retrieved from the database. You can add more Reranker models support to the project.
   * [Embedding](https://github.com/pingcap/tidb.ai/blob/main/backend/app/rag/embed_model_option.py): The Embedding Engine component is responsible for converting text into vectors. You can add more Embedding models support to the project.
   * [RAG & GraphRAG Engine](https://github.com/pingcap/tidb.ai/tree/main/backend/app/rag): The component is responsible for extracting knowldge from docs and then chunking, indexing and storing the data in the database, also includes retrieving the data from the database and generating the answer for the user.
-  * [Documentations](https://github.com/pingcap/tidb.ai/tree/main/frontend/app/src/pages): The documentation of the project is written in Markdown files. You can contribute to the documentation by adding more content to the documentation.]
+  * [Documentations](https://github.com/pingcap/tidb.ai/tree/main/frontend/app/src/pages): The documentation of the project is written in Markdown files. You can contribute to the documentation by adding more content to the documentation.
+
+### How to add an API?
+Using the FastAPI framework.
+* Create a FastAPI Instance. 
+    ```python
+    router = FastAPI()
+    ```
+* Use Decorators to Define API Endpoints. For example:
+    ```python
+    @router.get("xxx")
+    ```
+* Implement the Route Handler Function.
+
+* Add sub-routes to the main route  and tag the sub-routes in `backend/app/api/main.py` .
+  ```python
+  api_router.include_router(sub_router, tags=["xxxx"])  
+  ```
 
 ## Maintainers
 

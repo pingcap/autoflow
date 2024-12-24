@@ -9,13 +9,12 @@ from pydantic import (
 )
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from fastapi.responses import StreamingResponse
-from fastapi_pagination import Params, Page
-from fastapi_pagination.ext.sqlmodel import paginate
+from fastapi_pagination import Params, Page, paginate
 
 from sqlmodel import select
-from app.models.base import UUIDBaseModel
 
 from app.api.deps import SessionDep, OptionalUserDep, CurrentUserDep
+from app.models.base import UUIDBaseModel
 from app.rag.chat.chat_flow import ChatFlow
 from app.rag.retrievers.knowledge_graph.schema import KnowledgeGraphRetrievalResult
 from app.repositories import chat_repo

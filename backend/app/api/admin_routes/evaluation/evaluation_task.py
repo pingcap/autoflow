@@ -14,7 +14,7 @@ from app.api.admin_routes.evaluation.models import (
     EvaluationTaskSummary,
     ParamsWithKeyword, EvaluationTaskOverview,
 )
-from app.api.admin_routes.evaluation.tools import must_get_and_belong
+from app.api.admin_routes.evaluation.tools import must_get
 from app.api.deps import SessionDep, CurrentSuperuserDep
 from app.models import (
     EvaluationTask,
@@ -53,8 +53,8 @@ def create_evaluation_task(
     chat_engine = evaluation_task.chat_engine
     run_size = evaluation_task.run_size
 
-    dataset = must_get_and_belong(
-        session, EvaluationDataset, evaluation_dataset_id, user.id
+    dataset = must_get(
+        session, EvaluationDataset, evaluation_dataset_id
     )
 
     if run_size is not None and run_size < len(dataset.evaluation_data_list):
@@ -94,7 +94,7 @@ def create_evaluation_task(
 def cancel_evaluation_task(
     evaluation_task_id: int, session: SessionDep, user: CurrentSuperuserDep
 ) -> Optional[bool]:
-    must_get_and_belong(session, EvaluationTask, evaluation_task_id, user.id)
+    must_get(session, EvaluationTask, evaluation_task_id)
 
     session.exec(
         update(EvaluationTaskItem)
@@ -107,19 +107,19 @@ def cancel_evaluation_task(
 
 
 @router.get("/admin/evaluation/tasks/{evaluation_task_id}")
-def list_evaluation_task(
+def get_evaluation_task(
     session: SessionDep,
     user: CurrentSuperuserDep,
     evaluation_task_id: int,
 ) -> EvaluationTask:
-    return must_get_and_belong(session, EvaluationTask, evaluation_task_id, user.id)
+    return must_get(session, EvaluationTask, evaluation_task_id)
 
 
 @router.get("/admin/evaluation/tasks/{evaluation_task_id}/summary")
 def get_evaluation_task_summary(
         evaluation_task_id: int, session: SessionDep, user: CurrentSuperuserDep
 ) -> EvaluationTaskSummary:
-    task = must_get_and_belong(session, EvaluationTask, evaluation_task_id, user.id)
+    task = must_get(session, EvaluationTask, evaluation_task_id)
     return get_evaluation_task_summary(task, session)
 
 
@@ -131,7 +131,6 @@ def list_evaluation_task(
 ) -> Page[EvaluationTaskSummary]:
     stmt = (
         select(EvaluationTask)
-        .where(EvaluationTask.user_id == user.id)
         .order_by(desc(EvaluationTask.id))
     )
     if params.keyword:
@@ -158,7 +157,7 @@ def list_evaluation_task_items(
     user: CurrentSuperuserDep,
     params: ParamsWithKeyword = Depends(),
 ) -> Page[EvaluationTaskItem]:
-    must_get_and_belong(session, EvaluationTask, evaluation_task_id, user.id)
+    must_get(session, EvaluationTask, evaluation_task_id)
     stmt = select(EvaluationTaskItem).where(
         EvaluationTaskItem.evaluation_task_id == evaluation_task_id
     )
@@ -169,6 +168,7 @@ def list_evaluation_task_items(
                 EvaluationTaskItem.reference.ilike(f"%{params.keyword}%"),
             )
         )
+    stmt.order_by(EvaluationTaskItem.id)
 
     return paginate(session, stmt, params)
 

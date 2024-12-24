@@ -109,6 +109,32 @@ Cohere provides industry-leading large language models (LLMs) and RAG capabiliti
 
 For more information, see the [Cohere Embed documentation](https://docs.cohere.com/docs/cohere-embed).
 
+### Amazon Bedrock
+
+Amazon Bedrock is a fully managed foundation models service that provides a range of large language models and embedding models.
+
+**Supported Models**:
+
+| Embedding Model                 | Vector Dimensions | Max Tokens |
+| ------------------------------- | ----------------- | ---------- |
+| `amazon.titan-embed-text-v2:0`  | 1024              | 8192       |
+| `amazon.titan-embed-text-v1`    | 1536              | 8192       |
+| `amazon.titan-embed-g1-text-02` | 1536              | 8192       |
+| `cohere.embed-english-v3`       | 1024              | 512        |
+| `cohere.embed-multilingual-v3`  | 1024              | 512        |
+
+To use Amazon Bedrock, you'll need to provide a JSON Object of your AWS Credentials, as described in the [AWS CLI config global settings](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html#cli-configure-files-global):
+
+```json
+{
+    "aws_access_key_id": "****",
+    "aws_secret_access_key": "****",
+    "aws_region_name": "us-west-2"
+}
+```
+
+For more information, see the [Amazon Bedrock documentation](https://docs.aws.amazon.com/bedrock/).
+
 ### Ollama
 
 Ollama is a lightweight framework for building and running large language models and embedding models locally.

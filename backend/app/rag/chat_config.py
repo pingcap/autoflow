@@ -17,6 +17,7 @@ from llama_index.core.postprocessor.types import BaseNodePostprocessor
 from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.embeddings.jinaai import JinaEmbedding
 from llama_index.embeddings.cohere import CohereEmbedding
+from llama_index.embeddings.bedrock import BedrockEmbedding
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.postprocessor.jinaai_rerank import JinaRerank
 from llama_index.postprocessor.cohere_rerank import CohereRerank
@@ -320,6 +321,14 @@ def get_embed_model(
             return CohereEmbedding(
                 model_name=model,
                 cohere_api_key=credentials,
+            )
+        case EmbeddingProvider.BEDROCK:
+            return BedrockEmbedding(
+                model_name=model,
+                aws_access_key_id=credentials["aws_access_key_id"],
+                aws_secret_access_key=credentials["aws_secret_access_key"],
+                region_name=credentials["aws_region_name"],
+                **config,
             )
         case EmbeddingProvider.OLLAMA:
             return OllamaEmbedding(

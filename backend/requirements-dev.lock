@@ -54,6 +54,7 @@ billiard==4.2.0
     # via celery
 boto3==1.34.156
     # via cohere
+    # via llama-index-embeddings-bedrock
     # via llama-index-llms-bedrock
 botocore==1.34.156
     # via boto3
@@ -319,6 +320,7 @@ llama-index-core==0.11.10
     # via llama-index
     # via llama-index-agent-openai
     # via llama-index-cli
+    # via llama-index-embeddings-bedrock
     # via llama-index-embeddings-cohere
     # via llama-index-embeddings-jinaai
     # via llama-index-embeddings-ollama
@@ -338,6 +340,7 @@ llama-index-core==0.11.10
     # via llama-index-readers-file
     # via llama-index-readers-llama-parse
     # via llama-parse
+llama-index-embeddings-bedrock==0.3.0
 llama-index-embeddings-cohere==0.2.0
 llama-index-embeddings-jinaai==0.3.0
 llama-index-embeddings-ollama==0.3.0

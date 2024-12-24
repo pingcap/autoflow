@@ -14,6 +14,7 @@ class EmbeddingProvider(str, enum.Enum):
     OPENAI = "openai"
     JINA = "jina"
     COHERE = "cohere"
+    BEDROCK = "bedrock"
     OLLAMA = "ollama"
     LOCAL = "local"
     OPENAI_LIKE = "openai_like"

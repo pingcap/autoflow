@@ -1,6 +1,8 @@
 import enum
 from uuid import UUID
 from typing import Optional
+from pydantic import BaseModel
+from datetime import datetime
 
 from sqlmodel import (
     Field,
@@ -63,3 +65,11 @@ class AdminFeedbackPublic(BaseFeedback):
     chat_message_content: str
     user_id: Optional[UUID]
     user_email: Optional[str]
+
+class FeedbackFilters(BaseModel):
+    created_at_start: Optional[datetime] = None
+    created_at_end: Optional[datetime] = None
+    feedback_origin: Optional[str] = None
+    chat_id: Optional[UUID] = None
+    feedback_type: Optional[FeedbackType] = None
+    user_id: Optional[UUID] = None

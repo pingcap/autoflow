@@ -21,8 +21,7 @@ def download_file(
         headers = {"Content-Length": str(file_size)}
         def iterfile():
             with filestorage.open(name) as f:
-                while chunk := f.read(8192):  # 每次读取 8KB
-                    yield chunk       
+                yield from f
         return StreamingResponse(
             iterfile(),
             media_type = doc.mime_type,

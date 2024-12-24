@@ -74,6 +74,18 @@ admin_embed_model_options: List[EmbeddingModelOption] = [
         default_credentials="dummy",
     ),
     EmbeddingModelOption(
+        provider=EmbeddingProvider.GITEEAI,
+        provider_display_name="Gitee AI",
+        provider_description="The Serverless API of Gitee AI offers ready-to-use cutting-edge model APIs for AI developers.",
+        provider_url="https://ai.gitee.com",
+        default_embedding_model="bge-large-zh-v1.5",
+        embedding_model_description=f"Find more information about Gitee AI Embeddings at https://ai.gitee.com/docs/openapi/v1#tag/serverless/POST/embeddings",
+        credentials_display_name="Gitee AI API Key",
+        credentials_description="The API key of Gitee AI, you can find it in https://ai.gitee.com/dashboard/settings/tokens",
+        credentials_type="str",
+        default_credentials="****",
+    ),
+    EmbeddingModelOption(
         provider=EmbeddingProvider.LOCAL,
         provider_display_name="Local Embedding",
         provider_description="Autoflow's local embedding server, deployed on your own infrastructure and powered by sentence-transformers.",

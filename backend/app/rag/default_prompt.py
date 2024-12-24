@@ -146,8 +146,8 @@ Instructions:
   - Do not introduce information that is not supported by the knowledge or conversation history.
 6. Give the language hint for the answer:
   - Add a hint after the question like "(Answer language: English)", or "(Answer language: Chinese)", etc.
-  - This language hint should be exactly same with the language of the original question.
-  - If the original question has part of other language aside from English, please use the language of another language rather than English. Example: "tidb tableread慢会是哪些原因", it should be Chinese.
+  - This language hint should be exactly the same as the language of the original question.
+  - If the original question has parts in a language other than English, please use that language rather than English. Example: "tidb tableread慢会是哪些原因", it should be Chinese.
 
 Example:
 
@@ -244,7 +244,7 @@ Answer:
 """
 
 DEFAULT_REFINE_PROMPT = """\
-The Original questions is:
+Original Question:
 
 {{original_question}}
 
@@ -252,7 +252,7 @@ Refined Question used to search:
 <<query_str>>
 
 ---------------------
-We have provided an existing answer:
+Current Answer:
 ---------------------
 
 <<existing_answer>>
@@ -273,8 +273,20 @@ Context information is below.
 <<context_msg>>
 
 ---------------------
-Given the new context, refine the original answer to better answer the query. If the context isn't useful, return the original answer.
-And the answer should use the same language with the question. If the answer has different language with the original question, please translate it to the same language with the question.
+Instructions:
+1. Analyze the new context information and compare it with the current answer
+2. Identify any gaps, inaccuracies, or missing details in the current answer
+3. Determine if the new context provides relevant information to improve the answer
+4. Context Evaluation:
+   - If the new context isn't useful, return the original answer exactly as is
+   - Only proceed with refinements if the new information adds value
+5. Language Alignment:
+   - The answer must use the same language as the original question
+   - If the answer is in a different language from the original question, translate it
+6. Source Attribution:
+   - Maintain existing source citations
+   - Add new citations for any added information
+
 
 Refined Answer:
 """

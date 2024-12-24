@@ -461,6 +461,7 @@ class ChatService:
                         graph_knowledges=graph_knowledges_context,
                         chat_history=self.chat_history,
                         question=self.user_question,
+                        current_date=datetime.now().strftime("%Y-%m-%d"),
                     ),
                 )
                 event.on_end(payload={EventPayload.COMPLETION: refined_question})

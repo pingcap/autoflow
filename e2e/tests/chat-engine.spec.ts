@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page, test } from '@playwright/test';
+import { checkCheckbox, selectOption, turnSwitch } from '../utils/forms';
 import { loginViaApi } from '../utils/login';
 
 test.describe('Chat Engine', () => {
@@ -83,14 +84,14 @@ test.describe('Chat Engine', () => {
 
         // KG Properties
         await page.getByRole('spinbutton', { name: 'Depth' }).fill('1'); // Do not use 2 for default value is 2
-        await page.getByRole('checkbox', { name: 'Include Meta' }).check();
-        await page.getByRole('checkbox', { name: 'Using intent search' }).check();
+        await checkCheckbox(page, 'Include Meta');
+        await checkCheckbox(page, 'Using intent search');
 
         // Goto features tab
         await page.getByRole('tab', { name: 'Features' }).click();
 
-        await page.getByRole('checkbox', { name: 'Hide Reference Sources' }).check();
-        await page.getByRole('switch', { name: 'Clarify Question' }).check();
+        await checkCheckbox(page, 'Hide Reference Sources');
+        await turnSwitch(page, 'Clarify Question');
       });
 
       const chatEngineId = await test.step('Create', async () => {
@@ -213,13 +214,8 @@ async function checkChatEngineAvailability (page: Page, name: string) {
 
 async function getChatEngine (page: Page, id: number) {
   const ceResponse = await page.request.get(`/api/v1/admin/chat-engines/${id}`);
+  expect(ceResponse.ok()).toBe(true);
   return await ceResponse.json();
-}
-
-async function selectOption (page: Page, name: string, value: string | RegExp) {
-  await page.getByRole('button', { name: name, exact: true }).click();
-  await page.getByRole('option', { name: value }).click();
-  await expect(page.getByRole('button', { name: name, exact: true })).toHaveText(value);
 }
 
 async function waitUpdate (page: Page, locator: Locator) {

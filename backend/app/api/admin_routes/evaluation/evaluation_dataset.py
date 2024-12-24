@@ -10,7 +10,7 @@ from app.api.admin_routes.evaluation.models import (
     ModifyEvaluationDatasetItem,
     ParamsWithKeyword,
 )
-from app.api.admin_routes.evaluation.tools import must_get, must_get_and_belong
+from app.api.admin_routes.evaluation.tools import must_get
 from app.api.deps import SessionDep, CurrentSuperuserDep
 from app.file_storage import default_file_storage
 from app.models import Upload, EvaluationDataset, EvaluationDatasetItem
@@ -47,7 +47,7 @@ def create_evaluation_dataset(
     if evaluation_dataset.upload_id is not None:
         # If the evaluation_file_id is provided, validate the uploaded file
         evaluation_file_id = evaluation_dataset.upload_id
-        upload = must_get_and_belong(session, Upload, evaluation_file_id, user.id)
+        upload = must_get(session, Upload, evaluation_file_id)
 
         if upload.mime_type != MimeTypes.CSV:
             raise HTTPException(
@@ -95,8 +95,8 @@ def create_evaluation_dataset(
 def delete_evaluation_dataset(
     evaluation_dataset_id: int, session: SessionDep, user: CurrentSuperuserDep
 ) -> bool:
-    evaluation_dataset = must_get_and_belong(
-        session, EvaluationDataset, evaluation_dataset_id, user.id
+    evaluation_dataset = must_get(
+        session, EvaluationDataset, evaluation_dataset_id
     )
 
     session.delete(evaluation_dataset)
@@ -112,8 +112,8 @@ def update_evaluation_dataset(
     session: SessionDep,
     user: CurrentSuperuserDep,
 ) -> EvaluationDataset:
-    evaluation_dataset = must_get_and_belong(
-        session, EvaluationDataset, evaluation_dataset_id, user.id
+    evaluation_dataset = must_get(
+        session, EvaluationDataset, evaluation_dataset_id
     )
 
     evaluation_dataset.name = updated_evaluation_dataset.name
@@ -133,7 +133,6 @@ def list_evaluation_dataset(
 ) -> Page[EvaluationDataset]:
     stmt = (
         select(EvaluationDataset)
-        .where(EvaluationDataset.user_id == user.id)
         .order_by(desc(EvaluationDataset.id))
     )
 

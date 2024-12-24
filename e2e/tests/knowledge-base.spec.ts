@@ -172,14 +172,14 @@ async function pollKbOverviewUntill (page: Page, kbId: number, isOk: (json: any)
   await test.step('Poll kb overview api', async () => {
     let i = 0;
     while (true) {
-      const isOk = await test.step(`Poll rounds ${++i}`, async () => {
+      const ok = await test.step(`Poll rounds ${++i}`, async () => {
         await page.waitForTimeout(500);
         const response = await page.request.get(`/api/v1/admin/knowledge_bases/${kbId}/overview`);
         expect(response.ok()).toBe(true);
         const overview = await response.json();
         return isOk(overview);
       });
-      if (isOk) {
+      if (ok) {
         break;
       }
     }

@@ -359,6 +359,8 @@ class TiDBGraphStore(KnowledgeGraphStore):
                     db_obj.meta_vec = get_entity_metadata_embedding(
                         db_obj.meta, self._embed_model
                     )
+
+                    self._session.add(db_obj)
                     if commit:
                         self._session.commit()
                         self._session.refresh(db_obj)

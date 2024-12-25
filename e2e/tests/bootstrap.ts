@@ -220,7 +220,7 @@ test('Bootstrap', async ({ browser, page }) => {
         const nameInput = await page.waitForSelector('[name=name]');
         await nameInput.fill('sample.pdf');
 
-        await page.setInputFiles('[name=files]', 'sample.pdf');
+        await page.setInputFiles('[name=files]', 'res/sample.pdf');
 
         const createButton = page.getByRole('button', { name: 'Create' });
         await createButton.scrollIntoViewIfNeeded();

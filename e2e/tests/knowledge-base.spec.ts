@@ -10,7 +10,7 @@ test.describe('Knowledge Base', () => {
       await page.getByRole('button', { name: 'Upload Files' }).click();
       await page.waitForURL(/data-sources\/new\?type=file/);
 
-      await page.setInputFiles('[name=files]', 'sample.pdf');
+      await page.setInputFiles('[name=files]', 'res/sample.pdf');
 
       await page.getByRole('textbox', { name: 'Datasource Name' }).fill('Files DataSource');
 
@@ -149,7 +149,7 @@ async function configureSimpleDataSource (page: Page, kbId: number, enableKnowle
       await page.getByRole('button', { name: 'Upload Files' }).click();
       await page.waitForURL(/data-sources\/new\?type=file/);
 
-      await page.setInputFiles('[name=files]', 'sample.pdf');
+      await page.setInputFiles('[name=files]', 'res/sample.pdf');
 
       await page.getByRole('textbox', { name: 'Datasource Name' }).fill('Simple DataSource');
 

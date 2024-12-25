@@ -10,7 +10,6 @@ import { getErrorMessage } from '@/lib/errors';
 import type { ColumnDef } from '@tanstack/react-table';
 import { createColumnHelper } from '@tanstack/table-core';
 import Link from 'next/link';
-import { startTransition } from 'react';
 import { toast } from 'sonner';
 
 export function EmbeddingModelsTable () {
@@ -62,7 +61,7 @@ const columns: ColumnDef<EmbeddingModel, any>[] = [
           try {
             await setDefault('embedding-models', row.id);
             context.table.reload?.();
-            startTransition(() => {
+            context.startTransition(() => {
               context.router.refresh();
             });
             context.setDropdownOpen(false);

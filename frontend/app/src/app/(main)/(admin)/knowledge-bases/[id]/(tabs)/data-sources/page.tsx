@@ -1,4 +1,5 @@
-'use client';
+'use client';;
+import { use } from "react";
 
 import { DatasourceCard } from '@/components/datasource/datasource-card';
 import { DatasourceCreateOption } from '@/components/datasource/datasource-create-option';
@@ -7,7 +8,8 @@ import { useAllKnowledgeBaseDataSources } from '@/components/knowledge-base/hook
 import { Skeleton } from '@/components/ui/skeleton';
 import { FileDownIcon, GlobeIcon, PaperclipIcon } from 'lucide-react';
 
-export default function KnowledgeBaseDataSourcesPage ({ params }: { params: { id: string } }) {
+export default function KnowledgeBaseDataSourcesPage(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params);
   const id = parseInt(decodeURIComponent(params.id));
   const { data: dataSources, isLoading } = useAllKnowledgeBaseDataSources(id);
 

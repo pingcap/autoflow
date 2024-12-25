@@ -8,7 +8,7 @@ export function FormArrayField<
   TKeyName extends string = 'id'
 > ({ name, render }: {
   name: TFieldArrayName,
-  render: (props: ArrayFieldRenderProps<TFieldValues, TFieldArrayName, TKeyName>) => ReactElement,
+  render: (props: ArrayFieldRenderProps<TFieldValues, TFieldArrayName, TKeyName>) => ReactElement<any>,
 }) {
   const field = useFieldArray<TFieldValues, TFieldArrayName, TKeyName>({
     name,

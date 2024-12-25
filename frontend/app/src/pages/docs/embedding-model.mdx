@@ -1,36 +1,39 @@
-# Configure the Embedding Model
+# Embedding Model
 
 import { Callout } from 'nextra/components'
 
-Embedding Model is the machine learning model responsible for converting given input into numerical vectors (embeddings), which represent the semantic meaning of the input text.
+The Embedding Model converts given input into numerical vectors (embeddings) that represent the semantic meaning of the input text.
 
-In Autoflow, we use the Embedding Model to vectorize documents and store them in TiDB, enabling us to leverage the TiDB's Vector Search capability to retrieval the relevant documents for user querie.
+In Autoflow, we use the Embedding Model to vectorize documents and store them in TiDB. This enables us to leverage TiDB's Vector Search capability to retrieve relevant documents for user queries.
 
-## Manage Embedding Models
+## Configure Embedding Model
 
-You can manage the Embedding Models in the **Models > Embedding Models** page in the admin console.
+After logging in with an admin account, you can configure the Embedding Model in the admin panel.
 
-### Add New Embedding Model
+1. Click on the `Models > Embedding Models` tab;
+2. Click the `New Embedding Model` button, select your preferred embedding model provider, and configure the model parameters.
 
-Click the **New Embedding Model** button, select your preferred embedding model provider, and configure the model parameters.
-
-![Add Embedding Model](https://github.com/user-attachments/assets/70c9f8d7-0e6a-46e7-909f-03f94062d5e2)
+    ![Add Embedding Model](https://github.com/user-attachments/assets/70c9f8d7-0e6a-46e7-909f-03f94062d5e2)
 
 ## Supported Providers
 
-We recommend using the OpenAI `text-embedding-3-small` model for Autoflow due to its performance and compatibility, but the mainstream embedding model providers and self-hosted embedding server are also supported.
+Currently Autoflow supports the following embedding model providers:
 
 ### OpenAI
 
-OpenAI provides a variety of [Embedding Models](https://platform.openai.com/docs/guides/embeddings#embedding-models), such as:
+OpenAI provides a variety of Embedding Models, we recommend using the OpenAI `text-embedding-3-small` model due to its performance and compatibility with Autoflow.
+
+**Supported Models**:
 
 | Embedding Model          | Vector Dimensions | Max Tokens |
 | ------------------------ | ----------------- | ---------- |
 | `text-embedding-3-small` | 1536              | 8191       |
 
+
+For more information, see the [OpenAI Embedding Models documentation](https://platform.openai.com/docs/guides/embeddings#embedding-models).
 ### OpenAI-Like
 
-Autoflow also support embedding model providers (such as [ZhipuAI](#zhipuai)) that conform to the OpenAI API specification.
+Autoflow also supports embedding model providers (such as [ZhipuAI](#zhipuai)) that conform to the OpenAI API specification.
 
 To use OpenAI-Like embedding model providers, you need to provide the **base URL** of the embedding API as the following JSON format in **Advanced Settings**:
 
@@ -89,9 +92,9 @@ For more information, see the [Cohere Embed documentation](https://docs.cohere.c
 
 ### Ollama
 
-Ollama is a lightweight framework for building and running large language models and embed models locally.
+Ollama is a lightweight framework for building and running large language models and embedding models locally.
 
-Ollama supports a variety of [embedding models](https://ollama.com/search?c=embedding), such as:
+**Supported Models**:
 
 | Embedding Model    | Vector Dimensions | Max Tokens |
 | ------------------ | ----------------- | ---------- |

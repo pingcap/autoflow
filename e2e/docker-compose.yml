@@ -9,15 +9,14 @@ services:
 
   backend:
     image: tidbai/backend:${E2E_DOCKER_TAG_BACKEND}
+    platform: ${E2E_DOCKER_PLATFORM}
     restart: always
     depends_on:
       - redis
     ports:
-      - "5000:80"
+      - "5001:80"
     env_file:
       - .env.backend
-      - .env.backend.local
-      - .env.backend.generated
     volumes:
       - ${E2E_DATA_STORAGE_DIR:-.data/storage}:/shared/data
     logging:
@@ -25,14 +24,17 @@ services:
       options:
         max-size: "50m"
         max-file: "6"
+    extra_hosts:
+      host.docker.internal: host-gateway
 
   frontend:
     image: tidbai/frontend:${E2E_DOCKER_TAG_FRONTEND}
+    platform: ${E2E_DOCKER_PLATFORM}
     restart: always
     depends_on:
       - backend
     ports:
-      - 3000:3000
+      - "3000:3000"
     environment:
       BASE_URL: http://backend
     env_file:
@@ -45,6 +47,7 @@ services:
 
   background:
     image: tidbai/backend:${E2E_DOCKER_TAG_BACKEND}
+    platform: ${E2E_DOCKER_PLATFORM}
     restart: always
     depends_on:
       - redis
@@ -52,8 +55,6 @@ services:
       - "5555:5555"
     env_file:
       - .env.backend
-      - .env.backend.local
-      - .env.backend.generated
     command: /usr/bin/supervisord
     volumes:
       - ${E2E_DATA_STORAGE_DIR:-.data/storage}:/shared/data
@@ -62,6 +63,8 @@ services:
       options:
         max-size: "50m"
         max-file: "6"
+    extra_hosts:
+      host.docker.internal: host-gateway
 
   static-web-server:
     image: joseluisq/static-web-server:2

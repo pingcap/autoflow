@@ -1,4 +1,5 @@
-'use client';
+'use client';;
+import { use } from "react";
 
 import { KnowledgeBaseTabs } from '@/app/(main)/(admin)/knowledge-bases/[id]/(tabs)/tabs';
 import { AdminPageHeading } from '@/components/admin-page-heading';
@@ -9,7 +10,13 @@ import { Loader2Icon } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-export default function KnowledgeBaseLayout ({ params, children }: { params: { id: string }, children: ReactNode }) {
+export default function KnowledgeBaseLayout(props: { params: Promise<{ id: string }>, children: ReactNode }) {
+  const params = use(props.params);
+
+  const {
+    children
+  } = props;
+
   const id = parseInt(decodeURIComponent(params.id));
   const { knowledgeBase } = useKnowledgeBase(id);
 

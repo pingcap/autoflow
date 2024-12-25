@@ -174,14 +174,7 @@ jobs:
         - name: Install Playwright Browsers
           run: npx playwright install --with-deps chromium
 
-        - name: Create local env files
-          run: | 
-            echo "TIDB_USER=${{secrets.E2E_TIDB_USER}}" > .env.backend.local
-            echo "TIDB_PASSWORD=${{secrets.E2E_TIDB_PASSWORD}}" >> .env.backend.local
-            echo "TIDB_HOST=${{secrets.E2E_TIDB_HOST}}" >> .env.backend.local
-            echo "" > .env.backend.generated
-
-        - name: Fetch Images
+        - name: Prepare Tests
           run: ./prepare-test.sh
           env:
             E2E_DOCKER_TAG_FRONTEND: ${{needs.docker-metadata.outputs.e2e-frontend}}
@@ -213,7 +206,10 @@ jobs:
       name: "Deploy E2E Test Results"
       runs-on: ubuntu-latest
       needs: e2e-test
-      if: "!(contains(needs.*.result, 'skipped')) && !cancelled()"
+      if: |
+        always() 
+        && !contains(needs.e2e-test.result, 'skipped') 
+        && !contains(needs.e2e-test.result, 'cancelled')
       defaults:
         run:
           working-directory: e2e

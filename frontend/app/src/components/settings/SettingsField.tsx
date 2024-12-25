@@ -1,5 +1,4 @@
 import { type SettingItem, updateSiteSetting } from '@/api/site-settings';
-import { useRefresh } from '@/components/nextjs/app-router-hooks';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -11,7 +10,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { capitalCase } from 'change-case-all';
 import { deepEqual } from 'fast-equals';
 import { CheckIcon, Loader2Icon, TriangleAlertIcon } from 'lucide-react';
-import { cloneElement, type ReactElement, type ReactNode, useCallback, useDeferredValue, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { cloneElement, type ReactElement, type ReactNode, useCallback, useDeferredValue, useMemo, useTransition } from 'react';
 import { type ControllerRenderProps, useForm, useFormState, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z, type ZodType } from 'zod';
@@ -23,11 +23,12 @@ export interface SettingsFieldProps {
   objectSchema?: ZodType;
   onChanged?: () => void;
   disabled?: boolean;
-  children?: (props: ControllerRenderProps) => ReactElement;
+  children?: (props: ControllerRenderProps) => ReactElement<any>;
 }
 
 export function SettingsField ({ name, item, arrayItemSchema, objectSchema, onChanged, disabled, children }: SettingsFieldProps) {
-  const [refreshing, refresh] = useRefresh();
+  const router = useRouter();
+  const [transitioning, startTransition] = useTransition();
 
   if (!item) {
     return (
@@ -88,7 +89,7 @@ export function SettingsField ({ name, item, arrayItemSchema, objectSchema, onCh
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const form = useForm({
     resolver: zodResolver(schema),
-    disabled: disabled || refreshing,
+    disabled: disabled || transitioning,
     values: {
       [item.name]: item.value,
     },
@@ -115,7 +116,7 @@ export function SettingsField ({ name, item, arrayItemSchema, objectSchema, onCh
           el = <Input {...props} placeholder={item.default} />;
           break;
         case 'bool':
-          el = <Switch className='block' {...props} onChange={undefined} checked={props.value} onCheckedChange={props.onChange} />;
+          el = <Switch className="block" {...props} onChange={undefined} checked={props.value} onCheckedChange={props.onChange} />;
           break;
         case 'dict':
         case 'list':
@@ -134,7 +135,9 @@ export function SettingsField ({ name, item, arrayItemSchema, objectSchema, onCh
     try {
       await updateSiteSetting(name, data[item.name]);
       form.reset({ [item.name]: data[item.name] });
-      refresh();
+      startTransition(() => {
+        router.refresh();
+      });
       onChanged?.();
       toast.success(`Changes successfully saved.`);
     } catch (e) {
@@ -166,7 +169,7 @@ export function SettingsField ({ name, item, arrayItemSchema, objectSchema, onCh
             </FormItem>
           )}
         />
-        <Operations name={item.name} defaultValue={item.default} refreshing={refreshing} />
+        <Operations name={item.name} defaultValue={item.default} refreshing={transitioning} />
       </form>
     </Form>
   );

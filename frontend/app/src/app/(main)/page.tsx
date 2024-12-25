@@ -5,7 +5,9 @@ import { useAsk } from '@/components/chat/use-ask';
 import { withReCaptcha } from '@/components/security-setting-provider';
 import { SystemWizardBanner } from '@/components/system/SystemWizardBanner';
 import { Button } from '@/components/ui/button';
+import DotPattern from '@/components/ui/dot-pattern';
 import { useSettingContext } from '@/components/website-setting-provider';
+import { cn } from '@/lib/utils';
 import NextLink from 'next/link';
 
 const security: { google_recaptcha_site_key: string, google_recaptcha: 'v3' | 'enterprise' | '' } | null = null;
@@ -18,14 +20,21 @@ export default function Page () {
     <div className="h-screen relative">
       <SystemWizardBanner />
       <div className="lg:h-[calc(100%-var(--ask-referral-height))] h-2/3 p-4 lg:p-0 flex flex-col items-center justify-center gap-4 relative">
+        <div className='absolute size-full pointer-events-none flex items-center justify-center'>
+          <DotPattern
+            className={cn(
+              '[mask-image:radial-gradient(300px_circle_at_center,white,transparent)]',
+            )}
+          />
+        </div>
         <h1 className="text-2xl sm:text-4xl font-light text-center">
           {homepage_title || ''}
         </h1>
         <p className="font-light dark:text-gray-300 text-gray-500 mb-4 w-4/5 md:w-auto text-center">
           {description || ''}
         </p>
-        <Ask className="px-4 w-full lg:w-2/3" disabled={disabled} loading={loading} ask={ask} engine={engine} setEngine={setEngine} />
-        {homepage_example_questions && (<ul className="flex gap-2 flex-wrap px-4 w-full lg:w-2/3">
+        <Ask className="z-0 px-4 w-full lg:w-2/3" disabled={disabled} loading={loading} ask={ask} engine={engine} setEngine={setEngine} />
+        {homepage_example_questions && (<ul className="z-0 flex gap-2 flex-wrap px-4 w-full lg:w-2/3">
           {homepage_example_questions.map((item, index) => (
             <li key={index}>
               <Button

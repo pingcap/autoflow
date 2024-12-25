@@ -28,7 +28,7 @@ class ChatMessage(UpdatableBaseModel, table=True):
     trace_url: Optional[str] = Field(max_length=512)
     is_best_answer: bool = Field(
         default=False,
-        sa_column=Column(Boolean, nullable=False, default=False, server_default="0")
+        sa_column=Column(Boolean, nullable=False, default=False, server_default="0"),
     )
     finished_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime))
     chat_id: UUID = Field(foreign_key="chats.id")
@@ -51,6 +51,4 @@ class ChatMessage(UpdatableBaseModel, table=True):
     )
 
     __tablename__ = "chat_messages"
-    __table_args__ = (
-        Index("ix_chat_message_is_best_answer", "is_best_answer"),
-    )
+    __table_args__ = (Index("ix_chat_message_is_best_answer", "is_best_answer"),)

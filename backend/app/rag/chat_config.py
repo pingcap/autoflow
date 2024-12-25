@@ -20,7 +20,7 @@ from llama_index.embeddings.cohere import CohereEmbedding
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.postprocessor.jinaai_rerank import JinaRerank
 from llama_index.postprocessor.cohere_rerank import CohereRerank
-from sqlmodel import Session, select
+from sqlmodel import Session
 from google.oauth2 import service_account
 from google.auth.transport.requests import Request
 
@@ -30,7 +30,7 @@ from app.rag.node_postprocessor.metadata_post_filter import MetadataFilters
 from app.rag.node_postprocessor.baisheng_reranker import BaishengRerank
 from app.rag.node_postprocessor.local_reranker import LocalRerank
 from app.rag.embeddings.local_embedding import LocalEmbedding
-from app.repositories import chat_engine_repo
+from app.repositories import chat_engine_repo, knowledge_base_repo
 from app.repositories.embedding_model import embed_model_repo
 from app.repositories.llm import llm_repo
 from app.repositories.reranker_model import reranker_model_repo
@@ -50,6 +50,7 @@ from app.models import (
     ChatEngine as DBChatEngine,
     LLM as DBLLM,
     RerankerModel as DBRerankerModel,
+    KnowledgeBase,
 )
 
 from app.rag.llms.anthropic_vertex import AnthropicVertex
@@ -118,6 +119,13 @@ class ChatEngineConfig(BaseModel):
 
     def get_db_chat_engine(self) -> Optional[DBChatEngine]:
         return self._db_chat_engine
+
+    def get_linked_knowledge_base(self, session: Session) -> KnowledgeBase | None:
+        if not self.knowledge_base:
+            return None
+        return knowledge_base_repo.must_get(
+            session, self.knowledge_base.linked_knowledge_base.id
+        )
 
     @classmethod
     def load_from_db(cls, session: Session, engine_name: str) -> "ChatEngineConfig":
@@ -196,6 +204,7 @@ class ChatEngineConfig(BaseModel):
 
 # LLM
 
+
 def get_llm(
     provider: LLMProvider,
     model: str,
@@ -213,7 +222,7 @@ def get_llm(
             )
         case LLMProvider.OPENAI_LIKE:
             llm = OpenAILike(model=model, api_key=credentials, **config)
-            if not config.get('context_window'):
+            if not config.get("context_window"):
                 llm.context_window = 200 * 1000
             return llm
         case LLMProvider.GITEEAI:
@@ -267,6 +276,7 @@ def get_llm(
         case _:
             raise ValueError(f"Got unknown LLM provider: {provider}")
 
+
 def get_default_llm(session: Session) -> Optional[LLM]:
     db_llm = llm_repo.get_default(session)
     if not db_llm:
@@ -277,6 +287,7 @@ def get_default_llm(session: Session) -> Optional[LLM]:
         db_llm.config,
         db_llm.credentials,
     )
+
 
 def must_get_default_llm(session: Session) -> LLM:
     db_llm = llm_repo.must_get_default(session)
@@ -289,6 +300,7 @@ def must_get_default_llm(session: Session) -> LLM:
 
 
 # Embedding model
+
 
 def get_embed_model(
     provider: EmbeddingProvider,
@@ -344,6 +356,7 @@ def get_embed_model(
         case _:
             raise ValueError(f"Got unknown embedding provider: {provider}")
 
+
 def get_default_embed_model(session: Session) -> Optional[BaseEmbedding]:
     db_embed_model = embed_model_repo.get_default(session)
     if not db_embed_model:
@@ -354,6 +367,7 @@ def get_default_embed_model(session: Session) -> Optional[BaseEmbedding]:
         db_embed_model.config,
         db_embed_model.credentials,
     )
+
 
 def must_get_default_embed_model(session: Session) -> BaseEmbedding:
     db_embed_model = embed_model_repo.must_get_default(session)
@@ -366,6 +380,7 @@ def must_get_default_embed_model(session: Session) -> BaseEmbedding:
 
 
 # Reranker model
+
 
 def get_reranker_model(
     provider: RerankerProvider,
@@ -403,6 +418,7 @@ def get_reranker_model(
         case _:
             raise ValueError(f"Got unknown reranker provider: {provider}")
 
+
 def get_default_reranker_model(session: Session) -> Optional[BaseNodePostprocessor]:
     db_reranker = reranker_model_repo.get_default(session)
     if not db_reranker:
@@ -415,6 +431,7 @@ def get_default_reranker_model(session: Session) -> Optional[BaseNodePostprocess
         db_reranker.credentials,
     )
 
+
 def must_get_default_reranker_model(session: Session) -> BaseNodePostprocessor:
     db_reranker = reranker_model_repo.must_get_default(session)
     return get_reranker_model(
@@ -425,7 +442,9 @@ def must_get_default_reranker_model(session: Session) -> BaseNodePostprocessor:
         db_reranker.credentials,
     )
 
+
 # Metadata post filter
+
 
 def get_metadata_post_filter(
     filters: Optional[MetadataFilters] = None,

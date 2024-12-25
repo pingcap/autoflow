@@ -18,7 +18,9 @@ class EmbeddingModelCreate(BaseModel):
     @field_validator("vector_dimension")
     def vector_dimension_must_gt_1(cls, v: int) -> int:
         if v <= 0:
-            raise ValueError("The vector dimension of the Embedding model should be at least greater than 1.")
+            raise ValueError(
+                "The vector dimension of the Embedding model should be at least greater than 1."
+            )
         return v
 
 

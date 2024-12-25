@@ -1,21 +1,20 @@
-# Configure LLM - Large Language Model
+# LLM - Large Language Model
 
 In this app, LLM is used for several purposes:
 1. Extracting knowledge from docs;
 2. Generating responses to user queries.
 
-## Configure the LLM
+## Configure LLM
 
-After login with admin account, you can configure the LLM in the admin panel.
+After logging in with an admin account, you can configure the LLM in the admin panel.
 
-1. Go to the admin panel;
-2. Click on the `LLMs` tab;
-3. Click on the `+ New` button to add a new LLM;
+1. Click on the `Models > LLMs` tab;
+2. Click on the `New LLM` button to add a new LLM;
 
-![llm-config](https://github.com/user-attachments/assets/118fe7ba-c0fd-459c-ad2c-12c5afba05ef "LLM Config")
+    ![llm-config](https://github.com/user-attachments/assets/118fe7ba-c0fd-459c-ad2c-12c5afba05ef "LLM Config")
 
-4. Input your LLM information and click `Create LLM` button;
-5. Done!
+3. Input your LLM information and click `Create LLM` button;
+4. Done!
 
 import { Callout } from 'nextra/components'
 
@@ -23,9 +22,9 @@ import { Callout } from 'nextra/components'
 If you want to use the new LLM while answering user queries, you need switch to `Chat Engines` tab and set the new LLM as LLM.
 </Callout>
 
-## Supported LLMs
+## Supported LLM providers
 
-Currently we support the following LLMs:
+Currently Autoflow supports the following LLM providers:
 
 - [OpenAI](https://platform.openai.com/)
 - [Gemini](https://gemini.google.com/)

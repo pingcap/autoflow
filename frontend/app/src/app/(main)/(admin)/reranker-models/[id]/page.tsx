@@ -8,10 +8,11 @@ import { DateFormat } from '@/components/date-format';
 import { OptionDetail } from '@/components/option-detail';
 import { Loader2Icon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useTransition } from 'react';
+import { useTransition, use } from 'react';
 import useSWR from 'swr';
 
-export default function Page ({ params }: { params: { id: string } }) {
+export default function Page(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params);
   const router = useRouter();
   const { data } = useSWR(`api.rerankers.get?id=${params.id}`, () => getReranker(parseInt(params.id)));
   const [transitioning, startTransition] = useTransition();

@@ -3,7 +3,8 @@ import { getBootstrapStatus } from '@/api/system';
 import { AdminPageHeading } from '@/components/admin-page-heading';
 import { UpdateChatEngineForm } from '@/components/chat-engine/update-chat-engine-form';
 
-export default async function ChatEnginePage ({ params }: { params: { id: string } }) {
+export default async function ChatEnginePage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const [chatEngine, defaultChatEngineOptions, bootstrapStatus] = await Promise.all([
     getChatEngine(parseInt(params.id)),
     getDefaultChatEngineOptions(),

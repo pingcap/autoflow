@@ -6,13 +6,12 @@ This document provides instructions for deploying the entire Autoflow applicatio
 
 ## Prerequisites
 
-1. Set up a [TiDB Serverless cluster](https://docs.pingcap.com/tidbcloud/tidb-cloud-quickstart).
+- Set up a [TiDB Serverless cluster](https://docs.pingcap.com/tidbcloud/tidb-cloud-quickstart).  
 
-    > **Note**
-    >
-    > TiDB Vector Search is only available for TiDB Self-Managed (TiDB >= v8.4) and [TiDB Cloud Serverless](https://ai.pingcap.com/).
+- Install [Docker Compose](https://docs.docker.com/compose/install/).
 
-2. Install [Docker Compose](https://docs.docker.com/compose/install/).
+> **Note:**
+> TiDB Vector Search is only available for TiDB Self-Managed (TiDB >= v8.4) and [TiDB Cloud Serverless](https://ai.pingcap.com/) for now.
 
 ## Deploy
 
@@ -46,7 +45,11 @@ This document provides instructions for deploying the entire Autoflow applicatio
 4. Bootstrap the database with initial data:
 
     ```bash
+    # Use default admin credentials (admin@example.com with random password)
     docker compose run backend /bin/sh -c "python bootstrap.py"
+
+    # Or specify a custom admin email
+    docker compose run backend /bin/sh -c "python bootstrap.py --email new-admin@example.com"
     ```
 
     Running the bootstrap script creates an admin user. You can find the username and password in the output.
@@ -70,15 +73,15 @@ That's it! You can now use pingcap/autoflow locally. You can also go to https://
 
 ## Configuration
 
-After you deploy the application, you need to initialize the application by following [quick start guide](/quick-start).
+After you deploy the application, you need to initialize the application by following [quick start guide](./quick-start.mdx).
 
-1. Set up the default LLM model in the **Models > LLMs** page.
+1. Set up the default [LLM model](./llm.mdx) in the **Models > LLMs** page.
 
-2. Set up the default Embedding model in the **Models > Embedding Models** page.
+2. Set up the default [Embedding model](./embedding-model.mdx) in the **Models > Embedding Models** page.
 
-3. Add a new Knowledge Base in the **Knowledge Bases** page.
+3. Add a new [Knowledge Base](./knowledge-base.mdx) in the **Knowledge Bases** page.
 
-4. Configure default Chat Engine and set up the new knowledge base as the retrieval database.
+4. Configure default [Chat Engine](./chat-engine.mdx) and set up the new knowledge base as the retrieval database.
 
 ## Upgrade
 

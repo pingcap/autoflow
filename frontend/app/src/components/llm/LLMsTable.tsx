@@ -9,7 +9,6 @@ import { getErrorMessage } from '@/lib/errors';
 import type { ColumnDef } from '@tanstack/react-table';
 import { createColumnHelper } from '@tanstack/table-core';
 import Link from 'next/link';
-import { startTransition } from 'react';
 import { toast } from 'sonner';
 
 export function LLMsTable () {
@@ -60,7 +59,7 @@ const columns: ColumnDef<LLM, any>[] = [
           try {
             await setDefault('llms', row.id);
             context.table.reload?.();
-            startTransition(() => {
+            context.startTransition(() => {
               context.router.refresh();
             });
             context.setDropdownOpen(false);

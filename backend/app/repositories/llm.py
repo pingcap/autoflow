@@ -7,9 +7,7 @@ from sqlalchemy import update
 from sqlmodel import select, Session
 
 from app.exceptions import DefaultLLMNotFound, LLMNotFound
-from app.models import (
-    LLM as DBLLM
-)
+from app.models import LLM as DBLLM
 from app.repositories.base_repo import BaseRepo
 
 
@@ -51,15 +49,14 @@ class LLMRepo(BaseRepo):
         stmt = select(DBLLM).with_for_update().limit(1)
         return session.exec(stmt).one_or_none() is not None
 
-
     # Default model
 
     def get_default(self, session: Session) -> Type[DBLLM] | None:
         stmt = (
             select(DBLLM)
-                .where(DBLLM.is_default == True)
-                .order_by(DBLLM.updated_at.desc())
-                .limit(1)
+            .where(DBLLM.is_default == True)
+            .order_by(DBLLM.updated_at.desc())
+            .limit(1)
         )
         return session.exec(stmt).first()
 
@@ -79,8 +76,8 @@ class LLMRepo(BaseRepo):
         self.unset_default_model(session)
         session.exec(
             update(DBLLM)
-                .where(DBLLM.id == new_default_model_id)
-                .values(is_default=True)
+            .where(DBLLM.id == new_default_model_id)
+            .values(is_default=True)
         )
         session.commit()
 

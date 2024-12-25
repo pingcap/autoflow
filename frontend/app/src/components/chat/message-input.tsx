@@ -57,7 +57,7 @@ export function MessageInput ({
         {...inputProps}
         onChange={handleChange}
         ref={inputRef}
-        className="w-full border-none ring-0 outline-none bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 resize-none placeholder:font-light placeholder-gray-400 dark:placeholder-gray-500 max-h-72"
+        className="w-full border-none ring-0 outline-none bg-background focus-visible:ring-0 focus-visible:ring-offset-0 resize-none placeholder:font-light placeholder-gray-400 dark:placeholder-gray-500 max-h-72"
         disabled={disabled || inputProps?.disabled}
         minRows={4}
       />

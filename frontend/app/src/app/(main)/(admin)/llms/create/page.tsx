@@ -23,6 +23,7 @@ export default function Page () {
         onCreated={llm => {
           startTransition(() => {
             router.push(`/llms/${llm.id}`);
+            router.refresh();
           });
         }}
       />

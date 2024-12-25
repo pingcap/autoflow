@@ -17,10 +17,7 @@ from tidb_vector.sqlalchemy import VectorAdaptor
 from app.core.db import engine
 from app.rag.knowledge_graph.base import KnowledgeGraphStore
 from app.rag.knowledge_graph.schema import Entity, Relationship, SynopsisEntity
-from app.models import (
-    Entity as DBEntity,
-    Relationship as DBRelationship
-)
+from app.models import Entity as DBEntity, Relationship as DBRelationship
 from app.models import EntityType
 from app.rag.knowledge_graph.graph_store.helpers import (
     calculate_relationship_score,
@@ -34,6 +31,7 @@ from app.rag.knowledge_graph.graph_store.helpers import (
 )
 
 logger = logging.getLogger(__name__)
+
 
 def cosine_distance(v1, v2):
     return 1 - np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
@@ -98,7 +96,6 @@ class TiDBGraphStore(KnowledgeGraphStore):
         self._entity_model = entity_db_model
         self._relationship_model = relationship_db_model
 
-
     def ensure_table_schema(self) -> None:
         inspector = sqlalchemy.inspect(engine)
         existed_table_names = inspector.get_table_names()
@@ -106,7 +103,9 @@ class TiDBGraphStore(KnowledgeGraphStore):
         relationships_table_name = self._relationship_model.__tablename__
 
         if entities_table_name not in existed_table_names:
-            self._entity_model.metadata.create_all(engine, tables=[self._entity_model.__table__])
+            self._entity_model.metadata.create_all(
+                engine, tables=[self._entity_model.__table__]
+            )
 
             # Add HNSW index to accelerate ann queries.
             VectorAdaptor(engine).create_vector_index(
@@ -116,22 +115,32 @@ class TiDBGraphStore(KnowledgeGraphStore):
                 self._entity_model.meta_vec, tidb_vector.DistanceMetric.COSINE
             )
 
-            logger.info(f"Entities table <{entities_table_name}> has been created successfully.")
+            logger.info(
+                f"Entities table <{entities_table_name}> has been created successfully."
+            )
         else:
-            logger.info(f"Entities table <{entities_table_name}> is already exists, not action to do.")
+            logger.info(
+                f"Entities table <{entities_table_name}> is already exists, not action to do."
+            )
 
         if relationships_table_name not in existed_table_names:
-            self._relationship_model.metadata.create_all(engine, tables=[self._relationship_model.__table__])
+            self._relationship_model.metadata.create_all(
+                engine, tables=[self._relationship_model.__table__]
+            )
 
             # Add HNSW index to accelerate ann queries.
             VectorAdaptor(engine).create_vector_index(
-                self._relationship_model.description_vec, tidb_vector.DistanceMetric.COSINE
+                self._relationship_model.description_vec,
+                tidb_vector.DistanceMetric.COSINE,
             )
 
-            logger.info(f"Relationships table <{relationships_table_name}> has been created successfully.")
+            logger.info(
+                f"Relationships table <{relationships_table_name}> has been created successfully."
+            )
         else:
-            logger.info(f"Relationships table <{relationships_table_name}> is already exists, not action to do.")
-
+            logger.info(
+                f"Relationships table <{relationships_table_name}> is already exists, not action to do."
+            )
 
     def drop_table_schema(self) -> None:
         inspector = sqlalchemy.inspect(engine)
@@ -140,17 +149,28 @@ class TiDBGraphStore(KnowledgeGraphStore):
         entities_table_name = self._entity_model.__tablename__
 
         if relationships_table_name in existed_table_names:
-            self._relationship_model.metadata.drop_all(engine, tables=[self._relationship_model.__table__])
-            logger.info(f"Relationships table <{relationships_table_name}> has been dropped successfully.")
+            self._relationship_model.metadata.drop_all(
+                engine, tables=[self._relationship_model.__table__]
+            )
+            logger.info(
+                f"Relationships table <{relationships_table_name}> has been dropped successfully."
+            )
         else:
-            logger.info(f"Relationships table <{relationships_table_name}> is not existed, not action to do.")
+            logger.info(
+                f"Relationships table <{relationships_table_name}> is not existed, not action to do."
+            )
 
         if entities_table_name in existed_table_names:
-            self._entity_model.metadata.drop_all(engine, tables=[self._entity_model.__table__])
-            logger.info(f"Entities table <{entities_table_name}> has been dropped successfully.")
+            self._entity_model.metadata.drop_all(
+                engine, tables=[self._entity_model.__table__]
+            )
+            logger.info(
+                f"Entities table <{entities_table_name}> has been dropped successfully."
+            )
         else:
-            logger.info(f"Entities table <{entities_table_name}> is not existed, not action to do.")
-
+            logger.info(
+                f"Entities table <{entities_table_name}> is not existed, not action to do."
+            )
 
     def close_session(self) -> None:
         # Always call this method is necessary to make sure the session is closed
@@ -272,12 +292,13 @@ class TiDBGraphStore(KnowledgeGraphStore):
         result = (
             self._session.query(
                 self._entity_model,
-                self._entity_model.description_vec.cosine_distance(entity_description_vec).label(
-                    "distance"
-                ),
+                self._entity_model.description_vec.cosine_distance(
+                    entity_description_vec
+                ).label("distance"),
             )
             .filter(
-                self._entity_model.name == entity.name and self._entity_model.entity_type == entity_type
+                self._entity_model.name == entity.name
+                and self._entity_model.entity_type == entity_type
             )
             .order_by(asc("distance"))
             .first()
@@ -468,10 +489,8 @@ class TiDBGraphStore(KnowledgeGraphStore):
                     select(
                         self._chunk_model.text,
                         self._chunk_model.document_id,
-                        self._chunk_model.meta
-                    ).where(
-                        self._chunk_model.id.in_(related_doc_ids)
-                    )
+                        self._chunk_model.meta,
+                    ).where(self._chunk_model.id.in_(related_doc_ids))
                 ).all()
             ]
 
@@ -540,9 +559,9 @@ class TiDBGraphStore(KnowledgeGraphStore):
         subquery = (
             select(
                 self._relationship_model,
-                self._relationship_model.description_vec.cosine_distance(embedding).label(
-                    "embedding_distance"
-                ),
+                self._relationship_model.description_vec.cosine_distance(
+                    embedding
+                ).label("embedding_distance"),
             )
             .options(defer(self._relationship_model.description_vec))
             .order_by(asc("embedding_distance"))
@@ -556,11 +575,11 @@ class TiDBGraphStore(KnowledgeGraphStore):
             .options(
                 defer(relationships_alias.description_vec),
                 joinedload(relationships_alias.source_entity)
-                    .defer(self._entity_model.meta_vec)
-                    .defer(self._entity_model.description_vec),
+                .defer(self._entity_model.meta_vec)
+                .defer(self._entity_model.description_vec),
                 joinedload(relationships_alias.target_entity)
-                    .defer(self._entity_model.meta_vec)
-                    .defer(self._entity_model.description_vec),
+                .defer(self._entity_model.meta_vec)
+                .defer(self._entity_model.description_vec),
             )
             .where(relationships_alias.weight >= 0)
         )
@@ -570,7 +589,9 @@ class TiDBGraphStore(KnowledgeGraphStore):
                 query = query.where(relationships_alias.meta[k] == v)
 
         if visited_relationships:
-            query = query.where(self._relationship_model.id.notin_(visited_relationships))
+            query = query.where(
+                self._relationship_model.id.notin_(visited_relationships)
+            )
 
         if distance_range != (0.0, 1.0):
             # embedding_distance between the range
@@ -581,7 +602,9 @@ class TiDBGraphStore(KnowledgeGraphStore):
             ).params(min_distance=distance_range[0], max_distance=distance_range[1])
 
         if visited_entities:
-            query = query.where(self._relationship_model.source_entity_id.in_(visited_entities))
+            query = query.where(
+                self._relationship_model.source_entity_id.in_(visited_entities)
+            )
 
         query = query.order_by(asc("embedding_distance")).limit(limit)
 
@@ -657,7 +680,9 @@ class TiDBGraphStore(KnowledgeGraphStore):
         subquery = (
             select(
                 self._entity_model,
-                self._entity_model.description_vec.cosine_distance(embedding).label("distance"),
+                self._entity_model.description_vec.cosine_distance(embedding).label(
+                    "distance"
+                ),
             )
             .order_by(asc("distance"))
             .limit(

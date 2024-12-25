@@ -94,19 +94,15 @@ def delete_llm(
     #  If the current LLM is used by a Chat Engine or Knowledge Base.
 
     session.exec(
-        update(ChatEngine)
-            .where(ChatEngine.llm_id == llm_id)
-            .values(llm_id=None)
+        update(ChatEngine).where(ChatEngine.llm_id == llm_id).values(llm_id=None)
     )
     session.exec(
         update(ChatEngine)
-            .where(ChatEngine.fast_llm_id == llm_id)
-            .values(fast_llm_id=None)
+        .where(ChatEngine.fast_llm_id == llm_id)
+        .values(fast_llm_id=None)
     )
     session.exec(
-        update(KnowledgeBase)
-            .where(KnowledgeBase.llm_id == llm_id)
-            .values(llm_id=None)
+        update(KnowledgeBase).where(KnowledgeBase.llm_id == llm_id).values(llm_id=None)
     )
     session.delete(llm)
     session.commit()
@@ -115,9 +111,7 @@ def delete_llm(
 
 @router.put("/admin/llms/{llm_id}/set_default")
 def set_default_llm(
-    session: SessionDep,
-    user: CurrentSuperuserDep,
-    llm_id: int
+    session: SessionDep, user: CurrentSuperuserDep, llm_id: int
 ) -> AdminLLM:
     try:
         llm = llm_repo.must_get(session, llm_id)

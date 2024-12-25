@@ -14,7 +14,10 @@ from sqlalchemy import Index
 from app.core.config import settings
 from app.models.knowledge_base import KnowledgeBase
 from app.models.knowledge_base_scoped.registry import get_kb_scoped_registry
-from app.models.knowledge_base_scoped.table_naming import get_kb_entities_table_name, get_kb_vector_dims
+from app.models.knowledge_base_scoped.table_naming import (
+    get_kb_entities_table_name,
+    get_kb_vector_dims,
+)
 from app.models.patch.sql_model import SQLModel as PatchSQLModel
 
 
@@ -78,7 +81,7 @@ def get_kb_entity_model(kb: KnowledgeBase) -> Type[SQLModel]:
         __tablename__ = entities_table_name
         __table_args__ = (
             Index("idx_entity_type", "entity_type"),
-            {'extend_existing': True}
+            {"extend_existing": True},
         )
 
         id: Optional[int] = Field(default=None, primary_key=True)
@@ -106,5 +109,3 @@ def get_kb_entity_model(kb: KnowledgeBase) -> Type[SQLModel]:
 
     ctx.entity_model = KBEntity
     return KBEntity
-
-

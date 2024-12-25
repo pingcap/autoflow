@@ -71,7 +71,7 @@ export interface FormSelectConfig<T extends object> {
 }
 
 export interface FormSelectProps extends FormControlWidgetProps {
-  children?: ReactElement;
+  children?: ReactElement<any>;
   placeholder?: string;
   config: FormSelectConfig<any>;
 }
@@ -154,7 +154,7 @@ export interface FormComboboxConfig<T extends object> extends FormSelectConfig<T
 }
 
 export interface FormComboboxProps extends FormControlWidgetProps {
-  children?: ReactElement;
+  children?: ReactElement<any>;
   placeholder?: string;
   config: FormComboboxConfig<any>;
   contentWidth?: 'anchor';
@@ -166,7 +166,7 @@ export const FormCombobox = forwardRef<any, FormComboboxProps>(({ config, placeh
   const current = config.options.find(option => option[config.key] === value);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    (<Popover open={open} onOpenChange={setOpen}>
       <div className={cn('flex items-center gap-2', (props as any).className)}>
         <PopoverPrimitive.Trigger
           ref={ref}
@@ -178,7 +178,7 @@ export const FormCombobox = forwardRef<any, FormComboboxProps>(({ config, placeh
           asChild={!!children}
         >
           {config.loading
-            ? <span></span>
+            ? <span>Loading options...</span>
             : !!config.error
               ? <span className="text-destructive">{getErrorMessage(config.error)}</span>
               : (children ? children : current ? (config.renderValue ?? config.renderOption)(current) : <span className="text-muted-foreground">{placeholder}</span>)
@@ -233,7 +233,7 @@ export const FormCombobox = forwardRef<any, FormComboboxProps>(({ config, placeh
           </CommandList>
         </Command>
       </PopoverContent>
-    </Popover>
+    </Popover>)
   );
 });
 
@@ -244,9 +244,9 @@ function FormComboboxClearButton ({ onClick }: { onClick?: () => void }) {
     <TooltipProvider delayDuration={0}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <button className="ml-2 opacity-50 hover:opacity-100" type="button" onClick={onClick}>
+          <span role='button' className="ml-2 opacity-50 hover:opacity-100" onClick={onClick}>
             <XCircleIcon className="size-4" />
-          </button>
+          </span>
         </TooltipTrigger>
         <TooltipContent>
           Clear select

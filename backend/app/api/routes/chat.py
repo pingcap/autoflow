@@ -12,18 +12,17 @@ from fastapi.responses import StreamingResponse
 from fastapi_pagination import Params, Page
 
 from app.api.deps import SessionDep, OptionalUserDep, CurrentUserDep
-from app.rag.chat_config import ChatEngineConfig, must_get_default_embed_model
-from app.rag.knowledge_base.config import get_kb_embed_model
-from app.rag.knowledge_base.index_store import get_kb_tidb_graph_editor
-from app.rag.knowledge_graph.graph_store.tidb_graph_editor import legacy_tidb_graph_editor
-from app.repositories import chat_repo, knowledge_base_repo
+from app.rag.chat_config import ChatEngineConfig
+from app.repositories import chat_repo
 from app.models import Chat, ChatUpdate
 from app.rag.chat import (
     ChatService,
     ChatEvent,
     user_can_view_chat,
     user_can_edit_chat,
-    get_chat_message_subgraph, get_chat_message_recommend_questions, remove_chat_message_recommend_questions,
+    get_chat_message_subgraph,
+    get_chat_message_recommend_questions,
+    remove_chat_message_recommend_questions,
 )
 from app.rag.types import (
     MessageRole,
@@ -31,9 +30,14 @@ from app.rag.types import (
     ChatEventType,
     ChatMessageSate,
 )
-from app.exceptions import ChatNotFound, DefaultLLMNotFound, DefaultEmbeddingModelNotFound, LLMNotFound, \
-    EmbeddingModelNotFound, KBNotFound, InternalServerError, RerankerModelNotFound, \
-    DefaultRerankerModelNotFound, LLMException, EmbeddingModelException, RerankerModelException
+from app.exceptions import (
+    ChatNotFound,
+    KBNotFound,
+    LLMException,
+    EmbeddingModelException,
+    RerankerModelException,
+    InternalServerError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -205,22 +209,14 @@ def get_chat_subgraph(session: SessionDep, user: OptionalUserDep, chat_message_i
     if not user_can_view_chat(chat_message.chat, user):
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Access denied")
 
-    engine_options = chat_message.chat.engine_options
-    chat_engine_config = ChatEngineConfig.model_validate(engine_options)
+    entities, relations = get_chat_message_subgraph(session, chat_message)
 
-    if chat_engine_config.knowledge_base:
-        kb = knowledge_base_repo.must_get(session, chat_engine_config.knowledge_base.linked_knowledge_base.id)
-        embed_model = get_kb_embed_model(session, kb)
-        graph_editor = get_kb_tidb_graph_editor(session, kb)
-    else:
-        embed_model = must_get_default_embed_model(session)
-        graph_editor = legacy_tidb_graph_editor
-
-    entities, relations = get_chat_message_subgraph(graph_editor, session, chat_message, embed_model)
     return SubgraphResponse(entities=entities, relationships=relations)
 
 
-@router.get("/chat-messages/{chat_message_id}/recommended-questions", response_model=List[str])
+@router.get(
+    "/chat-messages/{chat_message_id}/recommended-questions", response_model=List[str]
+)
 def get_recommended_questions(session: SessionDep, chat_message_id: int):
     chat_message = chat_repo.get_message(session, chat_message_id)
     if not chat_message or len(chat_message.content) == 0:
@@ -231,7 +227,9 @@ def get_recommended_questions(session: SessionDep, chat_message_id: int):
     return get_chat_message_recommend_questions(session, chat_message)
 
 
-@router.post("/chat-messages/{chat_message_id}/recommended-questions", response_model=List[str])
+@router.post(
+    "/chat-messages/{chat_message_id}/recommended-questions", response_model=List[str]
+)
 def refresh_recommended_questions(session: SessionDep, chat_message_id: int):
     chat_message = chat_repo.get_message(session, chat_message_id)
     if not chat_message or len(chat_message.content) == 0:

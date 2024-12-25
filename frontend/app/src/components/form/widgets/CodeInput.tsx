@@ -25,7 +25,7 @@ export const CodeInput = forwardRef<any, CodeInputProps>(({
   'aria-describedby': ariaDescribedBy,
   'aria-invalid': ariaInvalid,
 }, forwardedRef) => {
-  const monacoRef = useRef<typeof monaco>();
+  const monacoRef = useRef<typeof monaco>(undefined);
   const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor | undefined>(undefined);
 
   // useImperativeHandle(forwardedRef, () => editor, [editor]);
@@ -78,7 +78,7 @@ export const CodeInput = forwardRef<any, CodeInputProps>(({
 
   useEffect(() => {
     if (editor && onChange) {
-      const { dispose } = editor.onEndUpdate(() => onChange(editor.getValue()));
+      const { dispose } = editor.onDidChangeModelContent(() => onChange(editor.getValue()));
       return dispose;
     }
   }, [editor, onChange]);

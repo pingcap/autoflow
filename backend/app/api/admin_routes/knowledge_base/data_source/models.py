@@ -7,6 +7,7 @@ class KBDataSource(BaseModel):
     """
     Represents a linked data source for a knowledge base.
     """
+
     id: int
     name: str
     data_source_type: DataSourceType

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import * as React from 'react';
-import { useMemo } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import { Label, Pie, PieChart } from 'recharts';
 
 const color_error = '#ef4444';
@@ -42,7 +42,7 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export function IndexProgressChart ({ title, description, data }: { title: string, description?: string, data: IndexProgress }) {
+export function IndexProgressChart ({ title, description, label, data }: { title: string, description?: string, label: ReactNode, data: IndexProgress }) {
   const total = React.useMemo(() => {
     return Object.values(data).reduce((a, b) => a + b, 0);
   }, [data]);
@@ -103,8 +103,7 @@ export function IndexProgressChart ({ title, description, data }: { title: strin
                           y={(viewBox.cy || 0) + 24}
                           className="fill-muted-foreground"
                         >
-                          {/*  FIXME: vector index is group by documents */}
-                          Total chunks
+                          {label}
                         </tspan>
                       </text>
                     );
@@ -121,10 +120,11 @@ export function IndexProgressChart ({ title, description, data }: { title: strin
 
 export interface IndexProgressChartPlaceholderProps {
   title: string,
+  label: ReactNode,
   description?: string
 }
 
-export function IndexProgressChartPlaceholder ({ title, description }: IndexProgressChartPlaceholderProps) {
+export function IndexProgressChartPlaceholder ({ title, label, description }: IndexProgressChartPlaceholderProps) {
   return (
     <Card className="flex flex-col">
       <CardHeader className="items-center pb-0">
@@ -167,7 +167,7 @@ export function IndexProgressChartPlaceholder ({ title, description }: IndexProg
                           y={(viewBox.cy || 0) + 24}
                           className="fill-muted-foreground"
                         >
-                          Total chunks
+                          {label}
                         </tspan>
                       </text>
                     );

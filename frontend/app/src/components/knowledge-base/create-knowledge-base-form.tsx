@@ -37,8 +37,8 @@ export function CreateKnowledgeBaseForm ({}: {}) {
     });
 
     startTransition(() => {
-      router.refresh();
       router.push(`/knowledge-bases/${kb.id}/data-sources`);
+      router.refresh();
     });
     void mutateKnowledgeBases();
   });

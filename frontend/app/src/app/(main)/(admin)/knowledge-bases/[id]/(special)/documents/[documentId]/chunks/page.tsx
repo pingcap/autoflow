@@ -1,4 +1,5 @@
-'use client';
+'use client';;
+import { use } from "react";
 
 import { getKnowledgeBaseDocument, getKnowledgeBaseDocumentChunks } from '@/api/knowledge-base';
 import { AdminPageHeading } from '@/components/admin-page-heading';
@@ -9,7 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2Icon } from 'lucide-react';
 import useSWR from 'swr';
 
-export default function DocumentChunksPage ({ params }: { params: { id: string, documentId: string } }) {
+export default function DocumentChunksPage(props: { params: Promise<{ id: string, documentId: string }> }) {
+  const params = use(props.params);
   const kbId = parseInt(decodeURIComponent(params.id));
   const documentId = parseInt(decodeURIComponent(params.documentId));
   const { knowledgeBase } = useKnowledgeBase(kbId);

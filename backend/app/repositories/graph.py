@@ -10,7 +10,6 @@ from app.models.relationship import get_kb_relationship_model
 
 
 class GraphRepo:
-
     def __init__(
         self,
         entity_model: Type[SQLModel],
@@ -32,26 +31,36 @@ class GraphRepo:
             select(self.entity_model.id)
             .outerjoin(
                 self.relationship_model,
-                (self.relationship_model.target_entity_id == self.entity_model.id) |
-                (self.relationship_model.source_entity_id == self.entity_model.id)
+                (self.relationship_model.target_entity_id == self.entity_model.id)
+                | (self.relationship_model.source_entity_id == self.entity_model.id),
             )
-            .where(
-                self.relationship_model.id.is_(None)
-            )
+            .where(self.relationship_model.id.is_(None))
             .scalar_subquery()
         )
-        stmt = delete(self.entity_model).where(self.entity_model.id.in_(orphaned_entity_ids))
+        stmt = delete(self.entity_model).where(
+            self.entity_model.id.in_(orphaned_entity_ids)
+        )
         session.exec(stmt)
 
     def delete_data_source_relationships(self, session: Session, datasource_id: int):
-        doc_ids_subquery = select(Document.id).where(Document.data_source_id == datasource_id)
-        chunk_ids_subquery = select(self.chunk_model.id).where(self.chunk_model.document_id.in_(doc_ids_subquery))
-        stmt = delete(self.relationship_model).where(self.relationship_model.chunk_id.in_(chunk_ids_subquery))
+        doc_ids_subquery = select(Document.id).where(
+            Document.data_source_id == datasource_id
+        )
+        chunk_ids_subquery = select(self.chunk_model.id).where(
+            self.chunk_model.document_id.in_(doc_ids_subquery)
+        )
+        stmt = delete(self.relationship_model).where(
+            self.relationship_model.chunk_id.in_(chunk_ids_subquery)
+        )
         session.exec(stmt)
 
     def delete_document_relationships(self, session: Session, document_id: int):
-        chunk_ids_subquery = select(self.chunk_model.id).where(self.chunk_model.document_id == document_id)
-        stmt = delete(self.relationship_model).where(self.relationship_model.chunk_id.in_(chunk_ids_subquery))
+        chunk_ids_subquery = select(self.chunk_model.id).where(
+            self.chunk_model.document_id == document_id
+        )
+        stmt = delete(self.relationship_model).where(
+            self.relationship_model.chunk_id.in_(chunk_ids_subquery)
+        )
         session.exec(stmt)
 
 

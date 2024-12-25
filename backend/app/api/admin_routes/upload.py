@@ -19,6 +19,7 @@ SUPPORTED_FILE_TYPES = {
     ".docx": MimeTypes.DOCX,
     ".pptx": MimeTypes.PPTX,
     ".xlsx": MimeTypes.XLSX,
+    ".csv": MimeTypes.CSV,
 }
 
 

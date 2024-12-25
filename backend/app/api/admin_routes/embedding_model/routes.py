@@ -8,7 +8,8 @@ from app.api.admin_routes.embedding_model.models import (
     EmbeddingModelItem,
     EmbeddingModelDetail,
     EmbeddingModelUpdate,
-    EmbeddingModelTestResult, EmbeddingModelCreate
+    EmbeddingModelTestResult,
+    EmbeddingModelCreate,
 )
 from app.api.deps import CurrentSuperuserDep, SessionDep
 from app.exceptions import EmbeddingModelNotFound, InternalServerError
@@ -68,18 +69,14 @@ def test_embedding_model(
 
 @router.get("/admin/embedding-models")
 def list_embedding_models(
-    session: SessionDep,
-    user: CurrentSuperuserDep,
-    params: Params = Depends()
+    session: SessionDep, user: CurrentSuperuserDep, params: Params = Depends()
 ) -> Page[EmbeddingModelItem]:
     return embed_model_repo.paginate(session, params)
 
 
 @router.get("/admin/embedding-models/{model_id}")
 def get_embedding_model_detail(
-    session: SessionDep,
-    user: CurrentSuperuserDep,
-    model_id: int
+    session: SessionDep, user: CurrentSuperuserDep, model_id: int
 ) -> EmbeddingModelDetail:
     try:
         return embed_model_repo.must_get(session, model_id)
@@ -110,9 +107,7 @@ def update_embedding_model(
 
 @router.put("/admin/embedding-models/{model_id}/set_default")
 def set_default_embedding_model(
-    session: SessionDep,
-    user: CurrentSuperuserDep,
-    model_id: int
+    session: SessionDep, user: CurrentSuperuserDep, model_id: int
 ) -> EmbeddingModelDetail:
     try:
         embed_model = embed_model_repo.must_get(session, model_id)

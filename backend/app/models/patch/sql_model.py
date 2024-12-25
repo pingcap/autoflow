@@ -31,7 +31,9 @@ from sqlmodel.main import (
     is_table_model_class,
     sqlmodel_init,
     sqlmodel_validate,
-    default_registry, _TSQLModel, IncEx,
+    default_registry,
+    _TSQLModel,
+    IncEx,
 )
 from typing_extensions import Literal, deprecated
 
@@ -111,13 +113,13 @@ class SQLModel(BaseModel, metaclass=SQLModelMetaclass, registry=default_registry
 
     @classmethod
     def model_validate(
-            cls: Type[_TSQLModel],
-            obj: Any,
-            *,
-            strict: Union[bool, None] = None,
-            from_attributes: Union[bool, None] = None,
-            context: Union[Dict[str, Any], None] = None,
-            update: Union[Dict[str, Any], None] = None,
+        cls: Type[_TSQLModel],
+        obj: Any,
+        *,
+        strict: Union[bool, None] = None,
+        from_attributes: Union[bool, None] = None,
+        context: Union[Dict[str, Any], None] = None,
+        update: Union[Dict[str, Any], None] = None,
     ) -> _TSQLModel:
         return sqlmodel_validate(
             cls=cls,
@@ -129,19 +131,19 @@ class SQLModel(BaseModel, metaclass=SQLModelMetaclass, registry=default_registry
         )
 
     def model_dump(
-            self,
-            *,
-            mode: Union[Literal["json", "python"], str] = "python",
-            include: IncEx = None,
-            exclude: IncEx = None,
-            context: Union[Dict[str, Any], None] = None,
-            by_alias: bool = False,
-            exclude_unset: bool = False,
-            exclude_defaults: bool = False,
-            exclude_none: bool = False,
-            round_trip: bool = False,
-            warnings: Union[bool, Literal["none", "warn", "error"]] = True,
-            serialize_as_any: bool = False,
+        self,
+        *,
+        mode: Union[Literal["json", "python"], str] = "python",
+        include: IncEx = None,
+        exclude: IncEx = None,
+        context: Union[Dict[str, Any], None] = None,
+        by_alias: bool = False,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = False,
+        round_trip: bool = False,
+        warnings: Union[bool, Literal["none", "warn", "error"]] = True,
+        serialize_as_any: bool = False,
     ) -> Dict[str, Any]:
         if PYDANTIC_VERSION >= "2.7.0":
             extra_kwargs: Dict[str, Any] = {
@@ -180,14 +182,14 @@ class SQLModel(BaseModel, metaclass=SQLModelMetaclass, registry=default_registry
         """
     )
     def dict(
-            self,
-            *,
-            include: IncEx = None,
-            exclude: IncEx = None,
-            by_alias: bool = False,
-            exclude_unset: bool = False,
-            exclude_defaults: bool = False,
-            exclude_none: bool = False,
+        self,
+        *,
+        include: IncEx = None,
+        exclude: IncEx = None,
+        by_alias: bool = False,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = False,
     ) -> Dict[str, Any]:
         return self.model_dump(
             include=include,
@@ -206,7 +208,7 @@ class SQLModel(BaseModel, metaclass=SQLModelMetaclass, registry=default_registry
         """
     )
     def from_orm(
-            cls: Type[_TSQLModel], obj: Any, update: Optional[Dict[str, Any]] = None
+        cls: Type[_TSQLModel], obj: Any, update: Optional[Dict[str, Any]] = None
     ) -> _TSQLModel:
         return cls.model_validate(obj, update=update)
 
@@ -218,7 +220,7 @@ class SQLModel(BaseModel, metaclass=SQLModelMetaclass, registry=default_registry
         """
     )
     def parse_obj(
-            cls: Type[_TSQLModel], obj: Any, update: Optional[Dict[str, Any]] = None
+        cls: Type[_TSQLModel], obj: Any, update: Optional[Dict[str, Any]] = None
     ) -> _TSQLModel:
         if not IS_PYDANTIC_V2:
             obj = cls._enforce_dict_if_root(obj)  # type: ignore[attr-defined] # noqa
@@ -235,11 +237,11 @@ class SQLModel(BaseModel, metaclass=SQLModelMetaclass, registry=default_registry
         category=None,
     )
     def _calculate_keys(
-            self,
-            include: Optional[Mapping[Union[int, str], Any]],
-            exclude: Optional[Mapping[Union[int, str], Any]],
-            exclude_unset: bool,
-            update: Optional[Dict[str, Any]] = None,
+        self,
+        include: Optional[Mapping[Union[int, str], Any]],
+        exclude: Optional[Mapping[Union[int, str], Any]],
+        exclude_unset: bool,
+        update: Optional[Dict[str, Any]] = None,
     ) -> Optional[AbstractSet[str]]:
         return _calculate_keys(
             self,
@@ -250,10 +252,10 @@ class SQLModel(BaseModel, metaclass=SQLModelMetaclass, registry=default_registry
         )
 
     def sqlmodel_update(
-            self: _TSQLModel,
-            obj: Union[Dict[str, Any], BaseModel],
-            *,
-            update: Union[Dict[str, Any], None] = None,
+        self: _TSQLModel,
+        obj: Union[Dict[str, Any], BaseModel],
+        *,
+        update: Union[Dict[str, Any], None] = None,
     ) -> _TSQLModel:
         use_update = (update or {}).copy()
         if isinstance(obj, dict):

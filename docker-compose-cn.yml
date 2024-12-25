@@ -9,7 +9,7 @@ services:
     command: ["redis-server", "--loglevel", "warning"]
 
   backend:
-    image: registry.cn-beijing.aliyuncs.com/pingcap-ee/tidb.ai-backend:0.2.9
+    image: registry.cn-beijing.aliyuncs.com/pingcap-ee/tidb.ai-backend:0.3.0
     restart: always
     depends_on:
       - redis
@@ -26,7 +26,7 @@ services:
         max-file: "6"
 
   frontend:
-    image: registry.cn-beijing.aliyuncs.com/pingcap-ee/tidb.ai-frontend:0.2.9
+    image: registry.cn-beijing.aliyuncs.com/pingcap-ee/tidb.ai-frontend:0.3.0
     restart: always
     depends_on:
       - backend
@@ -41,7 +41,7 @@ services:
         max-file: "6"
 
   background:
-    image: registry.cn-beijing.aliyuncs.com/pingcap-ee/tidb.ai-backend:0.2.9
+    image: registry.cn-beijing.aliyuncs.com/pingcap-ee/tidb.ai-backend:0.3.0
     restart: always
     depends_on:
       - redis

@@ -3,16 +3,26 @@ from typing import Optional
 from uuid import UUID
 from pydantic import BaseModel, field_validator, Field
 
-from app.api.admin_routes.knowledge_base.data_source.models import KBDataSource, KBDataSourceCreate
-from app.api.admin_routes.models import EmbeddingModelDescriptor, LLMDescriptor, UserDescriptor
+from app.api.admin_routes.knowledge_base.data_source.models import (
+    KBDataSource,
+    KBDataSourceCreate,
+)
+from app.api.admin_routes.models import (
+    EmbeddingModelDescriptor,
+    LLMDescriptor,
+    UserDescriptor,
+)
 from app.exceptions import KBNoVectorIndexConfigured
 from app.models import KgIndexStatus
 from app.models.knowledge_base import IndexMethod
 
+
 class KnowledgeBaseCreate(BaseModel):
     name: str
     description: Optional[str] = None
-    index_methods: list[IndexMethod] = Field(default_factory=lambda: [IndexMethod.VECTOR])
+    index_methods: list[IndexMethod] = Field(
+        default_factory=lambda: [IndexMethod.VECTOR]
+    )
     llm_id: Optional[int] = None
     embedding_model_id: Optional[int] = None
     data_sources: list[KBDataSourceCreate] = Field(default_factory=list)
@@ -41,6 +51,7 @@ class KnowledgeBaseDetail(BaseModel):
     """
     Represents a detailed view of a knowledge base.
     """
+
     id: int
     name: str
     description: str
@@ -63,6 +74,7 @@ class KnowledgeBaseItem(BaseModel):
     """
     Represents a simplified view of a knowledge base for list display purposes.
     """
+
     id: int
     name: str
     description: str

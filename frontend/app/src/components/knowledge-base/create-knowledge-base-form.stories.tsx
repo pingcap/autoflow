@@ -1,5 +1,6 @@
 import { CreateKnowledgeBaseForm } from '@/components/knowledge-base/create-knowledge-base-form';
 import type { Meta, StoryObj } from '@storybook/react';
+import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 const meta = {
   title: 'Components/KnowledgeBase/CreateKnowledgeBaseForm',
@@ -11,7 +12,9 @@ const meta = {
   decorators: [
     (Story) => (
       <div style={{ width: 640 }}>
-        <Story />
+        <AppRouterContext value={{} as any}>
+          <Story />
+        </AppRouterContext>
       </div>
     ),
   ],

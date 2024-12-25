@@ -1,4 +1,5 @@
 import type { StorybookConfig } from '@storybook/nextjs';
+import MonacoEditorWebpackPlugin = require('monaco-editor-webpack-plugin');
 
 const config: StorybookConfig = {
   stories: [
@@ -14,6 +15,13 @@ const config: StorybookConfig = {
   framework: {
     name: '@storybook/nextjs',
     options: {},
+  },
+  webpack (config) {
+    config.plugins.push(new MonacoEditorWebpackPlugin({
+      languages: ['json'],
+      filename: 'static/[name].worker.js',
+    }));
+    return config;
   },
   staticDirs: ['../public'],
 };

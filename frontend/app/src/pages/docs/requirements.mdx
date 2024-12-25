@@ -2,27 +2,23 @@
 In this section, we will cover the requirements for deploying the project.
 
 
-## Software Requirements
-* An [TiDB Serverless](https://pingcap.com/ai) account.
-  * Currently only TiDB Serverless tier has the support for the Vector Search. You can use the free tier with 25GiB storage. We suggest to choose a nearby region to reduce the latency.
-  * TiDB will probably introduce the Vector Search feature to the open source version next quarter, so stay tuned.
-* Docker Compose, you can install it from [here](https://docs.docker.com/compose/install/).
+## LLM(Large Language Model) and Embedding Model
+
+* A saas LLM model like OpenAI API or self-hosted LLM model with requirements:
+  * Smarter than GPT-3.5
+  * Provide openai-like API
+* Embedding model. AutoFlow needs a llm module with openai-like API. You can use the [Jina AI API](https://jina.ai/) for this purpose. It is free for 1M tokens.
+* (Optional) Reranker. You can use the [Jina AI API](https://jina.ai/) for this purpose. It is free for 1M tokens.
 
 
-## GenAI Services / API Keys
-
-* An **OpenAI API key**, you can get it from [here](https://platform.openai.com/). It will be used for these purposes:
-  * LLM(Large Language Model) for knowledge graph extraction and chat engine.
-  * Embedding model for converting text into vectors.
-  * Chat Engine for generating the answer for the question asked by the user.
-
-* A **Jina AI API key**, you can get it from [here](https://jina.ai/reranker/), it is free for 1M tokens. It will be used for reranking the results retrieved from vector storage.
-* An **LangFuse API key**, you can get it from [here](https://langfuse.com/), it is used for tracing the RAG application to debug and optimize the performance.
+## TiDB
+* With [TiDB Serverless](https://pingcap.com/ai) account, you can setup a TiDB cluster with Vector Search enabled. Free quota is available for 1M RU per month.
+* You can also use a self-hosted TiDB cluster(>v8.4) with Vector Search enabled.
 
 
-## Web Hosting
+## Hardware
 
-### Hardware
+### If you are using a Cloud TiDB and SaaS LLM
 You can use any of the following web hosting services to deploy the project:
 * Cloud server providers like [AWS](https://aws.amazon.com/), [Google Cloud](https://cloud.google.com/), [Azure](https://azure.microsoft.com/), etc.
 * Or your own server.
@@ -31,15 +27,21 @@ We suggest the following configuration for the server:
 
 | Name                 | Value            |
 |----------------------|------------------|
-| Memory               | 8 GB RAM         |
 | CPU                  | 4 vCPUs          |
-| Disk                 | 100 GB SSD       |
+| Memory               | 8 GB RAM         |
+| Disk                 | 200 GB SSD       |
 | Number of servers    | 1                |
 
-Currently the corpus type is text, so 100 GB SSD is enough for most of the cases, but if your corpus is large then you may need more storage.
 
-### Domain name - Optional
-You need to have a domain name to deploy the project on the server. You can get a domain name from [GoDaddy](https://www.godaddy.com/), [Namecheap](https://www.namecheap.com/), [Google Domains](https://domains.google/), etc.
+### If you are using a self-hosted TiDB and self-hosted LLM
+If you use a self-hosted TiDB and self-hosted LLM, you need a powerful server to handle the load. We suggest the following configuration for the server:
 
-### SSL certificate - Optional
-You need to have an SSL certificate to secure the communication between the client and the server. You can get a free SSL certificate from [Let's Encrypt](https://letsencrypt.org/).
+| Name                 | Value            |
+|----------------------|------------------|
+| CPU                  | 32 vCPUs         |
+| Memory               | 64 GB RAM        |
+| Disk                 | 500 GB SSD       |
+| GPU                  | 1 x NVIDIA A100  |
+| Number of servers    | 1                |
+
+GPU here is used for the LLM model, you can use any other GPU model that can be used for the LLM model which has capability more than gpt-3.5.

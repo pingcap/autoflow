@@ -2,101 +2,89 @@ import { Callout } from 'nextra/components'
 
 # Knowledge Base
 
-AutoFlow use knowledge base to manage **data sources** and **indexes**.
-[Chat engines](/docs/chat-engine) uses documents from knowledge base to answer users question.
+Knowledge base is a collection of documents and represents a certain knowledge domain, which can be used by LLM to answer users' questions.
 
-## Configure
+## Configure Knowledge Base
 
-### Create Knowledge Base
+After logging in with an admin account, you can configure the Knowledge Base in the admin panel.
 
-![Image](https://github.com/user-attachments/assets/24e3686b-40f0-4738-8d45-02d9b8c945b0)
+1. Click on the `Knowledge Bases` tab;
+2. Click on the `New Knowledge Base` button to add a new knowledge base;
 
-Goto the knowledge base page and click the `New Knowledge Base` button
+    ![Knowledge Base Creation](https://github.com/user-attachments/assets/61a332b0-b1de-42f2-a107-6b08c743b12d)
 
-![Image](https://github.com/user-attachments/assets/61a332b0-b1de-42f2-a107-6b08c743b12d)
+    Set up the following fields and click `Create` to create the knowledge base.
 
-There are several fields to be filled:
+    | Field            | Description                                                                          | Required | Updatable |
+    | ---------------- | ------------------------------------------------------------------------------------ | -------- | --------- |
+    | Name             | The name of the knowledge base.                                                      | Yes      | Yes       |
+    | Description      | Describe the knowledge base.                                                         | No       | Yes       |
+    | LLM              | The LLM used during building vector index and knowledge graph index.                 | Yes      | No        |
+    | Embedding Model  | the embedding model used by vector index and knowledge graph index.                  | Yes      | No        |
+    | Indexing Methods | Vector index is forced to be enabled. The knowledge graph index is used by GraphRAG. | Yes      | No        |
 
-| Field            | Description                                                                          | Required | Updatable |
-|------------------|--------------------------------------------------------------------------------------|----------|-----------|
-| Name             | The name of the knowledge base.                                                      | Yes      | Yes       |
-| Description      | Describe the knowledge base.                                                         | No       | Yes       |
-| LLM              | The LLM used during building vector index and knowledge graph index.                 | Yes      | No        |
-| Embedding Model  | the embedding model used by vector index and knowledge graph index.                  | Yes      | No        |
-| Indexing Methods | Vector index is forced to be enabled. The knowledge graph index is used by GraphRAG. | Yes      | No        |
 
-### Documents Management
+3. Click the `Data Sources` tab and add a new data source.
 
-AutoFlow support to view and delete documents uploaded through data source. The default page of knowledge base shows it's documents.
+4. Once the data source added, Autoflow will asynchronously import and index documents from the data source, you can check the progress in the `Index Process` tab.
 
-![Image](https://github.com/user-attachments/assets/878d2809-97a6-4a87-8d3a-3481f8bb863b)
+5. Go to `Chat Engine` configuration page, select the knowledge base you created and click `Save` to enable it.
 
-#### Delete Documents
+    ![Chat Engine Configuration](https://github.com/user-attachments/assets/2572dc02-ce77-4d2f-a4ba-68bc6858d44c)
 
-<Callout>
-  **This operation cannot be undone**.
 
-  Deleting documents will trigger **asynchornize** deletion process related `indexes` and `sub knowledge graphs`.
-</Callout>
+## Data Source Management
 
-Scroll horizontally to the end of the documents table, click the `...` button and click the `Delete` item on the dropdown menu.
+Each Knowledge Base could contain multiple data sources.
 
-### Data Source Management
+You can click the **Data Sources** tab to view all data sources.
 
-Each Knowledge Base could contain multiple data sources. You can click the `Data Sources` tab to view all data sources.
+![Data Sources Page](https://github.com/user-attachments/assets/dc865796-3660-4e25-9218-9ad4efd0fb97)
 
-![Image](https://github.com/user-attachments/assets/dc865796-3660-4e25-9218-9ad4efd0fb97)
-
-AutoFlow support three types of data sources currently:
-- File uploads: Markdown (\*.md), PDF (\*.pdf), Microsoft Word (\*.docx), Microsoft PowerPoint (\*.pptx), Microsoft Excel (\*.xlsx) and Text (\*.txt) files.
-- Website pages by sitemap
-- Certain web wages
-
-#### Create Data Source
+### Create Data Source
 
 You can click the button on top of data sources list to create new data sources.
 
-#### Update Data source
+Currently, AutoFlow supports three types of data sources:
 
-You can rename data source by click the `Configure` button of data source.
+- File uploads from local:
+  - Markdown (\*.md)
+  - PDF (\*.pdf)
+  - Microsoft Word (\*.docx)
+  - Microsoft PowerPoint (\*.pptx)
+  - Microsoft Excel (\*.xlsx)
+  - Text (\*.txt) files
+- Website pages by sitemap.xml
+- Certain web pages by URL
 
-#### Delete Data source
+### Update Data source
+
+You can rename data source by click the **Configure** button of data source.
+
+### Delete Data source
+
+You can delete data source by click the **Delete** button of data source.
 
 <Callout>
   **This operation cannot be undone**.
 
-  Deleting data sources will trigger **asynchornize** deletion process related **documents**, **chunks of vector index**
-  and **entities and relationships of knowledge
-  graph index**.
+  Deleting data sources will trigger an **asynchronous** deletion process for related **documents**, **chunks of vector index**
+  and **entities and relationships of knowledge graph index**.
 </Callout>
 
-You can delete data source by click the `Delete` button of data source.
+## Documents Management
 
+You can manage documents in the **Documents** tab.
 
-## Indexing
+![Documents Page](https://github.com/user-attachments/assets/878d2809-97a6-4a87-8d3a-3481f8bb863b)
 
-### Index Methods Introduction
+#### Delete Documents
 
-#### Vector Index
+Scroll horizontally to the end of the documents table, click the `...` button and click the `Delete` item on the dropdown menu.
 
-<Callout type='info'>
-  TBD
-</Callout>
+<Callout>
+  **This operation cannot be undone**.
 
-#### Knowledge Graph Index
-
-<Callout type='info'>
-  TBD
-</Callout>
-
-### Index Progress
-
-<Callout type='info'>
-  TBD
-</Callout>
-
-#### Failure retry
-
-<Callout type='info'>
-  TBD
+  Deleting documents will trigger an **asynchronous** deletion process for related **chunks of vector index**
+  and **entities and relationships of knowledge graph index**.
 </Callout>

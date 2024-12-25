@@ -1,4 +1,5 @@
-'use client';
+'use client';;
+import { use } from "react";
 
 import { getEmbeddingModel } from '@/api/embedding-models';
 import { AdminPageHeading } from '@/components/admin-page-heading';
@@ -8,7 +9,8 @@ import { OptionDetail } from '@/components/option-detail';
 import { Loader2Icon } from 'lucide-react';
 import useSWR from 'swr';
 
-export default function Page ({ params }: { params: { id: string } }) {
+export default function Page(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params);
   const { data } = useSWR(`api.embedding-models.get?id=${params.id}`, () => getEmbeddingModel(parseInt(params.id)));
 
   return (

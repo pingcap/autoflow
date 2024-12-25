@@ -22,6 +22,7 @@ from app.models.llm import LLM
 # For compatibility with old code, define a fake knowledge base id.
 PHONY_KNOWLEDGE_BASE_ID = 0
 
+
 class IndexMethod(str, enum.Enum):
     KNOWLEDGE_GRAPH = "knowledge_graph"
     VECTOR = "vector"
@@ -45,7 +46,9 @@ class KnowledgeBase(SQLModel, table=True):
     )
 
     # Index Config.
-    index_methods: list[IndexMethod] = Field(default=[IndexMethod.VECTOR], sa_column=Column(JSON))
+    index_methods: list[IndexMethod] = Field(
+        default=[IndexMethod.VECTOR], sa_column=Column(JSON)
+    )
     llm_id: int = Field(foreign_key="llms.id", nullable=True)
     llm: "LLM" = SQLRelationship(
         sa_relationship_kwargs={
@@ -77,28 +80,31 @@ class KnowledgeBase(SQLModel, table=True):
         },
     )
     created_at: Optional[datetime] = Field(
-        default=None,
-        sa_column=Column(DateTime(), server_default=func.now())
+        default=None, sa_column=Column(DateTime(), server_default=func.now())
     )
     updated_by: UUID = Field(foreign_key="users.id", nullable=True)
     updated_at: Optional[datetime] = Field(
         default=None,
-        sa_column=Column(DateTime(), server_default=func.now(), onupdate=func.now())
+        sa_column=Column(DateTime(), server_default=func.now(), onupdate=func.now()),
     )
     deleted_by: UUID = Field(foreign_key="users.id", nullable=True)
-    deleted_at: Optional[datetime] = Field(
-        default=None,
-        sa_column=Column(DateTime())
-    )
+    deleted_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime()))
 
     __tablename__ = "knowledge_bases"
 
     def __hash__(self):
         return hash(self.id)
-    
+
     def get_data_source_by_id(self, data_source_id: int) -> Optional[DataSource]:
-        return next((ds for ds in self.data_sources if ds.id == data_source_id and not ds.deleted_at), None)
-    
+        return next(
+            (
+                ds
+                for ds in self.data_sources
+                if ds.id == data_source_id and not ds.deleted_at
+            ),
+            None,
+        )
+
     def must_get_data_source_by_id(self, data_source_id: int) -> DataSource:
         data_source = self.get_data_source_by_id(data_source_id)
         if data_source is None:

@@ -26,21 +26,23 @@ from llama_index.core.response_synthesizers import get_response_synthesizer
 from langfuse import Langfuse
 from langfuse.llama_index import LlamaIndexCallbackHandler
 
-from app.api.routes.models import RequiredConfigStatus, OptionalConfigStatus, NeedMigrationStatus
+from app.api.routes.models import (
+    RequiredConfigStatus,
+    OptionalConfigStatus,
+    NeedMigrationStatus,
+)
 from app.models import (
     User,
     Document as DBDocument,
     ChatVisibility,
     Chat as DBChat,
     ChatMessage as DBChatMessage,
-    LLM as DBLLM,
-    EmbeddingModel as DBEmbeddingModel,
-    DataSource as DBDataSource,
     KnowledgeBase as DBKnowledgeBase,
     RerankerModel as DBRerankerModel,
     Chunk as DBChunk,
     Entity as DBEntity,
-    Relationship as DBRelationship, ChatEngine,
+    Relationship as DBRelationship,
+    ChatEngine,
 )
 from app.core.config import settings
 from app.models.chunk import get_kb_chunk_model
@@ -53,12 +55,21 @@ from app.rag.chat_stream_protocol import (
 )
 from app.models.relationship import get_kb_relationship_model
 from app.rag.knowledge_base.config import get_kb_embed_model
+from app.rag.knowledge_base.index_store import get_kb_tidb_graph_editor
 from app.rag.knowledge_graph.graph_store import TiDBGraphStore
 from app.rag.vector_store.tidb_vector_store import TiDBVectorStore
-from app.rag.knowledge_graph.graph_store.tidb_graph_editor import TiDBGraphEditor
+from app.rag.knowledge_graph.graph_store.tidb_graph_editor import (
+    TiDBGraphEditor,
+    legacy_tidb_graph_editor,
+)
 
 from app.rag.knowledge_graph import KnowledgeGraphIndex
-from app.rag.chat_config import ChatEngineConfig, get_default_embed_model, KnowledgeGraphOption
+from app.rag.chat_config import (
+    ChatEngineConfig,
+    get_default_embed_model,
+    KnowledgeGraphOption,
+    must_get_default_embed_model,
+)
 from app.rag.types import (
     MyCBEventType,
     ChatMessageSate,
@@ -104,19 +115,27 @@ class ChatService:
             if not self.db_chat_obj:
                 raise ChatNotFound()
             try:
-                self.chat_engine_config = ChatEngineConfig.load_from_db(db_session, self.db_chat_obj.engine.name)
+                self.chat_engine_config = ChatEngineConfig.load_from_db(
+                    db_session, self.db_chat_obj.engine.name
+                )
                 self.db_chat_engine = self.chat_engine_config.get_db_chat_engine()
             except Exception as e:
                 logger.error(f"Failed to load chat engine config: {e}")
-                self.chat_engine_config = ChatEngineConfig.load_from_db(db_session, engine_name)
+                self.chat_engine_config = ChatEngineConfig.load_from_db(
+                    db_session, engine_name
+                )
                 self.db_chat_engine = self.chat_engine_config.get_db_chat_engine()
-            logger.info(f"ChatService - chat_id: {chat_id}, chat_engine: {self.db_chat_obj.engine.name}")
+            logger.info(
+                f"ChatService - chat_id: {chat_id}, chat_engine: {self.db_chat_obj.engine.name}"
+            )
             self.chat_history = [
                 ChatMessage(role=m.role, content=m.content, additional_kwargs={})
                 for m in chat_repo.get_messages(self.db_session, self.db_chat_obj)
             ]
         else:
-            self.chat_engine_config = ChatEngineConfig.load_from_db(db_session, engine_name)
+            self.chat_engine_config = ChatEngineConfig.load_from_db(
+                db_session, engine_name
+            )
             self.db_chat_engine = self.chat_engine_config.get_db_chat_engine()
             self.db_chat_obj = chat_repo.create(
                 self.db_session,
@@ -170,7 +189,9 @@ class ChatService:
 
         # TODO: Support multiple knowledge base retrieve.
         if self.chat_engine_config.knowledge_base:
-            linked_knowledge_base = self.chat_engine_config.knowledge_base.linked_knowledge_base
+            linked_knowledge_base = (
+                self.chat_engine_config.knowledge_base.linked_knowledge_base
+            )
             kb = knowledge_base_repo.must_get(db_session, linked_knowledge_base.id)
             self._embed_model = get_kb_embed_model(db_session, kb)
             self._chunk_db_model = get_kb_chunk_model(kb)
@@ -182,8 +203,8 @@ class ChatService:
     def chat(self) -> Generator[ChatEvent | str, None, None]:
         try:
             if (
-                self.chat_engine_config.external_engine_config and
-                self.chat_engine_config.external_engine_config.stream_chat_api_url
+                self.chat_engine_config.external_engine_config
+                and self.chat_engine_config.external_engine_config.stream_chat_api_url
             ):
                 for event in self._external_chat():
                     yield event
@@ -205,7 +226,9 @@ class ChatService:
         get_llamaindex_callback_manager: Callable[[], Optional[CallbackManager]],
         trace_url: str,
         annotation_silent: bool = False,
-    ) -> Generator[ChatEvent | str, None, Tuple[List[dict], List[dict], List[dict], dict, str]]:
+    ) -> Generator[
+        ChatEvent | str, None, Tuple[List[dict], List[dict], List[dict], dict, str]
+    ]:
         """
         Search the knowledge graph for relevant entities, relationships, and chunks.
         Args:
@@ -315,7 +338,13 @@ class ChatService:
                 )
                 graph_knowledges_context = graph_knowledges.template
 
-        return entities, relations, chunks, graph_data_source_ids, graph_knowledges_context
+        return (
+            entities,
+            relations,
+            chunks,
+            graph_data_source_ids,
+            graph_knowledges_context,
+        )
 
     def _get_llamaindex_callback_manager(
         self,
@@ -406,7 +435,9 @@ class ChatService:
             str: refined question
         """
         if refined_question_prompt is None:
-            refined_question_prompt = self.chat_engine_config.llm.condense_question_prompt
+            refined_question_prompt = (
+                self.chat_engine_config.llm.condense_question_prompt
+            )
 
         if not annotation_silent:
             yield ChatEvent(
@@ -421,8 +452,8 @@ class ChatService:
         # 1. Refine the question
         with callback_manager.as_trace("condense_question"):
             with callback_manager.event(
-                    MyCBEventType.CONDENSE_QUESTION,
-                    payload={EventPayload.QUERY_STR: self.user_question},
+                MyCBEventType.CONDENSE_QUESTION,
+                payload={EventPayload.QUERY_STR: self.user_question},
             ) as event:
                 refined_question = fast_llm.predict(
                     get_prompt_by_jinja2_template(
@@ -446,24 +477,29 @@ class ChatService:
         if self.chat_engine_config.clarify_question:
             with callback_manager.as_trace("check_question"):
                 with callback_manager.event(
-                        MyCBEventType.CLARIFYING_QUESTION,
-                        payload={EventPayload.QUERY_STR: refined_question},
+                    MyCBEventType.CLARIFYING_QUESTION,
+                    payload={EventPayload.QUERY_STR: refined_question},
                 ) as event:
-                    clarity_result = fast_llm.structured_predict(
-                        output_cls=self.ClarityResult,
+                    clarity_result = fast_llm.predict(
                         prompt=get_prompt_by_jinja2_template(
                             self.chat_engine_config.llm.clarifying_question_prompt,
                             graph_knowledges=graph_knowledges_context,
                             chat_history=self.chat_history,
                             question=refined_question,
                         ),
-                    )
-                    event.on_end(payload={
-                        EventPayload.COMPLETION: f"Need Clarification: {clarity_result.clarity_needed}, "
-                                                 f"Clarifying Question: {clarity_result.clarifying_question}"
-                    })
+                    ).strip().strip(".\"\'!")
 
-                    if clarity_result.clarity_needed:
+                    clarity_needed = clarity_result.lower() != "false"
+
+                    event.on_end(
+                        payload={
+                            EventPayload.COMPLETION: f"Need Clarification: {clarity_needed}, "
+                            f"Clarifying Question: {clarity_result}"
+                        }
+                    )
+
+
+                    if clarity_needed:
                         if not annotation_silent:
                             yield ChatEvent(
                                 event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
@@ -475,10 +511,10 @@ class ChatService:
 
                         yield ChatEvent(
                             event_type=ChatEventType.TEXT_PART,
-                            payload=clarity_result.clarifying_question,
+                            payload=clarity_result,
                         )
 
-                        return True, clarity_result.clarifying_question, ""
+                        return True, clarity_result, ""
 
         return False, "", refined_question
 
@@ -513,7 +549,9 @@ class ChatService:
             graph_knowledges=graph_knowledges_context,
             original_question=self.user_question,
         )
-        vector_store = TiDBVectorStore(session=self.db_session, chunk_db_model=self._chunk_db_model)
+        vector_store = TiDBVectorStore(
+            session=self.db_session, chunk_db_model=self._chunk_db_model
+        )
         vector_index = VectorStoreIndex.from_vector_store(
             vector_store,
             embed_model=embed_model,
@@ -649,7 +687,13 @@ class ChatService:
 
         # 1. Retrieve entities, relations, and chunks from the knowledge graph
         kg_config = self.chat_engine_config.knowledge_graph
-        entities, relations, chunks, graph_data_source_ids, graph_knowledges_context = yield from self._search_kg(
+        (
+            entities,
+            relations,
+            chunks,
+            graph_data_source_ids,
+            graph_knowledges_context,
+        ) = yield from self._search_kg(
             kg_config=kg_config,
             fast_dspy_lm=_fast_dspy_lm,
             embed_model=self._embed_model,
@@ -659,7 +703,11 @@ class ChatService:
 
         # 2. Refine the user question using graph information and chat history
         # 2.1 Early stop if the user question does not have enough information, we need to ask a clarifying question
-        early_stop, clarifying_question, refined_question = yield from self._refine_or_early_stop(
+        (
+            early_stop,
+            clarifying_question,
+            refined_question,
+        ) = yield from self._refine_or_early_stop(
             get_llamaindex_callback_manager=_get_llamaindex_callback_manager_in_chat,
             fast_llm=_fast_llm,
             graph_knowledges_context=graph_knowledges_context,
@@ -740,7 +788,11 @@ class ChatService:
             graph_knowledges_context = ""
 
             logger.info("start to _refine_or_early_stop")
-            early_stop, clarifying_question, goal = yield from self._refine_or_early_stop(
+            (
+                early_stop,
+                clarifying_question,
+                goal,
+            ) = yield from self._refine_or_early_stop(
                 get_llamaindex_callback_manager=lambda: self._get_llamaindex_callback_manager(
                     fast_llm=_fast_llm,
                     embed_model=self._embed_model,
@@ -753,7 +805,7 @@ class ChatService:
             logger.info(f"start request stackvm with goal: {goal}")
             goal = goal.strip()
             if goal.startswith("Goal: "):
-                goal = goal[len("Goal: "):].strip()
+                goal = goal[len("Goal: ") :].strip()
 
             if early_stop:
                 # the clarifying question is the final response
@@ -773,13 +825,21 @@ class ChatService:
         cache_messages = None
         if settings.ENABLE_QUESTION_CACHE:
             try:
-                logger.info(f"start to find_recent_assistant_messages_by_goal with goal: {goal}")
-                cache_messages = chat_repo.find_recent_assistant_messages_by_goal(self.db_session,goal)
-                logger.debug(f"find_recent_assistant_messages_by_goal result: {cache_messages}")
+                logger.info(
+                    f"start to find_recent_assistant_messages_by_goal with goal: {goal}"
+                )
+                cache_messages = chat_repo.find_recent_assistant_messages_by_goal(
+                    self.db_session, goal
+                )
+                logger.debug(
+                    f"find_recent_assistant_messages_by_goal result: {cache_messages}"
+                )
             except Exception as e:
                 logger.error(f"Failed to find recent assistant messages by goal: {e}")
 
-        stream_chat_api_url = self.chat_engine_config.external_engine_config.stream_chat_api_url
+        stream_chat_api_url = (
+            self.chat_engine_config.external_engine_config.stream_chat_api_url
+        )
         if cache_messages and len(cache_messages) > 0:
             stackvm_response_text = cache_messages[0].content
             task_id = cache_messages[0].meta.get("task_id")
@@ -793,7 +853,8 @@ class ChatService:
                     )
         else:
             logger.debug(
-                f"Chatting with external chat engine (api_url: {stream_chat_api_url}) to answer for user question: {self.user_question}")
+                f"Chatting with external chat engine (api_url: {stream_chat_api_url}) to answer for user question: {self.user_question}"
+            )
             chat_params = {
                 "goal": goal,
             }
@@ -807,7 +868,7 @@ class ChatService:
                     continue
 
                 # Append to final response text.
-                chunk = line.decode('utf-8')
+                chunk = line.decode("utf-8")
                 if chunk.startswith("0:"):
                     word = json.loads(chunk[2:])
                     stackvm_response_text += word
@@ -816,7 +877,7 @@ class ChatService:
                         payload=word,
                     )
                 else:
-                    yield line + b'\n'
+                    yield line + b"\n"
 
                 try:
                     if chunk.startswith("8:") and task_id is None:
@@ -828,9 +889,22 @@ class ChatService:
                     logger.error(f"Failed to get task_id from chunk: {e}")
 
         response_text = stackvm_response_text
-        base_url = stream_chat_api_url.replace('/api/stream_execute_vm', '')
+        base_url = stream_chat_api_url.replace("/api/stream_execute_vm", "")
+        try:
+            post_verification_result_url = self._post_verification(
+                goal,
+                response_text,
+                self.db_chat_obj.id,
+                db_assistant_message.id,
+            )
+            db_assistant_message.post_verification_result_url = post_verification_result_url
+        except Exception as e:
+            logger.error("Specific error occurred during post verification job.", exc_info=True)
+
         db_assistant_message.content = response_text
-        db_assistant_message.trace_url = f"{base_url}?task_id={task_id}" if task_id else ""
+        db_assistant_message.trace_url = (
+            f"{base_url}?task_id={task_id}" if task_id else ""
+        )
         db_assistant_message.meta = {
             "task_id": task_id,
             "goal": goal,
@@ -857,8 +931,9 @@ class ChatService:
             ),
         )
 
+
     def _parse_chat_messages(
-            self, chat_messages: List[ChatMessage]
+        self, chat_messages: List[ChatMessage]
     ) -> tuple[str, List[ChatMessage]]:
         user_question = chat_messages[-1].content
         chat_history = chat_messages[:-1]
@@ -898,7 +973,7 @@ class ChatService:
         return source_documents
 
     def _post_verification(
-            self, user_question: str, response_text: str, chat_id: UUID, message_id: int
+        self, user_question: str, response_text: str, chat_id: UUID, message_id: int
     ) -> Optional[str]:
         # post verification to external service, will return the post verification result url
         post_verification_url = self.chat_engine_config.post_verification_url
@@ -970,7 +1045,51 @@ def user_can_edit_chat(chat: DBChat, user: Optional[User]) -> bool:
     return chat.user_id == user.id
 
 
-def get_graph_data_from_langfuse(trace_url: str):
+def get_graph_data_from_chat_message(
+    graph_editor: TiDBGraphEditor, session: Session, chat_message: ChatMessage
+) -> Tuple[list[dict], list[dict]]:
+    if not chat_message.graph_data:
+        return [], []
+
+    if "relationships" not in chat_message.graph_data:
+        return [], []
+
+    if len(chat_message.graph_data["relationships"]) == 0:
+        return [], []
+
+    # FIXME: Why not store the complete data in chat_message.graph_data.
+    relationship_ids = chat_message.graph_data["relationships"]
+    all_entities, all_relationships = graph_editor.get_relationship_by_ids(
+        session, relationship_ids
+    )
+    entities = [
+        {
+            "id": e.id,
+            "name": e.name,
+            "description": e.description,
+            "meta": e.meta,
+            "entity_type": e.entity_type,
+        }
+        for e in all_entities
+    ]
+    relationships = [
+        {
+            "id": r.id,
+            "source_entity_id": r.source_entity_id,
+            "target_entity_id": r.target_entity_id,
+            "description": r.description,
+            "rag_description": f"{r.source_entity.name} -> {r.description} -> {r.target_entity.name}",
+            "meta": r.meta,
+            "weight": r.weight,
+            "last_modified_at": r.last_modified_at,
+        }
+        for r in all_relationships
+    ]
+
+    return entities, relationships
+
+
+def get_graph_data_from_langfuse(trace_url: str) -> Tuple[list[dict], list[dict]]:
     start_time = time.time()
     langfuse_host = SiteSetting.langfuse_host
     langfuse_secret_key = SiteSetting.langfuse_secret_key
@@ -1019,55 +1138,29 @@ def get_graph_data_from_langfuse(trace_url: str):
 
 
 def get_chat_message_subgraph(
-    graph_editor: TiDBGraphEditor,
-    session: Session,
-    chat_message: DBChatMessage,
-    embed_model: BaseEmbedding,
-    entity_db_model: SQLModel = DBEntity,
-    relationship_db_model: SQLModel = DBRelationship,
+    session: Session, chat_message: DBChatMessage
 ) -> Tuple[List, List]:
     if chat_message.role != MessageRole.USER:
         return [], []
 
+    engine_options = chat_message.chat.engine_options
+    chat_engine_config = ChatEngineConfig.model_validate(engine_options)
+    kb = chat_engine_config.get_linked_knowledge_base(session)
+
     # try to get subgraph from chat_message.graph_data
     try:
-        if (
-            chat_message.graph_data
-            and "relationships" in chat_message.graph_data
-            and len(chat_message.graph_data["relationships"]) > 0
-        ):
-            relationship_ids = chat_message.graph_data["relationships"]
-            all_entities, all_relationships = graph_editor.get_relationship_by_ids(
-                session, relationship_ids
-            )
-            entities = [
-                {
-                    "id": e.id,
-                    "name": e.name,
-                    "description": e.description,
-                    "meta": e.meta,
-                    "entity_type": e.entity_type,
-                }
-                for e in all_entities
-            ]
-            relationships = [
-                {
-                    "id": r.id,
-                    "source_entity_id": r.source_entity_id,
-                    "target_entity_id": r.target_entity_id,
-                    "description": r.description,
-                    "rag_description": f"{r.source_entity.name} -> {r.description} -> {r.target_entity.name}",
-                    "meta": r.meta,
-                    "weight": r.weight,
-                    "last_modified_at": r.last_modified_at,
-                }
-                for r in all_relationships
-            ]
-            return entities, relationships
+        graph_editor = (
+            get_kb_tidb_graph_editor(session, kb) if kb else legacy_tidb_graph_editor
+        )
+        entities, relationships = get_graph_data_from_chat_message(
+            graph_editor, session, chat_message
+        )
+        if len(relationships) > 0:
+            return list(entities), list(relationships)
     except Exception as e:
         logger.error(f"Failed to get subgraph from chat_message.graph_data: {e}")
 
-    # try to get subgraph from langfuse trace
+    # try to get subgraph from langfuse trace.
     try:
         entities, relationships = get_graph_data_from_langfuse(chat_message.trace_url)
         if len(relationships) > 0:
@@ -1075,9 +1168,18 @@ def get_chat_message_subgraph(
     except Exception as e:
         logger.error(f"Failed to get subgraph from langfuse trace: {e}")
 
-    chat: DBChat = chat_message.chat
-    chat_engine_config = ChatEngineConfig.load_from_db(session, chat.engine.name)
-    kg_config = chat_engine_config.knowledge_graph
+    # try to get subgraph from graph store instead of cached result.
+
+    # Notice: using new chat engine config.
+    chat_engine: ChatEngine = chat_message.chat.engine
+    chat_engine_config = ChatEngineConfig.load_from_db(session, chat_engine.name)
+    kb = chat_engine_config.get_linked_knowledge_base(session)
+
+    embed_model = (
+        get_kb_embed_model(session, kb) if kb else must_get_default_embed_model(session)
+    )
+    entity_db_model = get_kb_entity_model(kb) if kb else DBEntity
+    relationship_db_model = get_kb_relationship_model(kb) if kb else DBRelationship
     graph_store = TiDBGraphStore(
         dspy_lm=chat_engine_config.get_fast_dspy_lm(session),
         session=session,
@@ -1085,6 +1187,7 @@ def get_chat_message_subgraph(
         entity_db_model=entity_db_model,
         relationship_db_model=relationship_db_model,
     )
+    kg_config = chat_engine_config.knowledge_graph
     entities, relations, _ = graph_store.retrieve_with_weight(
         chat_message.content,
         [],
@@ -1093,6 +1196,7 @@ def get_chat_message_subgraph(
         with_degree=kg_config.with_degree,
         with_chunks=False,
     )
+
     return entities, relations
 
 
@@ -1110,7 +1214,7 @@ def check_rag_required_config(session: Session) -> RequiredConfigStatus:
         default_llm=has_default_llm,
         default_embedding_model=has_default_embedding_model,
         default_chat_engine=has_default_chat_engine,
-        knowledge_base=has_knowledge_base
+        knowledge_base=has_knowledge_base,
     )
 
 
@@ -1131,11 +1235,13 @@ def check_rag_config_need_migration(session: Session) -> NeedMigrationStatus:
     """
     Check if any configuration needs to be migrated.
     """
-    chat_engines_without_kb_configured = (
-        session.exec(
-            select(ChatEngine.id)
-            .where(ChatEngine.deleted_at == None)
-            .where(text("JSON_EXTRACT(engine_options, '$.knowledge_base.linked_knowledge_base') IS NULL"))
+    chat_engines_without_kb_configured = session.exec(
+        select(ChatEngine.id)
+        .where(ChatEngine.deleted_at == None)
+        .where(
+            text(
+                "JSON_EXTRACT(engine_options, '$.knowledge_base.linked_knowledge_base') IS NULL"
+            )
         )
     )
 
@@ -1143,16 +1249,14 @@ def check_rag_config_need_migration(session: Session) -> NeedMigrationStatus:
         chat_engines_without_kb_configured=chat_engines_without_kb_configured,
     )
 
-class LLMRecommendQuestions(BaseModel):
-    """recommend questions respond model"""
-    questions: List[str]
-
 
 def remove_chat_message_recommend_questions(
     db_session: Session,
     chat_message_id: int,
 ) -> None:
-    delete_stmt = delete(RecommendQuestion).where(RecommendQuestion.chat_message_id == chat_message_id)
+    delete_stmt = delete(RecommendQuestion).where(
+        RecommendQuestion.chat_message_id == chat_message_id
+    )
     db_session.exec(delete_stmt)
     db_session.commit()
 
@@ -1175,39 +1279,40 @@ def get_chat_message_recommend_questions(
     if questions is not None:
         return questions
 
-    recommend_questions = llm.structured_predict(
-        output_cls=LLMRecommendQuestions,
+    recommend_questions = llm.predict(
         prompt=get_prompt_by_jinja2_template(
             chat_engine_config.llm.further_questions_prompt,
             chat_message_content=chat_message.content,
         ),
     )
+    recommend_question_list = recommend_questions.splitlines()
+    recommend_question_list = [question.strip() for question in recommend_question_list if question.strip()]
 
     longest_question = 0
-    for question in recommend_questions.questions:
+    for question in recommend_question_list:
         longest_question = max(longest_question, len(question))
 
     # check the output by if the output with format and the length
-    questions = ",".join(recommend_questions.questions)
-    if "##" in questions or "**" in questions or longest_question > 500:
+    if "##" in recommend_questions or "**" in recommend_questions or longest_question > 500:
         regenerate_content = f"""
         Please note that you are generating a question list. You previously generated it incorrectly; try again.
         ----------------------------------------
         {chat_message.content}
         """
         # with format or too long for per question, it's not a question list, generate again
-        recommend_questions = llm.structured_predict(
-            output_cls=LLMRecommendQuestions,
+        recommend_questions = llm.predict(
             prompt=get_prompt_by_jinja2_template(
                 chat_engine_config.llm.further_questions_prompt,
                 chat_message_content=regenerate_content,
             ),
         )
 
-    db_session.add(RecommendQuestion(
-        chat_message_id=chat_message.id,
-        questions=recommend_questions.questions,
-    ))
+    db_session.add(
+        RecommendQuestion(
+            chat_message_id=chat_message.id,
+            questions=recommend_question_list,
+        )
+    )
     db_session.commit()
 
-    return recommend_questions.questions
+    return recommend_question_list

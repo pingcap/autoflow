@@ -1,18 +1,21 @@
 # Configure Reranker Model
 
-The Reranker is a machine learning model that is trained to rerank the results retrieved from the database. We use this model to improve the performance of answers.
+The Reranker is a machine learning model that is trained to optimize the order of results retrieved from the initial vector searches.
 
-Supported Rerankers:
-* [Jina AI Reranker](https://jina.ai/reranker)
-* [Cohere](https://cohere.com/rerank)
+## Configure Reranker Model
 
+After logging in with an admin account, you can configure the Reranker Model in the admin panel.
 
-## Step by Step
-
-1. Go to the admin panel;
-2. Click on the `Reranker Models` tab;
-3. Click on the `+ New` button to add a new Reranker;
+1. Click on the `Models > Reranker Models` tab;
+2. Click on the `New Reranker Model` button to add a new Reranker;
 
 ![reranker-config](https://github.com/user-attachments/assets/eeacb71f-0e6e-4755-9b53-0cb6d234e92f "Reranker Config")
 
-4. Input your Reranker information and click `Create Reranker` button;
+3. Input your Reranker information and click `Create Reranker` button;
+
+## Supported Reranker Providers
+
+Currently Autoflow supports the following Reranker providers:
+
+* [Jina AI Reranker](https://jina.ai/reranker)
+* [Cohere](https://cohere.com/rerank)

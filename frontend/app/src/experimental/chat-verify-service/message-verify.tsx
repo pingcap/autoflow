@@ -131,7 +131,7 @@ const failedIcon = <TriangleAlertIcon className="size-4 text-warning" />;
 const errorIcon = <TriangleAlertIcon className="size-4 text-destructive" />;
 
 function MessageVerifyHeader ({ creating, error, result }: { creating?: boolean, error: unknown, result: MessageVerifyResponse | undefined }) {
-  let icon: ReactElement | undefined;
+  let icon: ReactElement<any> | undefined;
   let message: ReactNode | undefined;
   const indicatorVisible = result ? isVisibleVerifyState(result.status) : false;
 

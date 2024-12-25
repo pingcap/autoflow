@@ -73,8 +73,8 @@ Instructions:
    - If the user's question is too vague or lacks key information, identify what additional information would be necessary for clarity.
 
 2. Generate a Clarifying Question:
-   - If the question is clear and answerable, return "False" and leave the clarifying question empty ("").
-   - If clarification is needed, return "True" and generate a specific question to ask the user, directly addressing the information gap. Avoid general questions; focus on the specific details required for an accurate answer.
+   - If the question is clear and answerable, return exact "False" as the response.
+   - If clarification is needed, return a specific question to ask the user, directly addressing the information gap. Avoid general questions; focus on the specific details required for an accurate answer.
 
 3. Use the same language to ask the clarifying question as the user's original question.
 
@@ -85,8 +85,7 @@ Relevant Knowledge: TiDB supports foreign keys starting from version 6.6.0.
 
 Response:
 
-- Clarity Needed: True
-- Clarifying Question: "Which version of TiDB are you using?"
+Which version of TiDB are you using?
 
 Example 2:
 
@@ -95,8 +94,16 @@ Relevant Knowledge: TiDB supports nested transaction starting from version 6.2.0
 
 Response:
 
-- Clarity Needed: True
-- Clarifying Question: "Which version of TiDB are you using?"
+Which version of TiDB are you using?
+
+Example 3:
+
+user: "Does TiDB support foreign keys? I'm using TiDB 6.5.0."
+Relevant Knowledge: TiDB supports foreign keys starting from version 6.6.0.
+
+Response:
+
+False
 
 Your Turn:
 
@@ -288,6 +295,7 @@ Instructions:
 4. Keep questions concise yet insightful to maximize engagement.
 5. Use the same language with the chat message content.
 6. Each question should end with a question mark.
+7. Each question should be in a new line, DO NOT add any indexes or blank lines, just output the questions.
 
 Now, generate 3–5 follow-up questions below:
 """
@@ -351,15 +359,24 @@ Given the conversation history between the User and Assistant, along with the la
             - Set the background to "Other topics."
 
 3. **Goal Generation**:
-    - Determine the latest User intent from the follow-up question and the chat history.
-    - Reformulate the latest User follow-up question into a clear, standalone question suitable for processing by the agent.
-    - Specify the detected language for the answer.
-    - Define the desired answer format.
-    - Include any additional requirements as needed.
+    - **Clarify Intent to Avoid Ambiguity**:
+        - **Instructional Guidance**:
+            - If the User's question seeks guidance or a method (e.g., starts with "How to"), ensure the goal reflects a request for a step-by-step guide or best practices.
+        - **Information Retrieval**:
+            - If the User's question seeks specific information or confirmation (e.g., starts with "Can you" or "Is it possible"), rephrase it to focus on providing the requested information or verification without implying that the assistant should perform any actions.
+            - **Important**: Do not interpret these questions as requests for the assistant to execute operations. Instead, understand whether the user seeks to confirm certain information or requires a proposed solution, and restrict responses to information retrieval and guidance based on available documentation.
+    - **Reformulate the Latest User Follow-up Question**:
+        - Ensure the question is clear, directive, and suitable for a Q&A format.
+    - **Specify Additional Details**:
+        - **Detected Language**: Clearly indicate the language.
+        - **Desired Answer Format**: Specify if the answer should be in text, table, code snippet, etc.
+        - **Additional Requirements**: Include any other necessary instructions to tailor the response appropriately.
 
 4. **Output**:
     - Produce a goal string in the following format:
       "[Refined Question] (Lang: [Detected Language], Format: [Format], Background: [Specified Goal Scenario])"
+
+**Examples**:
 
 **Example 1**:
 
@@ -422,6 +439,22 @@ Follow-up question:
 Goal:
 
 Why is TiDB Serverless up to 70% cheaper than MySQL RDS? Please provide a comparison in a table format if possible. (Lang: English, Format: table, Background: Cost comparison between TiDB Serverless and MySQL RDS.)
+
+---------------------
+
+**Example 5 (Enhanced for Clarity and Guidance)**:
+
+Chat history:
+
+[]
+
+Follow-up question:
+
+"能否找到 tidb 中哪些视图的定义中包含已经被删除的表？"
+
+Goal:
+
+How to find which views in TiDB have definitions that include tables that have been deleted? (Lang: Chinese, Format: text, Background: TiDB product related consulting.)
 
 ---------------------
 

@@ -1,6 +1,7 @@
 import { GraphEditor } from '@/components/graph/GraphEditor';
 
-export default function KnowledgeGraphExplorerPage ({ params }: { params: { id: string } }) {
+export default async function KnowledgeGraphExplorerPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const id = parseInt(decodeURIComponent(params.id));
 
   return (

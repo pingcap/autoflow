@@ -23,6 +23,7 @@ export default function Page () {
         onCreated={embeddingModel => {
           startTransition(() => {
             router.push(`/embedding-models/${embeddingModel.id}`);
+            router.refresh();
           });
         }}
       />

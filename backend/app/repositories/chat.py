@@ -112,10 +112,7 @@ class ChatRepo(BaseRepo):
         return chat_message
 
     def find_recent_assistant_messages_by_goal(
-        self,
-        session: Session,
-        goal: str,
-        days: int = 15
+        self, session: Session, goal: str, days: int = 15
     ) -> List[ChatMessage]:
         """
         Search for 'assistant' role chat messages with a specific goal within the recent days.
@@ -132,12 +129,18 @@ class ChatRepo(BaseRepo):
         cutoff = datetime.now(UTC) - timedelta(days=days)
 
         # Construct the query to filter messages
-        query = select(ChatMessage).where(
-            ChatMessage.role == 'assistant',     # Filter for role 'assistant'
-            ChatMessage.created_at >= cutoff,    # Ensure the message was created within the cutoff
-            ChatMessage.is_best_answer == True,  # Ensure 'is_best_answer' is true
-            func.JSON_UNQUOTE(func.JSON_EXTRACT(ChatMessage.meta, '$.goal')) == goal,  # Match the specified goal in meta
-        ).order_by(desc(ChatMessage.created_at))  # Order by created_at in descending order
+        query = (
+            select(ChatMessage)
+            .where(
+                ChatMessage.role == "assistant",  # Filter for role 'assistant'
+                ChatMessage.created_at
+                >= cutoff,  # Ensure the message was created within the cutoff
+                ChatMessage.is_best_answer == True,  # Ensure 'is_best_answer' is true
+                func.JSON_UNQUOTE(func.JSON_EXTRACT(ChatMessage.meta, "$.goal"))
+                == goal,  # Match the specified goal in meta
+            )
+            .order_by(desc(ChatMessage.created_at))
+        )  # Order by created_at in descending order
 
         # Execute the query and retrieve all matching records
         return session.exec(query).all()

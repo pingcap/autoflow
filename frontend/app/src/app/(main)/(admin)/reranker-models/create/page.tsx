@@ -1,11 +1,13 @@
 'use client';
 
 import { AdminPageHeading } from '@/components/admin-page-heading';
-import { usePush } from '@/components/nextjs/app-router-hooks';
 import { CreateRerankerForm } from '@/components/reranker/CreateRerankerForm';
+import { useRouter } from 'next/navigation';
+import { useTransition } from 'react';
 
 export default function Page () {
-  const [navigating, push] = usePush();
+  const router = useRouter();
+  const [transitioning, startTransition] = useTransition();
 
   return (
     <>
@@ -17,9 +19,13 @@ export default function Page () {
         ]}
       />
       <CreateRerankerForm
-        transitioning={navigating}
+        transitioning={transitioning}
         onCreated={reranker => {
-          push(`/reranker-models/${reranker.id}`);
+          startTransition(() => {
+            router.push(`/reranker-models/${reranker.id}`);
+            router.refresh();
+          });
+
         }}
       />
     </>

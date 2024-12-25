@@ -3,7 +3,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from fastapi_pagination import Params, Page
 
-from app.api.admin_routes.knowledge_base.document.models import DocumentFilters, DocumentItem
+from app.api.admin_routes.knowledge_base.document.models import (
+    DocumentFilters,
+    DocumentItem,
+)
 from app.api.deps import SessionDep, CurrentSuperuserDep
 from app.repositories import document_repo
 

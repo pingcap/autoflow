@@ -12,11 +12,15 @@
     "build": "pnpm run --filter 'app' build",
     "verify": "pnpm run test && pnpm run build && pnpm run build:widget-react"
   },
-  "packageManager": "pnpm@9.10.0",
+  "packageManager": "pnpm@9.15.0",
   "pnpm": {
     "patchedDependencies": {
       "jest-runtime@29.7.0": "patches/jest-runtime@29.7.0.patch",
       "@jest/environment@29.7.0": "patches/@jest__environment@29.7.0.patch"
+    },
+    "overrides": {
+      "@types/react": "19.0.1",
+      "@types/react-dom": "19.0.2"
     }
   }
 }

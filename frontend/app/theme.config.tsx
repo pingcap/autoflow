@@ -70,10 +70,10 @@ let themeConfig: DocsThemeConfig = {
     return (
       <>
         <meta property="og:url" content={url} />
-        <meta property="og:title" content={frontMatter.title || 'TiDB.AI'} />
+        <meta property="og:title" content={frontMatter.title || 'AutoFlow'} />
         <meta
           property="og:description"
-          content={frontMatter.description || 'Docs & Blogs of TiDB.AI'}
+          content={frontMatter.description || 'Docs & Blogs of AutoFlow'}
         />
         <link
           rel="shortcut icon"
@@ -87,7 +87,7 @@ let themeConfig: DocsThemeConfig = {
           type="image/svg+xml"
           media="(prefers-color-scheme: light)"
         />
-        <title>{`${title} - TiDB.AI`}</title>
+        <title>{`${title} - AutoFlow`}</title>
       </>
     );
   },
@@ -119,7 +119,7 @@ let themeConfig: DocsThemeConfig = {
         />
       </svg>
       <span style={{ marginLeft: '.5em', fontWeight: 300, fontSize: '20px' }}>
-        TiDB.AI
+        AutoFlow
       </span>
     </>
   ),

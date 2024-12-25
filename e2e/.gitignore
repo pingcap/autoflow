@@ -7,8 +7,6 @@ node_modules/
 .idea
 
 .env.local
-.env.backend.local
-.env.backend.generated
 local-test.sh
 
 # Internal output

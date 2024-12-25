@@ -1,11 +1,13 @@
-'use client';
+'use client';;
+import { use } from "react";
 
 import type { KnowledgeGraphEntity } from '@/api/graph';
 import { GraphCreateEntity } from '@/components/graph/GraphCreateEntity';
 import { NextLink } from '@/components/nextjs/NextLink';
 import { useRouter } from 'next/navigation';
 
-export default function CreateSynopsisEntityPage ({ params }: { params: { id: string } }) {
+export default function CreateSynopsisEntityPage(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params);
   const kbId = parseInt(decodeURIComponent(params.id));
   const router = useRouter();
 

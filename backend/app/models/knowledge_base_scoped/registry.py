@@ -23,7 +23,7 @@ class KBSQLModelContext:
         self.registry = registry
 
 
-kb_sql_model_contexts:Dict[str, KBSQLModelContext] = {}
+kb_sql_model_contexts: Dict[str, KBSQLModelContext] = {}
 
 
 def get_kb_scoped_registry(kb: KnowledgeBase) -> KBSQLModelContext:
@@ -31,8 +31,7 @@ def get_kb_scoped_registry(kb: KnowledgeBase) -> KBSQLModelContext:
     if ns not in kb_sql_model_contexts:
         registry = RegistryType(
             metadata=default_registry.metadata,
-            class_registry=default_registry._class_registry.copy()
+            class_registry=default_registry._class_registry.copy(),
         )
         kb_sql_model_contexts[ns] = KBSQLModelContext(registry)
     return kb_sql_model_contexts[ns]
-

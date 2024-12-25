@@ -57,8 +57,8 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
     // TODO: refactor types
     const ce = await createChatEngine(data as never);
     startTransition(() => {
-      router.refresh();
       router.push(`/chat-engines/${ce.id}`);
+      router.refresh();
     });
   }, () => {
     toast.error('Validation failed', { description: 'Please check your chat engine configurations.' });
@@ -194,7 +194,7 @@ function SectionTabTrigger ({ value, required }: { value: string, required?: boo
       <span className={cn(!validated && 'text-destructive')}>
         {value}
       </span>
-      {required && <sup className="text-destructive">*</sup>}
+      {required && <sup className="text-destructive" aria-hidden>*</sup>}
     </SecondaryNavigatorItem>
   );
 }

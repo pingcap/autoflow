@@ -56,6 +56,7 @@ test('API Keys Operations', async ({ page, baseURL }) => {
     await dialog.waitFor({ state: 'visible' });
 
     await dialog.getByRole('button', { name: 'Continue' }).click();
+    await dialog.getByRole('button', { name: 'Continue' }).waitFor({ state: 'detached' });
     await dialog.waitFor({ state: 'hidden' });
 
     await row.waitFor({ state: 'detached' });

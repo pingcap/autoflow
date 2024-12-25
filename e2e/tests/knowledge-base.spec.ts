@@ -79,6 +79,7 @@ test.describe('Knowledge Base', () => {
       await page.goto(`/knowledge-bases/${kbId}/data-sources`);
       await page.getByRole('button', { name: 'Delete' }).click();
       await page.getByRole('button', { name: 'Continue' }).click();
+      await page.getByRole('button', { name: 'Continue' }).waitFor({ state: 'detached' });
       // FIXME: reload data sources after deletion
       await pollKbOverviewUntill(page, kbId, overview => {
         return overview.documents.total === 0 && overview.chunks.total === 0;
@@ -102,6 +103,8 @@ test.describe('Knowledge Base', () => {
       await page.getByRole('button').filter({ has: page.locator('.lucide-ellipsis-vertical') }).click();
       await page.getByRole('menuitem', { name: 'Delete' }).click();
       await page.getByRole('button', { name: 'Continue' }).click();
+      await page.getByRole('button', { name: 'Continue' }).waitFor({ state: 'detached' });
+
     });
 
     await test.step('Wait for documents and chunks to be deleted', async () => {

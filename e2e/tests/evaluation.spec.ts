@@ -31,6 +31,7 @@ test.describe('Evaluation Dataset Management', () => {
     await page.getByRole('row').filter({ hasText: 'Example Dataset to delete' }).locator('button').last().click();
     await page.getByRole('menuitem', { name: 'Delete' }).click();
     await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByRole('button', { name: 'Continue' }).waitFor({ state: 'detached' });
 
     await page.getByRole('row').filter({ hasText: 'Example Dataset to delete' }).waitFor({ state: 'detached' });
   });

@@ -211,6 +211,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
                         description=row["description"],
                         metadata=row["meta"],
                     ),
+                    commit=False,
                 )
             )
 
@@ -233,28 +234,36 @@ class TiDBGraphStore(KnowledgeGraphStore):
                     description=description,
                     metadata={"status": "need-revised"},
                 ),
-            )
-
-        for _, row in relationships_df.iterrows():
-            source_entity = _find_or_create_entity_for_relation(
-                row["source_entity"], row["source_entity_description"]
-            )
-            target_entity = _find_or_create_entity_for_relation(
-                row["target_entity"], row["target_entity_description"]
-            )
-
-            self.create_relationship(
-                source_entity,
-                target_entity,
-                Relationship(
-                    source_entity=source_entity.name,
-                    target_entity=target_entity.name,
-                    relationship_desc=row["relationship_desc"],
-                ),
-                relationship_metadata=row["meta"],
                 commit=False,
             )
-        self._session.commit()
+
+        try:
+            for _, row in relationships_df.iterrows():
+                logger.info("save entities for relationship %s -> %s -> %s", row["source_entity"], row["relationship_desc"], row["target_entity"])
+                source_entity = _find_or_create_entity_for_relation(
+                    row["source_entity"], row["source_entity_description"]
+                )
+                target_entity = _find_or_create_entity_for_relation(
+                    row["target_entity"], row["target_entity_description"]
+                )
+
+                self.create_relationship(
+                    source_entity,
+                    target_entity,
+                    Relationship(
+                        source_entity=source_entity.name,
+                        target_entity=target_entity.name,
+                        relationship_desc=row["relationship_desc"],
+                    ),
+                    relationship_metadata=row["meta"],
+                    commit=False,
+                )
+
+            self._session.commit()
+        except Exception as e:
+            logger.error(e, exc_info=True)
+            self._session.rollback()
+            raise e
 
     def create_relationship(
         self,
@@ -283,8 +292,11 @@ class TiDBGraphStore(KnowledgeGraphStore):
         self._session.add(relationship_object)
         if commit:
             self._session.commit()
+            self._session.refresh(relationship_object)
+        else:
+            self._session.flush()
 
-    def get_or_create_entity(self, entity: Entity) -> SQLModel:
+    def get_or_create_entity(self, entity: Entity, commit: bool = True) -> SQLModel:
         # using the cosine distance between the description vectors to determine if the entity already exists
         entity_type = (
             EntityType.synopsis
@@ -347,8 +359,11 @@ class TiDBGraphStore(KnowledgeGraphStore):
                     db_obj.meta_vec = get_entity_metadata_embedding(
                         db_obj.meta, self._embed_model
                     )
-                    self._session.commit()
-                    self._session.refresh(db_obj)
+                    if commit:
+                        self._session.commit()
+                        self._session.refresh(db_obj)
+                    else:
+                        self._session.flush()
                     return db_obj
 
         synopsis_info_str = (
@@ -367,8 +382,12 @@ class TiDBGraphStore(KnowledgeGraphStore):
             entity_type=entity_type,
         )
         self._session.add(db_obj)
-        self._session.commit()
-        self._session.refresh(db_obj)
+        if commit:
+            self._session.commit()
+            self._session.refresh(db_obj)
+        else:
+            self._session.flush()
+
         return db_obj
 
     def _try_merge_entities(self, entities: List[Entity]) -> Entity:

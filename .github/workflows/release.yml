@@ -36,7 +36,6 @@ jobs:
         annotations: ${{steps.meta.outputs.annotations}}
         platforms: |
           linux/amd64
-          linux/arm64
           ${{(startsWith(github.ref, 'refs/tags/') && 'linux/arm64') || ''}}
         should-build-frontend: ${{steps.decide.outputs.should-build-frontend}}
         should-build-backend: ${{steps.decide.outputs.should-build-backend}}

@@ -59,6 +59,7 @@ test.describe('Evaluation Dataset Management', () => {
       await page.getByRole('row').filter({ hasText: 'Example Query' }).locator('button').last().click();
       await page.getByRole('menuitem', { name: 'Delete' }).click();
       await page.getByRole('button', { name: 'Continue' }).click();
+      await page.getByRole('button', { name: 'Continue' }).waitFor({ state: 'detached' });
 
       await page.getByRole('row').filter({ hasText: 'Example Query' }).waitFor({ state: 'detached' });
       await page.getByRole('row').filter({ hasText: 'Example Reference' }).waitFor({ state: 'detached' });

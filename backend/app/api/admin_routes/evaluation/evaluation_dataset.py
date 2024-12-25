@@ -168,7 +168,7 @@ def delete_evaluation_dataset_item(
     evaluation_dataset_item_id: int, session: SessionDep, user: CurrentSuperuserDep
 ) -> bool:
     evaluation_dataset_item = must_get(
-        session, EvaluationDataset, evaluation_dataset_item_id
+        session, EvaluationDatasetItem, evaluation_dataset_item_id
     )
 
     session.delete(evaluation_dataset_item)

@@ -8,6 +8,7 @@ from app.file_storage import default_file_storage
 from app.utils.uuid6 import uuid7
 from app.models import Upload
 from app.types import MimeTypes
+from app.site_settings import SiteSetting
 
 router = APIRouter()
 
@@ -34,6 +35,17 @@ def upload_files(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="File name cannot be empty",
             )
+        sys_max_upload_file_size = SiteSetting.max_upload_file_size
+        if file.size > sys_max_upload_file_size:
+            upload_file_size_in_mb = file.size / 1024 / 1024
+            max_upload_file_size_in_mb = sys_max_upload_file_size / 1024 / 1024
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="The upload file size ({:.2f} MiB) exceeds maximum allowed size ({:.2f} MiB)".format(
+                    upload_file_size_in_mb, max_upload_file_size_in_mb
+                ),
+            )
+
         file_ext = os.path.splitext(file.filename)[1].lower()
         if file_ext not in SUPPORTED_FILE_TYPES:
             raise HTTPException(

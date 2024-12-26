@@ -2,6 +2,8 @@ import logging
 import traceback
 
 import httpx
+from llama_index.core.base.llms.types import ChatMessage
+
 from app.celery import app as celery_app
 from llama_index.llms.openai import OpenAI
 from llama_index.embeddings.openai import OpenAIEmbedding
@@ -21,6 +23,10 @@ from app.models import (
     EvaluationTaskItem,
 )
 from dotenv import load_dotenv
+
+from app.rag.chat import ChatService
+from app.rag.chat_stream_protocol import ChatEvent
+from app.rag.types import ChatEventType, ChatMessageSate
 
 load_dotenv()
 
@@ -75,17 +81,14 @@ def add_evaluation_task_item(evaluation_task_item_id: int):
                 f"Evaluation item #{evaluation_task_item_id} is not in not start state"
             )
             return
-    messages = [{"role": "user", "content": evaluation_task_item.query}]
-
     try:
         if evaluation_task_item.response is None or evaluation_task_item.response == "":
             response, _ = generate_answer_by_autoflow(
-                messages, evaluation_task_item.chat_engine
+                [ChatMessage(role="assistant", content=evaluation_task_item.query)],
+                evaluation_task_item.chat_engine,
             )
             if response is None or response == "":
                 raise Exception("Autoflow response is empty")
-
-            response = response.replace("\n", "\\n").replace("\r", "\\r")
 
             logger.info(
                 f"Got response from autoflow for evaluation item #{evaluation_task_item_id}, {response}"
@@ -179,35 +182,34 @@ def evaluate_task(evaluation_task_item: EvaluationTaskItem):
 
 
 @retry(stop=stop_after_attempt(2), wait=wait_fixed(5))
-def generate_answer_by_autoflow(messages: list, chat_engine: str) -> (str, str):
-    api_key = settings.TIDB_AI_API_KEY.get_secret_value() if settings.TIDB_AI_API_KEY else None
-    response = httpx.post(
-        url=settings.TIDB_AI_CHAT_ENDPOINT,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
-            "Origin": "evaluation",
-        },
-        json={
-            "messages": messages,
-            "index": "default",
-            "chat_engine": chat_engine,
-            "stream": False,
-        },
-        timeout=300,
-    )
+def generate_answer_by_autoflow(
+    messages: list[ChatMessage], chat_engine: str
+) -> (str, list):
+    with Session(engine, expire_on_commit=False) as session:
+        chat_svc = ChatService(
+            db_session=session,
+            user=None,
+            browser_id="",
+            origin="evaluation",
+            chat_messages=messages,
+            engine_name=chat_engine,
+        )
 
-    response.raise_for_status()
-    data = response.json()
+        sources, answer = [], ""
+        for m in chat_svc.chat():
+            if not isinstance(m, ChatEvent):
+                continue
+            if m.event_type == ChatEventType.MESSAGE_ANNOTATIONS_PART:
+                if m.payload.state == ChatMessageSate.SOURCE_NODES:
+                    sources = m.payload.context
+            elif m.event_type == ChatEventType.TEXT_PART:
+                answer += m.payload
+            elif m.event_type == ChatEventType.ERROR_PART:
+                raise Exception(m.payload)
+            else:
+                pass
 
-    trace_id = None
-    if data.get("trace"):
-        trace_url = data["trace"].get("langfuse_url")
-        if trace_url:
-            trace_id = parse_langfuse_trace_id_from_url(trace_url)
-
-    answer = data["content"]
-    return answer, trace_id
+    return answer, sources
 
 
 def parse_langfuse_trace_id_from_url(trace_url: str) -> str:

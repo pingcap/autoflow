@@ -4,6 +4,9 @@ import { PlusIcon } from 'lucide-react';
 import { forwardRef } from 'react';
 import type { ControllerRenderProps } from 'react-hook-form';
 
+/**
+ * @deprecated
+ */
 export const StringArrayField = forwardRef<HTMLDivElement, ControllerRenderProps>(({ value, onChange, name, disabled, onBlur }, ref) => {
   return (
     <div className="space-y-1" ref={ref}>

@@ -6,12 +6,10 @@ This document provides instructions for deploying the entire Autoflow applicatio
 
 ## Prerequisites
 
-- Set up a [TiDB Serverless cluster](https://docs.pingcap.com/tidbcloud/tidb-cloud-quickstart).  
-
+- Set up a TiDB cluster, you can use either:
+  - [TiDB Cloud Serverless](https://docs.pingcap.com/tidbcloud/tidb-cloud-quickstart)(recommended)
+  - [TiDB Self-Managed](https://docs.pingcap.com/tidb/stable/production-deployment-using-tiup)(>=v8.4).
 - Install [Docker Compose](https://docs.docker.com/compose/install/).
-
-> **Note:**
-> TiDB Vector Search is only available for TiDB Self-Managed (TiDB >= v8.4) and [TiDB Cloud Serverless](https://ai.pingcap.com/) for now.
 
 ## Deploy
 
@@ -30,11 +28,13 @@ This document provides instructions for deploying the entire Autoflow applicatio
     ```
 
     Replace the following placeholders with your own values:
-    - `SECRET_KEY`: you can generate a random secret key using `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`
-    - `TIDB_HOST`, `TIDB_USER`, `TIDB_PASSWORD` and `TIDB_DATABASE`: get them from your [TiDB Serverless cluster](https://tidbcloud.com/)
-      - Note: TiDB Serverless will provide a default database name called `test`, if you want to use another database name, you need to create a new database in the TiDB Serverless console.
-      - Note: Don't use '#' in the password, it will cause an error when connecting to the database. See [issue](https://github.com/pydantic/pydantic/issues/8061).
-    - `EMBEDDING_MAX_TOKENS`: set them according to the embedding model you choose before, it can not be changed after the deployment.
+    - `SECRET_KEY`: you can generate a random secret key using:
+      ```python
+      `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`
+      ```
+    - `TIDB_HOST`, `TIDB_USER`, `TIDB_PASSWORD` and `TIDB_DATABASE`: you can get these values from the TiDB cluster you set up before.
+      - Note: if you are using a self-managed TiDB cluster, you need to set `TIDB_SSL=false`.
+    - `EMBEDDING_MAX_TOKENS`: set them according to the embedding model you choose before, it can not be changed after the deployment.(We will remove it in the future, and move it to the admin panel)
 
 3. Migrate the database schema:
 
@@ -54,22 +54,29 @@ This document provides instructions for deploying the entire Autoflow applicatio
 
     Running the bootstrap script creates an admin user. You can find the username and password in the output.
 
+    ```bash
+    # Reset admin password (random generated)
+    docker compose run backend /bin/sh -c "python bootstrap.py -r"
+
+    # Or specify a new password
+    docker compose run backend /bin/sh -c "python bootstrap.py -r --password <new_password>"
+    ```
+
 5. Start the services:
+
+    If you are using a SaaS embedding model, start the services with the following command:
 
     ```bash
     docker compose up
     ```
 
-    To use the local embedding model, start with the following command:
+    If you want to use the built-in local embedding reranker, start the services with the following command:
 
     ```bash
     docker compose --profile local-embedding-reranker up
     ```
 
-6. Open your browser and visit `http://localhost:3000` to access the web interface.
-
-That's it! You can now use pingcap/autoflow locally. You can also go to https://tidb.ai to experience the live demo.
-
+6. Done! Now you can open your browser and visit [http://localhost:3000](http://localhost:3000) locally
 
 ## Configuration
 
@@ -87,18 +94,18 @@ After you deploy the application, you need to initialize the application by foll
 
 This section will help you upgrade pingcap/autoflow to the new version.
 
-Suppose you want to upgrade pingcap/autoflow from 0.1.0 to version 0.2.0
+Suppose you want to upgrade pingcap/autoflow from 0.3.0 to 0.3.1. Follow these steps:
 
 1. Edit your docker-compose.yml file to use the new image version.
 
     ```yaml
     services:
       backend:
-        image: tidbai/backend:0.2.0
+        image: tidbai/backend:0.3.1
       frontend:
-        image: tidbai/frontend:0.2.0
+        image: tidbai/frontend:0.3.1
       background:
-        image: tidbai/backend:0.2.0
+        image: tidbai/backend:0.3.1
     ```
 
 2. Pull the new image:

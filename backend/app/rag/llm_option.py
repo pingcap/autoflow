@@ -41,7 +41,11 @@ admin_llm_options: List[LLMOption] = [
             "api_base": "https://openrouter.ai/api/v1/",
             "is_chat_model": True,
         },
-        config_description="Ensure that the AI server API adheres to the OpenAI format.",
+        config_description=(
+            "`api_base` is the API base URL of the third-party OpenAI-like service, such as OpenRouter; "
+            "`is_chat_model` indicates whether the model is chat model; "
+            "`context_window` is the maximum number of input tokens and output tokens; "
+        ),
         credentials_display_name="API Key",
         credentials_description="The API key of the third-party OpenAI-like service, such as OpenRouter, you can find it in their official website",
         credentials_type="str",
@@ -82,11 +86,31 @@ admin_llm_options: List[LLMOption] = [
         default_credentials="dummy",
     ),
     LLMOption(
+        provider=LLMProvider.GITEEAI,
+        provider_display_name="Gitee AI",
+        provider_description="Gitee AI is a third-party model provider that offers ready-to-use cutting-edge model APIs for AI developers.",
+        provider_url="https://ai.gitee.com",
+        default_llm_model="Qwen2.5-72B-Instruct",
+        default_config={
+            "is_chat_model": True,
+            "context_window": 131072,
+        },
+        config_description=(
+            "`is_chat_model` indicates whether the model is chat model; "
+            "`context_window` is the maximum number of input tokens and output tokens; "
+        ),
+        llm_model_description="Find more in https://ai.gitee.com/serverless-api",
+        credentials_display_name="Gitee AI API Key",
+        credentials_description="The API key of Gitee AI, you can find it in https://ai.gitee.com/dashboard/settings/tokens",
+        credentials_type="str",
+        default_credentials="****",
+    ),
+    LLMOption(
         provider=LLMProvider.ANTHROPIC_VERTEX,
         provider_display_name="Anthropic Vertex AI",
         provider_description="Anthropic's Claude models are now generally available through Vertex AI.",
         provider_url="https://docs.anthropic.com/en/api/claude-on-vertex-ai",
-        default_llm_model="claude-3-5-sonnet@20240620",
+        default_llm_model="claude-3-5-sonnet@20241022",
         llm_model_description="",
         credentials_display_name="Google Credentials JSON",
         credentials_description="The JSON Object of Google Credentials, refer to https://cloud.google.com/docs/authentication/provide-credentials-adc#on-prem",
@@ -102,7 +126,7 @@ admin_llm_options: List[LLMOption] = [
         provider_display_name="Bedrock",
         provider_description="Amazon Bedrock is a fully managed foundation models service.",
         provider_url="https://docs.aws.amazon.com/bedrock/",
-        default_llm_model="anthropic.claude-3-5-sonnet-20240620-v1:0",
+        default_llm_model="anthropic.claude-3-5-sonnet-20241022-v1:0",
         llm_model_description="",
         credentials_display_name="AWS Bedrock Credentials JSON",
         credentials_description="The JSON Object of AWS Credentials, refer to https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html#cli-configure-files-global",

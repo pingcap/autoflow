@@ -1,7 +1,9 @@
 'use client';
 
-import { type EvaluationTaskSummary as EvaluationTaskSummaryType, getEvaluationTaskSummary } from '@/api/evaluations';
+import { cancelEvaluationTask, type EvaluationTaskSummary as EvaluationTaskSummaryType, type EvaluationTaskWithSummary, getEvaluationTaskWithSummary } from '@/api/evaluations';
+import { DangerousActionButton } from '@/components/dangerous-action-button';
 import { DateFormat } from '@/components/date-format';
+import { mutateEvaluationTasks } from '@/components/evaluations/hooks';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
@@ -12,17 +14,17 @@ import { useMemo } from 'react';
 import { Bar, BarChart, CartesianGrid, Label, Pie, PieChart, XAxis } from 'recharts';
 import useSWR from 'swr';
 
-export function EvaluationTaskSummary ({ evaluationTaskId }: { evaluationTaskId: number }) {
-  const { data } = useSWR(`api.evaluation.tasks.${evaluationTaskId}.summary`, () => getEvaluationTaskSummary(evaluationTaskId));
+export function EvaluationTaskInfo ({ evaluationTaskId }: { evaluationTaskId: number }) {
+  const { data } = useSWR(`api.evaluation.tasks.${evaluationTaskId}`, () => getEvaluationTaskWithSummary(evaluationTaskId));
 
   if (data) {
-    return <EvaluationTaskSummaryDisplay summary={data} />;
+    return <EvaluationTaskInfoDisplay task={data} />;
   } else {
-    return <EvaluationTaskSummarySkeleton />;
+    return <EvaluationTaskInfoSkeleton />;
   }
 }
 
-export function EvaluationTaskSummarySkeleton () {
+export function EvaluationTaskInfoSkeleton () {
   return (
     <div className="space-y-4">
       <div className="py-[0.25em] text-xl">
@@ -54,15 +56,29 @@ export function EvaluationTaskSummarySkeleton () {
   );
 }
 
-export function EvaluationTaskSummaryDisplay ({ summary }: { summary: EvaluationTaskSummaryType }) {
+export function EvaluationTaskInfoDisplay ({ task: { summary, ...task } }: { task: EvaluationTaskWithSummary }) {
+  const canCancel = summary.not_start > 0;
+
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">{summary.task.name}</h2>
+      <h2 className="text-xl font-semibold">{task.name}</h2>
       <div className="text-muted-foreground text-xs space-y-2">
-        <div>Dataset: <Link className="text-foreground underline" href={`/evaluation/datasets/${summary.task.dataset_id}`}>{summary.task.dataset_id}</Link></div>
-        <div>Created at: <DateFormat date={summary.task.created_at} /></div>
-        <div>Updated at: <DateFormat date={summary.task.updated_at} /></div>
-        <div>User ID: {summary.task.user_id}</div>
+        <div>Dataset: <Link className="text-foreground underline" href={`/evaluation/datasets/${task.dataset_id}`}>{task.dataset_id}</Link></div>
+        <div>Created at: <DateFormat date={task.created_at} /></div>
+        <div>Updated at: <DateFormat date={task.updated_at} /></div>
+        <div>User ID: {task.user_id}</div>
+        {canCancel && <div>
+          <DangerousActionButton
+            size="sm"
+            variant="destructive"
+            action={async () => {
+              await cancelEvaluationTask(task.id);
+              void mutateEvaluationTasks();
+            }}
+          >
+            Cancel Task
+          </DangerousActionButton>
+        </div>}
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <div className="col-span-1 lg:col-span-1">
@@ -115,7 +131,7 @@ function StatusPieChart ({ summary }: { summary: Pick<EvaluationTaskSummaryType,
   return (
     <Card className="flex flex-col">
       <CardHeader className="items-center pb-0">
-        <CardTitle className="text-lg font-normal">Tasks Status</CardTitle>
+        <CardTitle className="text-lg font-normal">Evaluation Items</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
         <ChartContainer
@@ -156,7 +172,7 @@ function StatusPieChart ({ summary }: { summary: Pick<EvaluationTaskSummaryType,
                           y={(viewBox.cy || 0) + 24}
                           className="fill-muted-foreground"
                         >
-                          Tasks
+                          Items
                         </tspan>
                       </text>
                     );
@@ -177,7 +193,7 @@ function StatusPieChartSkeleton () {
   return (
     <Card className="flex flex-col">
       <CardHeader className="items-center pb-0">
-        <CardTitle className='text-lg font-normal'>Tasks Status</CardTitle>
+        <CardTitle className="text-lg font-normal">Evaluation Items</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
         <ChartContainer
@@ -215,7 +231,7 @@ function StatusPieChartSkeleton () {
                           y={(viewBox.cy || 0) + 24}
                           className="fill-muted-foreground"
                         >
-                          Tasks
+                          Items
                         </tspan>
                       </text>
                     );
@@ -254,7 +270,7 @@ export function RagasMetricsChart ({ summary }: { summary: Pick<EvaluationTaskSu
   return (
     <Card className="flex flex-col justify-between h-full">
       <CardHeader className="items-center pb-0">
-        <CardTitle className='text-lg font-normal'>Ragas Metrics</CardTitle>
+        <CardTitle className="text-lg font-normal">Ragas Metrics</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 pb-0 flex items-center justify-center">
         <div className="w-max h-max flex-1">
@@ -286,7 +302,7 @@ export function RagasMetricsChartSkeleton () {
   return (
     <Card className="flex flex-col justify-between h-full">
       <CardHeader className="items-center pb-0">
-        <CardTitle className='text-lg font-normal'>Ragas Metrics</CardTitle>
+        <CardTitle className="text-lg font-normal">Ragas Metrics</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 pb-0 flex items-center justify-center">
         <div className="w-max h-max flex-1">

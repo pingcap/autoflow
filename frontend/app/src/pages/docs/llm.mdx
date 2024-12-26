@@ -11,7 +11,7 @@ After logging in with an admin account, you can configure the LLM in the admin p
 1. Click on the `Models > LLMs` tab;
 2. Click on the `New LLM` button to add a new LLM;
 
-    ![llm-config](https://github.com/user-attachments/assets/118fe7ba-c0fd-459c-ad2c-12c5afba05ef "LLM Config")
+    ![llm-config](https://github.com/user-attachments/assets/993eec34-a99a-4acf-b4b7-a4ee8e28e3d5 "LLM Config")
 
 3. Input your LLM information and click `Create LLM` button;
 4. Done!
@@ -27,10 +27,17 @@ If you want to use the new LLM while answering user queries, you need switch to 
 Currently Autoflow supports the following LLM providers:
 
 - [OpenAI](https://platform.openai.com/)
-- [Gemini](https://gemini.google.com/)
-- OpenAI Like
+- [Google Gemini](https://gemini.google.com/)
+- [Anthropic Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude)
+- [Amazon Bedrock](https://aws.amazon.com/bedrock/)
+- And all OpenAI-Like models:
     - [OpenRouter](https://openrouter.ai/)
-        - Default config: `{"api_base": "https://openrouter.ai/api/v1/"}`
+        - Default config:
+        ```json
+        {
+            "api_base": "https://openrouter.ai/api/v1/"
+        }
+        ```
     - [BigModel](https://open.bigmodel.cn/)
         - Default config:
         ```json
@@ -39,7 +46,24 @@ Currently Autoflow supports the following LLM providers:
             "is_chat_model": true
         }
         ```
-- [Bedrock](https://aws.amazon.com/bedrock/)
-- [Anthropic Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude)
-- [Ollama](https://ollama.com/)
-    - Default config: `{"base_url": "http://localhost:11434"}`
+    - [Ollama](https://ollama.com/)
+        - Default config:
+        ```json
+        {
+            "api_base": "http://localhost:11434"
+        }
+        ```
+    - [vLLM](https://docs.vllm.ai/en/stable/)
+        - Default config:
+        ```json
+        {
+            "api_base": "http://localhost:8000/v1/"
+        }
+        ```
+    - [Xinference](https://inference.readthedocs.io/en/latest/index.html)
+        - Default config:
+        ```json
+        {
+            "api_base": "http://localhost:9997/v1/"
+        }
+        ```

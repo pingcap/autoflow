@@ -135,7 +135,7 @@ def build_kg_index_for_chunk(knowledge_base_id: int, chunk_id: UUID):
         with Session(engine) as session:
             error_msg = traceback.format_exc()
             logger.error(
-                f"Failed to build knowledge graph index for chunk #{chunk_id}: {error_msg}"
+                f"Failed to build knowledge graph index for chunk #{chunk_id}", exc_info=True
             )
             db_chunk.index_status = KgIndexStatus.FAILED
             db_chunk.index_result = error_msg

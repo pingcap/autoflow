@@ -7,7 +7,7 @@ export default {
   },
   "index": "Introduction",
   "quick-start": "Quick Start",
-  "videos": "Videos",
+  "resources": "Resources",
   "faq": "FAQ",
   "-- Deploy This RAG": {
     "type": "separator",

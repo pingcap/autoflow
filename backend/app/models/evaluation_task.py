@@ -19,6 +19,7 @@ class EvaluationStatus(str, enum.Enum):
     EVALUATING = "evaluating"
     DONE = "done"
     ERROR = "error"
+    CANCEL = "cancel"
 
 
 class EvaluationTask(UpdatableBaseModel, table=True):

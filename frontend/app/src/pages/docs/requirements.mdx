@@ -3,17 +3,20 @@ In this section, we will cover the requirements for deploying the project.
 
 
 ## LLM(Large Language Model) and Embedding Model
-
 * A saas LLM model like OpenAI API or self-hosted LLM model with requirements:
   * Smarter than GPT-3.5
   * Provide openai-like API
-* Embedding model. AutoFlow needs a llm module with openai-like API. You can use the [Jina AI API](https://jina.ai/) for this purpose. It is free for 1M tokens.
+* Embedding model: AutoFlow needs an embedding model to translate the text into vectors. You can use the following:
+  * OpenAI-like embedding model
+  * Cohere embedding model
+  * ZhipuAI embedding model
+  * You can also use the [Jina AI API](https://jina.ai/) for this purpose. It is free for 1M tokens.
 * (Optional) Reranker. You can use the [Jina AI API](https://jina.ai/) for this purpose. It is free for 1M tokens.
 
 
 ## TiDB
 * With [TiDB Serverless](https://pingcap.com/ai) account, you can setup a TiDB cluster with Vector Search enabled. Free quota is available for 1M RU per month.
-* You can also use a self-hosted TiDB cluster(>v8.4) with Vector Search enabled.
+* You can also use a self-hosted TiDB cluster(>v8.4) with Vector Search enabled, but please note it will require TiFlash enabled for Vector Search.
 
 
 ## Hardware

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useId } from 'react';
 
-export interface FileInputProps extends FormControlWidgetProps {
+export interface FileInputProps extends FormControlWidgetProps<File, true> {
   accept: string[];
 }
 

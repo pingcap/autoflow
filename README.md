@@ -5,20 +5,20 @@
   <a href='https://www.pingcap.com/tidb-cloud-serverless/?utm_source=tidb.ai&utm_medium=community'>
     <img src="https://raw.githubusercontent.com/pingcap/tidb.ai/main/frontend/app/public/nextra/icon-dark.svg" alt="AutoFlow" width =100 height=100></img>
   </a>
-</div>
 
-[![Backend Docker Image Version](https://img.shields.io/docker/v/tidbai/backend?sort=semver&arch=amd64&label=tidbai%2Fbackend&color=blue&logo=fastapi)](https://hub.docker.com/r/tidbai/backend)
-[![Frontend Docker Image Version](https://img.shields.io/docker/v/tidbai/frontend?sort=semver&arch=amd64&label=tidbai%2Ffrontend&&color=blue&logo=next.js)](https://hub.docker.com/r/tidbai/frontend)
-[![E2E Status](https://img.shields.io/github/check-runs/pingcap/tidb.ai/main?nameFilter=E2E%20Test&label=e2e)](https://tidb-ai-playwright.vercel.app/)
+  <a href="https://trendshift.io/repositories/12294" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12294" alt="pingcap%2Fautoflow | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+
+  [![Backend Docker Image Version](https://img.shields.io/docker/v/tidbai/backend?sort=semver&arch=amd64&label=tidbai%2Fbackend&color=blue&logo=fastapi)](https://hub.docker.com/r/tidbai/backend)
+  [![Frontend Docker Image Version](https://img.shields.io/docker/v/tidbai/frontend?sort=semver&arch=amd64&label=tidbai%2Ffrontend&&color=blue&logo=next.js)](https://hub.docker.com/r/tidbai/frontend)
+  [![E2E Status](https://img.shields.io/github/check-runs/pingcap/tidb.ai/main?nameFilter=E2E%20Test&label=e2e)](https://tidb-ai-playwright.vercel.app/)
+</div>
 
 ## Introduction
 
-<a href="https://trendshift.io/repositories/12294" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12294" alt="pingcap%2Fautoflow | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+AutoFlow is an open source graph rag (graphrag: knowledge graph rag) based knowledge base tool built on top of [TiDB Vector](https://www.pingcap.com/ai?utm_source=tidb.ai&utm_medium=community) and [LlamaIndex](https://github.com/run-llama/llama_index) and [DSPy](https://github.com/stanfordnlp/dspy).
 
-An open source GraphRAG (Knowledge Graph) built on top of [TiDB Vector](https://www.pingcap.com/ai?utm_source=tidb.ai&utm_medium=community) and [LlamaIndex](https://github.com/run-llama/llama_index) and [DSPy](https://github.com/stanfordnlp/dspy).
-
-- **Live Demo**: [TiDB.AI](https://tidb.ai)
-- **Documentation**: [Docs](https://tidb.ai/docs/?utm_source=github&utm_medium=tidb.ai)
+- **Live Demo**: [https://tidb.ai](https://tidb.ai?utm_source=tidb.ai&utm_medium=community)
+- **Deployment Docs**: [Deployment Docs](https://tidb.ai/docs/?utm_source=github&utm_medium=tidb.ai)
 
 ## Features
 
@@ -42,10 +42,6 @@ An open source GraphRAG (Knowledge Graph) built on top of [TiDB Vector](https://
 - [Next.js](https://nextjs.org/) – Framework
 - [shadcn/ui](https://ui.shadcn.com/) - Design
 
-## Contact Us
-
-You can reach out to us on [@TiDB_Developer](https://twitter.com/TiDB_Developer) on Twitter.
-
 ## Contributing
 
 We welcome contributions from the community. If you are interested in contributing to the project, please read the [Contributing Guidelines](/CONTRIBUTING.md).
@@ -60,4 +56,8 @@ We welcome contributions from the community. If you are interested in contributi
 
 ## License
 
-TiDB.AI is open-source under the Apache License, Version 2.0. You can [find it here](/LICENSE.txt).
+AutoFlow is open-source under the Apache License, Version 2.0. You can [find it here](/LICENSE.txt).
+
+## Contact
+
+You can reach out to us on [@TiDB_Developer](https://twitter.com/TiDB_Developer) on Twitter.

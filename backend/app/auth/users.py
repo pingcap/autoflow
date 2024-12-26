@@ -13,7 +13,7 @@ from fastapi_users.authentication import (
 from fastapi_users.authentication.strategy import DatabaseStrategy
 from fastapi_users_db_sqlmodel import SQLModelUserDatabaseAsync
 from fastapi_users_db_sqlmodel.access_token import SQLModelAccessTokenDatabaseAsync
-from fastapi_users.exceptions import UserAlreadyExists
+from fastapi_users.exceptions import UserAlreadyExists, UserNotExists
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings, Environment
@@ -21,7 +21,7 @@ from app.core.db import get_db_async_session
 from app.models import User, UserSession
 from app.auth.db import get_user_db, get_user_session_db
 from app.auth.api_keys import api_key_manager
-from app.auth.schemas import UserCreate
+from app.auth.schemas import UserCreate, UserUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -156,4 +156,30 @@ async def create_user(
                 return user
     except UserAlreadyExists:
         logger.error(f"User {email} already exists")
+        raise
+
+
+async def update_user_password(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    new_password: str,
+) -> User:
+    try:
+        async with get_user_db_context(session) as user_db:
+            async with get_user_manager_context(user_db) as user_manager:
+                user = await user_manager.get(user_id)
+                if not user:
+                    raise UserNotExists(f"User {user_id} does not exist")
+
+                user_update = UserUpdate(password=new_password)
+                await user_manager.update(user_update, user)
+                # verify
+                updated_user = await user_manager.get(user_id)
+                return updated_user
+
+    except UserNotExists as e:
+        logger.error(str(e))
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update password for user {id}: {e}")
         raise

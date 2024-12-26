@@ -2,6 +2,7 @@
 
 import { type DatasourceKgIndexError, type DatasourceVectorIndexError } from '@/api/datasources';
 import { listKnowledgeBaseKgIndexErrors, listKnowledgeBaseVectorIndexErrors, retryKnowledgeBaseAllFailedTasks } from '@/api/knowledge-base';
+import { errorMessageCell } from '@/components/cells/error-message';
 import { link } from '@/components/cells/link';
 import { IndexProgressChart, IndexProgressChartPlaceholder } from '@/components/charts/IndexProgressChart';
 import { TotalCard } from '@/components/charts/TotalCard';
@@ -142,7 +143,7 @@ const vectorIndexErrorsColumns: ColumnDef<DatasourceVectorIndexError, any>[] = [
   }),
   vectorIndexErrorsHelper.accessor('source_uri', { header: 'Source URI', cell: link({ url: row => row.source_uri, text: row => row.source_uri }) }),
   vectorIndexErrorsHelper.accessor('error', {
-    cell: ({ getValue }) => <ErrorPopper>{getValue()}</ErrorPopper>,
+    cell: errorMessageCell(),
   }),
 ];
 
@@ -151,30 +152,6 @@ const kgIndexErrorsColumns: ColumnDef<DatasourceKgIndexError, any>[] = [
   kgIndexErrorsHelper.accessor('source_uri', { header: 'Source URI', cell: link({ url: row => row.source_uri, text: row => row.source_uri }) }),
   kgIndexErrorsHelper.accessor('chunk_id', {}),
   kgIndexErrorsHelper.accessor('error', {
-    cell: ({ getValue }) => <ErrorPopper>{getValue()}</ErrorPopper>,
+    cell: errorMessageCell(),
   }),
 ];
-
-function ErrorPopper ({ children }: { children: string | null }) {
-  if (!children || children.length <= 25) {
-    return children;
-  }
-
-  const shortcut = children.slice(0, 25);
-
-  return (
-    <HoverCard>
-      <HoverCardTrigger>
-        {shortcut}{'... '}
-        <span className="text-muted-foreground">
-          ({children.length + ' characters'})
-        </span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-96 h-48">
-        <div className="size-full overflow-scroll">
-          <pre className="whitespace-pre">{children}</pre>
-        </div>
-      </HoverCardContent>
-    </HoverCard>
-  );
-}

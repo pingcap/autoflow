@@ -4,6 +4,7 @@ services:
   redis:
     image: redis:6.0.16
     restart: always
+    pull_policy: always
     volumes:
       - ${E2E_DATA_REDIS_DIR:-.data/redis}:/data
 

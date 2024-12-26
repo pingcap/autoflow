@@ -4,7 +4,7 @@ import numpy as np
 import tidb_vector
 from dspy.functional import TypedPredictor
 from deepdiff import DeepDiff
-from typing import List, Optional, Tuple, Dict, Set, Type
+from typing import List, Optional, Tuple, Dict, Set, Type, Any
 from collections import defaultdict
 
 from llama_index.core.embeddings.utils import EmbedType, resolve_embed_model
@@ -13,11 +13,16 @@ import sqlalchemy
 from sqlmodel import Session, asc, func, select, text, SQLModel
 from sqlalchemy.orm import aliased, defer, joinedload
 from tidb_vector.sqlalchemy import VectorAdaptor
+from sqlalchemy import or_, desc
 
 from app.core.db import engine
 from app.rag.knowledge_graph.base import KnowledgeGraphStore
 from app.rag.knowledge_graph.schema import Entity, Relationship, SynopsisEntity
-from app.models import Entity as DBEntity, Relationship as DBRelationship
+from app.models import (
+    Entity as DBEntity,
+    Relationship as DBRelationship,
+    Chunk as DBChunk,
+)
 from app.models import EntityType
 from app.rag.knowledge_graph.graph_store.helpers import (
     calculate_relationship_score,
@@ -75,6 +80,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
         description_similarity_threshold=0.9,
         entity_db_model: Type[SQLModel] = DBEntity,
         relationship_db_model: Type[SQLModel] = DBRelationship,
+        chunk_db_model: Type[SQLModel] = DBChunk,
     ):
         self._session = session
         self._owns_session = session is None
@@ -95,6 +101,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
         )
         self._entity_model = entity_db_model
         self._relationship_model = relationship_db_model
+        self._chunk_model = chunk_db_model
 
     def ensure_table_schema(self) -> None:
         inspector = sqlalchemy.inspect(engine)
@@ -204,6 +211,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
                         description=row["description"],
                         metadata=row["meta"],
                     ),
+                    commit=False,
                 )
             )
 
@@ -226,28 +234,36 @@ class TiDBGraphStore(KnowledgeGraphStore):
                     description=description,
                     metadata={"status": "need-revised"},
                 ),
-            )
-
-        for _, row in relationships_df.iterrows():
-            source_entity = _find_or_create_entity_for_relation(
-                row["source_entity"], row["source_entity_description"]
-            )
-            target_entity = _find_or_create_entity_for_relation(
-                row["target_entity"], row["target_entity_description"]
-            )
-
-            self.create_relationship(
-                source_entity,
-                target_entity,
-                Relationship(
-                    source_entity=source_entity.name,
-                    target_entity=target_entity.name,
-                    relationship_desc=row["relationship_desc"],
-                ),
-                relationship_metadata=row["meta"],
                 commit=False,
             )
-        self._session.commit()
+
+        try:
+            for _, row in relationships_df.iterrows():
+                logger.info("save entities for relationship %s -> %s -> %s", row["source_entity"], row["relationship_desc"], row["target_entity"])
+                source_entity = _find_or_create_entity_for_relation(
+                    row["source_entity"], row["source_entity_description"]
+                )
+                target_entity = _find_or_create_entity_for_relation(
+                    row["target_entity"], row["target_entity_description"]
+                )
+
+                self.create_relationship(
+                    source_entity,
+                    target_entity,
+                    Relationship(
+                        source_entity=source_entity.name,
+                        target_entity=target_entity.name,
+                        relationship_desc=row["relationship_desc"],
+                    ),
+                    relationship_metadata=row["meta"],
+                    commit=False,
+                )
+
+            self._session.commit()
+        except Exception as e:
+            logger.error(e, exc_info=True)
+            self._session.rollback()
+            raise e
 
     def create_relationship(
         self,
@@ -276,8 +292,11 @@ class TiDBGraphStore(KnowledgeGraphStore):
         self._session.add(relationship_object)
         if commit:
             self._session.commit()
+            self._session.refresh(relationship_object)
+        else:
+            self._session.flush()
 
-    def get_or_create_entity(self, entity: Entity) -> SQLModel:
+    def get_or_create_entity(self, entity: Entity, commit: bool = True) -> SQLModel:
         # using the cosine distance between the description vectors to determine if the entity already exists
         entity_type = (
             EntityType.synopsis
@@ -340,8 +359,13 @@ class TiDBGraphStore(KnowledgeGraphStore):
                     db_obj.meta_vec = get_entity_metadata_embedding(
                         db_obj.meta, self._embed_model
                     )
-                    self._session.commit()
-                    self._session.refresh(db_obj)
+
+                    self._session.add(db_obj)
+                    if commit:
+                        self._session.commit()
+                        self._session.refresh(db_obj)
+                    else:
+                        self._session.flush()
                     return db_obj
 
         synopsis_info_str = (
@@ -360,8 +384,12 @@ class TiDBGraphStore(KnowledgeGraphStore):
             entity_type=entity_type,
         )
         self._session.add(db_obj)
-        self._session.commit()
-        self._session.refresh(db_obj)
+        if commit:
+            self._session.commit()
+            self._session.refresh(db_obj)
+        else:
+            self._session.flush()
+
         return db_obj
 
     def _try_merge_entities(self, entities: List[Entity]) -> Entity:
@@ -709,7 +737,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
     def fetch_similar_entities(
         self,
         embedding: list,
-        top_k: int = 5,
+        top_k: int = 10,
         entity_type: EntityType = EntityType.original,
         session: Optional[Session] = None,
     ):
@@ -742,3 +770,278 @@ class TiDBGraphStore(KnowledgeGraphStore):
             new_entity_set.add(entity)
 
         return new_entity_set
+
+    def retrieve_graph_data(
+        self,
+        query_text: str,
+        top_k: int = 5,
+        similarity_threshold: float = 0.7,
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """Retrieve related entities and relationships using semantic search.
+
+        Args:
+            query_text: The search query text
+            top_k: Maximum number of results to return for each type
+            similarity_threshold: Minimum similarity score threshold
+
+        Returns:
+            Dictionary containing:
+            - entities: List of similar entities with similarity scores
+            - relationships: List of similar relationships with similarity scores
+        """
+        query_embedding = get_query_embedding(query_text, self._embed_model)
+
+        # Query similar entities
+        entity_query = (
+            select(
+                self._entity_model,
+                (
+                    1
+                    - self._entity_model.description_vec.cosine_distance(
+                        query_embedding
+                    )
+                ).label("similarity"),
+            )
+            .options(
+                defer(self._entity_model.description_vec),
+                defer(self._entity_model.meta_vec),
+            )
+            .order_by(desc("similarity"))
+            .having(text("similarity >= :threshold"))
+            .params(threshold=similarity_threshold)
+            .limit(top_k)
+        )
+
+        # Query similar relationships
+        relationship_query = (
+            select(
+                self._relationship_model,
+                (
+                    1
+                    - self._relationship_model.description_vec.cosine_distance(
+                        query_embedding
+                    )
+                ).label("similarity"),
+            )
+            .options(
+                defer(self._relationship_model.description_vec),
+                joinedload(self._relationship_model.source_entity)
+                .defer(self._entity_model.meta_vec)
+                .defer(self._entity_model.description_vec),
+                joinedload(self._relationship_model.target_entity)
+                .defer(self._entity_model.meta_vec)
+                .defer(self._entity_model.description_vec),
+            )
+            .order_by(desc("similarity"))
+            .having(text("similarity >= :threshold"))
+            .params(threshold=similarity_threshold)
+            .limit(top_k)
+        )
+
+        # Execute both queries
+        entities = []
+        relationships = []
+
+        for entity, similarity in self._session.exec(entity_query).all():
+            entities.append(
+                {
+                    "id": entity.id,
+                    "name": entity.name,
+                    "description": entity.description,
+                    "metadata": entity.meta,
+                    "similarity_score": similarity,
+                }
+            )
+
+        for relationship, similarity in self._session.exec(relationship_query).all():
+            relationships.append(
+                {
+                    "id": relationship.id,
+                    "relationship": relationship.description,
+                    "source_entity": {
+                        "id": relationship.source_entity.id,
+                        "name": relationship.source_entity.name,
+                        "description": relationship.source_entity.description,
+                    },
+                    "target_entity": {
+                        "id": relationship.target_entity.id,
+                        "name": relationship.target_entity.name,
+                        "description": relationship.target_entity.description,
+                    },
+                    "similarity_score": similarity,
+                }
+            )
+
+        return {"entities": entities, "relationships": relationships}
+
+    def retrieve_neighbors(
+        self,
+        entities_ids: List[int],
+        query: str,
+        max_depth: int = 1,
+        max_neighbors: int = 20,
+        similarity_threshold: float = 0.7,
+    ) -> Dict[str, List[Dict]]:
+        """Retrieve most relevant neighbor paths for a group of similar nodes.
+
+        Args:
+            node_ids: List of source node IDs (representing similar entities)
+            query: Search query for relevant relationships
+            max_depth: Maximum depth for relationship traversal
+            max_neighbors: Maximum number of total neighbor paths to return
+            similarity_threshold: Minimum similarity score threshold
+
+        Returns:
+            Dictionary containing most relevant paths from source nodes to neighbors
+        """
+        query_embedding = get_query_embedding(query, self._embed_model)
+        # Get all source entities
+        source_entities = self._session.exec(
+            select(self._entity_model)
+            .options(
+                defer(self._entity_model.description_vec),
+                defer(self._entity_model.meta_vec),
+            )
+            .where(self._entity_model.id.in_(entities_ids))
+        ).all()
+
+        # Track visited nodes and discovered paths
+        all_visited = set(entities_ids)
+        current_level_nodes = set(entities_ids)
+        neighbors = []  # Store all discovered paths with their relevance scores
+
+        for depth in range(max_depth):
+            if not current_level_nodes:
+                break
+
+            # Query relationships for current level
+            relationships = self._session.exec(
+                select(
+                    self._relationship_model,
+                    (
+                        1
+                        - self._relationship_model.description_vec.cosine_distance(
+                            query_embedding
+                        )
+                    ).label("similarity"),
+                )
+                .options(
+                    defer(self._relationship_model.description_vec),
+                    joinedload(self._relationship_model.source_entity)
+                    .defer(self._entity_model.meta_vec)
+                    .defer(self._entity_model.description_vec),
+                    joinedload(self._relationship_model.target_entity)
+                    .defer(self._entity_model.meta_vec)
+                    .defer(self._entity_model.description_vec),
+                )
+                .where(
+                    or_(
+                        self._relationship_model.source_entity_id.in_(
+                            current_level_nodes
+                        ),
+                        self._relationship_model.target_entity_id.in_(
+                            current_level_nodes
+                        ),
+                    )
+                )
+                .order_by(desc("similarity"))
+                .having(text("similarity >= :threshold"))
+                .params(threshold=similarity_threshold)
+                .limit(max_neighbors)
+            ).all()
+
+            next_level_nodes = set()
+
+            for rel, similarity in relationships:
+                # Determine direction and connected entity
+                if rel.source_entity_id in current_level_nodes:
+                    connected_id = rel.target_entity_id
+                else:
+                    connected_id = rel.source_entity_id
+
+                # Skip if already visited
+                if connected_id in all_visited:
+                    continue
+
+                neighbors.append(
+                    {
+                        "id": rel.id,
+                        "relationship": rel.description,
+                        "source_entity": {
+                            "id": rel.source_entity.id,
+                            "name": rel.source_entity.name,
+                            "description": rel.source_entity.description,
+                        },
+                        "target_entity": {
+                            "id": rel.target_entity.id,
+                            "name": rel.target_entity.name,
+                            "description": rel.target_entity.description,
+                        },
+                        "similarity_score": similarity,
+                    }
+                )
+                next_level_nodes.add(connected_id)
+                all_visited.add(connected_id)
+
+            current_level_nodes = next_level_nodes
+
+        # Sort all paths by similarity score and return top max_neighbors
+        neighbors.sort(key=lambda x: x["similarity_score"], reverse=True)
+
+        return {"relationships": neighbors[:max_neighbors]}
+
+    def get_chunks_by_relationships(
+        self,
+        relationships_ids: List[int],
+        session: Optional[Session] = None,
+    ) -> List[Dict[str, Any]]:
+        """Get chunks for a list of relationships.
+
+        Args:
+            relationships: List of relationship objects
+            session: Optional database session
+
+        Returns:
+            List of dictionaries containing chunk information:
+            - text: chunk text content
+            - document_id: associated document id
+            - meta: chunk metadata
+        """
+        session = session or self._session
+
+        relationships = session.exec(
+            select(self._relationship_model).where(
+                self._relationship_model.id.in_(relationships_ids)
+            )
+        ).all()
+
+        # Extract chunk IDs from relationships
+        chunk_ids = {
+            rel.meta.get("chunk_id")
+            for rel in relationships
+            if rel.meta.get("chunk_id") is not None
+        }
+
+        if not chunk_ids:
+            return []
+
+        # Query chunks
+        chunks = session.exec(
+            select(self._chunk_model).where(self._chunk_model.id.in_(chunk_ids))
+        ).all()
+
+        return [
+            {
+                "id": chunk.id,
+                "text": chunk.text,
+                "document_id": chunk.document_id,
+                "meta": {
+                    "language": chunk.meta.get("language"),
+                    "product": chunk.meta.get("product"),
+                    "resource": chunk.meta.get("resource"),
+                    "source_uri": chunk.meta.get("source_uri"),
+                    "tidb_version": chunk.meta.get("tidb_version"),
+                }
+            }
+            for chunk in chunks
+        ]

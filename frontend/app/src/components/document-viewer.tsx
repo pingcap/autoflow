@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 import Highlight from 'highlight.js/lib/core';
@@ -32,7 +32,7 @@ export function DocumentPreviewDialog ({ title, name, mime, content }: { title: 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="text-xs p-2 font-normal" variant="ghost" size="sm">
+        <Button className="text-xs p-2 font-normal font-mono" variant="ghost" size="sm">
           {name} <span className="text-muted-foreground">({nf.format(content.length)} characters)</span>
         </Button>
       </DialogTrigger>
@@ -41,6 +41,7 @@ export function DocumentPreviewDialog ({ title, name, mime, content }: { title: 
           <DialogTitle>
             {title}
           </DialogTitle>
+          <DialogDescription className="sr-only" />
         </DialogHeader>
         <ScrollArea className="h-[80vh]">
           <DocumentViewer mime={mime} content={content} />
@@ -56,7 +57,7 @@ function MarkdownViewer ({ value: propValue }: { value: string }) {
   useEffect(() => {
     setValue(propValue);
     try {
-      const { value: result } = Highlight.highlight('markdown', propValue);
+      const { value: result } = Highlight.highlight(propValue, { language: 'markdown' });
       setValue(result);
     } catch {
     }

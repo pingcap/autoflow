@@ -23,7 +23,7 @@ import { DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/c
 import { AlertTriangleIcon, DotIcon, PlusIcon } from 'lucide-react';
 import { forwardRef, type Ref } from 'react';
 
-export const EmbeddingModelSelect = forwardRef<any, Omit<FormComboboxProps, 'config'> & { reverse?: boolean }>(({ reverse = true, ...props }, ref) => {
+export const EmbeddingModelSelect = forwardRef<any, Omit<FormComboboxProps<EmbeddingModel, 'id'>, 'config'> & { reverse?: boolean }>(({ reverse = true, ...props }, ref) => {
   const { data: embeddingModels, isLoading, mutate, error } = useAllEmbeddingModels();
 
   return (
@@ -77,14 +77,14 @@ export const EmbeddingModelSelect = forwardRef<any, Omit<FormComboboxProps, 'con
           </ManagedDialog>
         ),
         key: 'id',
-      } satisfies FormComboboxConfig<EmbeddingModel>}
+      } satisfies FormComboboxConfig<EmbeddingModel, 'id'>}
     />
   );
 });
 
 EmbeddingModelSelect.displayName = 'EmbeddingModelSelect';
 
-export const LLMSelect = forwardRef<any, Omit<FormComboboxProps, 'config'> & { reverse?: boolean }>(({ reverse = true, ...props }, ref) => {
+export const LLMSelect = forwardRef<any, Omit<FormComboboxProps<LLM, 'id'>, 'config'> & { reverse?: boolean }>(({ reverse = true, ...props }, ref) => {
   const { data: llms, isLoading, mutate, error } = useAllLlms();
 
   return (
@@ -138,14 +138,14 @@ export const LLMSelect = forwardRef<any, Omit<FormComboboxProps, 'config'> & { r
         ),
         optionKeywords: option => [option.name, option.provider, option.model],
         key: 'id',
-      } satisfies FormComboboxConfig<LLM>}
+      } satisfies FormComboboxConfig<LLM, 'id'>}
     />
   );
 });
 
 LLMSelect.displayName = 'LLMSelect';
 
-export const RerankerSelect = forwardRef<any, Omit<FormComboboxProps, 'config'> & { reverse?: boolean }>(({ reverse = true, ...props }, ref) => {
+export const RerankerSelect = forwardRef<any, Omit<FormComboboxProps<Reranker, 'id'>, 'config'> & { reverse?: boolean }>(({ reverse = true, ...props }, ref) => {
   const { data: rerankers, mutate, isLoading, error } = useAllRerankers();
 
   return (
@@ -199,22 +199,21 @@ export const RerankerSelect = forwardRef<any, Omit<FormComboboxProps, 'config'> 
           </ManagedDialog>
         ),
         key: 'id',
-      } satisfies FormComboboxConfig<Reranker>}
+      } satisfies FormComboboxConfig<Reranker, 'id'>}
     />
   );
 });
 
 RerankerSelect.displayName = 'RerankerSelect';
 
-export interface ProviderSelectProps<Provider extends ProviderOption = ProviderOption> extends Omit<FormComboboxProps, 'config'> {
+export function ProviderSelect<Provider extends ProviderOption> ({
+  options, isLoading, error, ref, ...props
+}: {
   options: ProviderOption[] | undefined;
   isLoading: boolean;
   error: unknown;
-}
-
-export const ProviderSelect = forwardRef<any, ProviderSelectProps>(({
-  options, isLoading, error, ...props
-}, ref) => {
+  ref?: Ref<any>
+}) {
   return (
     <FormCombobox
       ref={ref}
@@ -232,16 +231,16 @@ export const ProviderSelect = forwardRef<any, ProviderSelectProps>(({
         itemClassName: 'space-y-1',
         renderValue: option => option.provider_display_name ?? option.provider,
         key: 'provider',
-      } satisfies FormComboboxConfig<ProviderOption>}
+      } satisfies FormComboboxConfig<ProviderOption, 'provider'>}
       contentWidth="anchor"
       {...props}
     />
   );
-});
+}
 
 ProviderSelect.displayName = 'ProviderSelect';
 
-export const KBSelect = forwardRef<any, Omit<FormComboboxProps, 'config'> & { reverse?: boolean }>(({ reverse = true, ...props }, ref) => {
+export const KBSelect = forwardRef<any, Omit<FormComboboxProps<KnowledgeBaseSummary, 'id'>, 'config'> & { reverse?: boolean }>(({ reverse = true, ...props }, ref) => {
   const { data: kbs, isLoading, error } = useAllKnowledgeBases();
 
   return (
@@ -290,14 +289,14 @@ export const KBSelect = forwardRef<any, Omit<FormComboboxProps, 'config'> & { re
           </div>
         ),
         key: 'id',
-      } satisfies FormComboboxConfig<KnowledgeBaseSummary>}
+      } satisfies FormComboboxConfig<KnowledgeBaseSummary, 'id'>}
     />
   );
 });
 
 KBSelect.displayName = 'KBSelect';
 
-export function EvaluationDatasetSelect ({ reverse = true, ref, ...props }: Omit<FormComboboxProps, 'config'> & { reverse?: boolean, ref?: Ref<any> }) {
+export function EvaluationDatasetSelect ({ reverse = true, ref, ...props }: Omit<FormComboboxProps<EvaluationDataset, 'id'>, 'config'> & { reverse?: boolean, ref?: Ref<any> }) {
 
   const { data: evaluationDatasets, isLoading, error } = useAllEvaluationDatasets();
 
@@ -321,12 +320,12 @@ export function EvaluationDatasetSelect ({ reverse = true, ref, ...props }: Omit
           </div>
         ),
         key: 'id',
-      } satisfies FormComboboxConfig<EvaluationDataset>}
+      } satisfies FormComboboxConfig<EvaluationDataset, 'id'>}
     />
   );
 }
 
-export function ChatEngineSelect ({ reverse = true, ref, ...props }: Omit<FormComboboxProps, 'config'> & { reverse?: boolean, ref?: Ref<any> }) {
+export function ChatEngineSelect ({ reverse = true, ref, ...props }: Omit<FormComboboxProps<ChatEngine, 'name'>, 'config'> & { reverse?: boolean, ref?: Ref<any> }) {
   const { data: chatEngines, isLoading, error } = useAllChatEngines();
 
   return (
@@ -355,7 +354,7 @@ export function ChatEngineSelect ({ reverse = true, ref, ...props }: Omit<FormCo
           </div>
         ),
         key: 'name',
-      } satisfies FormComboboxConfig<ChatEngine>}
+      } satisfies FormComboboxConfig<ChatEngine, 'name'>}
     />
   );
 }

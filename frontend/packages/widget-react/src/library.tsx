@@ -4,11 +4,12 @@ import { loadConfig } from './load-config';
 import { prepareGtag } from './prepare-gtag';
 import { Widget, type WidgetInstance } from './Widget';
 
-const script = document.currentScript;
+const script = document.currentScript as HTMLScriptElement;
 if (!script) {
   throw new Error('Cannot locate document.currentScript');
 }
 
+const src = script.src;
 const controlled = script.dataset.controlled === 'true';
 const trigger = controlled ? true : document.getElementById('tidb-ai-trigger');
 const chatEngine = script.dataset.chatEngine;
@@ -36,6 +37,7 @@ loadConfig().then(async ({ settings, bootstrapStatus, experimentalFeatures }) =>
     <GtagProvider configured gtagFn={gtagFn} gtagId={measurementId}>
       <Widget
         ref={refFn}
+        src={src}
         container={div}
         trigger={trigger}
         exampleQuestions={settings.custom_js_example_questions}

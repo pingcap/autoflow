@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
     });
     if (!options.isServer) {
       config.plugins.push(new MonacoWebpackPlugin({
-        languages: ['json'],
+        languages: ['json', 'markdown'],
         filename: 'static/[name].worker.js',
       }));
     }

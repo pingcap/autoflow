@@ -1,56 +1,78 @@
+import { formFieldLayout, type TypedFormFieldLayouts } from '@/components/form/field-layout';
 import { FormRootError } from '@/components/form/root-error';
-import { handleSubmitHelper } from '@/components/form/utils';
-import { Button } from '@/components/ui/button';
-import { Form } from '@/components/ui/form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { type ReactNode, useId } from 'react';
-import { type DefaultValues, type FieldValues, useForm } from 'react-hook-form';
+import { Form, formDomEventHandlers, FormSubmit } from '@/components/ui/form.beta';
+import { useForm } from '@tanstack/react-form';
+import { type FunctionComponent, type ReactNode, useId, useState } from 'react';
 import { z } from 'zod';
 
-export interface CreateEntityFormProps<T extends FieldValues, R> {
-  defaultValues?: DefaultValues<T>;
+export interface CreateEntityFormBetaProps<R, I> {
+  defaultValues?: I;
   onCreated?: (data: R) => void;
+  onInvalid?: () => void;
   transitioning?: boolean;
   children?: ReactNode;
 }
 
-export function withCreateEntityForm<T extends FieldValues, R> (
-  schema: z.ZodType<T, any, any>,
-  createApi: (data: T) => Promise<R>,
-) {
-  const resolver = zodResolver(schema);
+interface CreateEntityFormComponent<R, I> extends FunctionComponent<CreateEntityFormBetaProps<R, I>>, TypedFormFieldLayouts<I> {
+}
 
-  return function CreateEntityForm (
+export function withCreateEntityForm<T, R, I = any> (
+  schema: z.ZodType<T, any, I>,
+  createApi: (data: T) => Promise<R>,
+  { submitTitle = 'Create', submittingTitle }: {
+    submitTitle?: ReactNode
+    submittingTitle?: ReactNode
+  } = {},
+): CreateEntityFormComponent<R, I> {
+
+  function CreateEntityFormBeta (
     {
       defaultValues,
       onCreated,
+      onInvalid,
       transitioning,
       children,
-    }: CreateEntityFormProps<T, R>,
+    }: CreateEntityFormBetaProps<R, I>,
   ) {
     const id = useId();
+    const [submissionError, setSubmissionError] = useState<unknown>();
 
-    const form = useForm<T>({
-      resolver,
+    const form = useForm<I>({
+      validators: {
+        onSubmit: schema,
+      },
       defaultValues,
-    });
-
-    const handleSubmit = handleSubmitHelper(form, async data => {
-      const result = await createApi(data);
-
-      onCreated?.(result);
+      onSubmit: async ({ value, formApi }) => {
+        try {
+          const data = await createApi(schema.parse(value));
+          onCreated?.(data);
+        } catch (e) {
+          setSubmissionError(e);
+        }
+      },
+      onSubmitInvalid: () => {
+        onInvalid?.();
+      },
     });
 
     return (
-      <Form {...form}>
-        <form id={id} className="max-w-screen-sm space-y-4" onSubmit={handleSubmit}>
+      <Form form={form} disabled={transitioning} submissionError={submissionError}>
+        <form
+          id={id}
+          className="max-w-screen-sm space-y-4"
+          {...formDomEventHandlers(form, transitioning)}
+        >
           {children}
           <FormRootError />
-          <Button type="submit" form={id} disabled={transitioning || form.formState.isSubmitting || form.formState.disabled}>
-            Create
-          </Button>
+          <FormSubmit form={id} transitioning={transitioning} submittingChildren={submittingTitle}>
+            {submitTitle}
+          </FormSubmit>
         </form>
       </Form>
     );
-  };
+  }
+
+  Object.assign(CreateEntityFormBeta, formFieldLayout<I>());
+
+  return CreateEntityFormBeta as CreateEntityFormComponent<R, I>;
 }

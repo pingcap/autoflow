@@ -2,7 +2,7 @@
 
 set -e
 
-TIDB_VERSION=v8.4.0
+TIDB_VERSION=v8.5.0
 
 # Download tiup
 function prepare_tidb () {

@@ -205,7 +205,7 @@ test('Bootstrap', async ({ browser, page }) => {
       await page.waitForSelector('[name=name]');
       await page.fill('input[name=name]', 'My Knowledge Base');
       await page.fill('textarea[name=description]', 'This is E2E Knowledge Base.');
-      await page.getByRole('button', { name: 'Submit', exact: true }).click();
+      await page.getByRole('button', { name: 'Create', exact: true }).click();
 
       await page.waitForURL(/\/knowledge-bases\/1\/data-sources/);
     }

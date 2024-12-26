@@ -18,8 +18,8 @@ export function useGeneralSettingsFormContext<Data> () {
 
 export function GeneralSettingsFormContextProvider<Data> ({ value, children }: { value: GeneralSettingsFormContextValues<Data>, children: ReactNode }) {
   return (
-    <GeneralSettingsFormContext.Provider value={value}>
+    <GeneralSettingsFormContext value={value}>
       {children}
-    </GeneralSettingsFormContext.Provider>
+    </GeneralSettingsFormContext>
   );
 }

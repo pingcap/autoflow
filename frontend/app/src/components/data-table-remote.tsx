@@ -7,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { DataTableProvider } from '@/components/use-data-table';
+import { getErrorMessage } from '@/lib/errors';
 import type { Page, PageParams } from '@/lib/request';
+import { cn } from '@/lib/utils';
 import { ColumnDef, type ColumnFilter, flexRender, getCoreRowModel, getSortedRowModel, SortingState, Table as ReactTable, useReactTable } from '@tanstack/react-table';
 import type { PaginationState } from '@tanstack/table-core';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -27,10 +29,18 @@ interface DataTableRemoteProps<TData, TValue> {
   selectable?: boolean;
   batchOperations?: (rows: string[], revalidate: () => void) => ReactNode;
   refreshInterval?: number | ((data: Page<TData> | undefined) => number);
+  /**
+   * @deprecated
+   */
   before?: ReactNode;
+  /**
+   * @deprecated
+   */
   after?: ReactNode;
+  /**
+   * @deprecated
+   */
   toolbar?: (table: ReactTable<TData>) => ReactNode;
-  ts?: number;
   defaultSorting?: SortingState;
 }
 
@@ -61,7 +71,7 @@ export function DataTableRemote<TData, TValue> ({
   }, [rowSelection]);
 
   // Fetch data.
-  const { data, mutate, isLoading, isValidating } = useSWR(`${apiKey}?page=${pagination.pageIndex}&size=${pagination.pageSize}${globalFilter && `&query=${globalFilter}`}`, () => api({ page: pagination.pageIndex + 1, size: pagination.pageSize }, { globalFilter }), {
+  const { data, mutate, error, isLoading, isValidating } = useSWR(`${apiKey}?page=${pagination.pageIndex}&size=${pagination.pageSize}${globalFilter && `&query=${globalFilter}`}`, () => api({ page: pagination.pageIndex + 1, size: pagination.pageSize }, { globalFilter }), {
     refreshInterval,
     revalidateOnReconnect: false,
     revalidateOnFocus: false,
@@ -176,8 +186,10 @@ export function DataTableRemote<TData, TValue> ({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
-                    No results.
+                  <TableCell colSpan={columns.length} className={cn('h-24 text-center', !!error && 'text-destructive')}>
+                    {error
+                      ? `Failed to load data: ${getErrorMessage(error)}`
+                      : 'Empty List'}
                   </TableCell>
                 </TableRow>
               )}

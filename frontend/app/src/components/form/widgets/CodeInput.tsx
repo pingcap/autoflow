@@ -78,7 +78,7 @@ export const CodeInput = forwardRef<any, CodeInputProps>(({
 
   useEffect(() => {
     if (editor && onChange) {
-      const { dispose } = editor.onEndUpdate(() => onChange(editor.getValue()));
+      const { dispose } = editor.onDidChangeModelContent(() => onChange(editor.getValue()));
       return dispose;
     }
   }, [editor, onChange]);

@@ -47,7 +47,7 @@ export function MessageContextSources ({ message }: { message: ChatMessageContro
         </ul>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>}
-      {empty && ongoing?.state !== AppChatStreamState.SEARCH_RELATED_DOCUMENTS && <div className="text-muted">Empty</div>}
+      {empty && ongoing?.state !== AppChatStreamState.SEARCH_RELATED_DOCUMENTS && <div className="text-muted-foreground">Empty</div>}
       {empty && ongoing?.state === AppChatStreamState.SEARCH_RELATED_DOCUMENTS && (
         <ul className="flex gap-2 py-4">
           <Skeleton className="rounded" style={{ width: 198, height: 52 }} />

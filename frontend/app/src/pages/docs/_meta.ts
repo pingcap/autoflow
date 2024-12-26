@@ -34,6 +34,9 @@ export default {
   "chat-engine": {
     "title": "Chat Engine"
   },
+  "evaluation": {
+    "title": "Evaluation"
+  },
   "javascript": {
     "title": "JS Widget"
   },

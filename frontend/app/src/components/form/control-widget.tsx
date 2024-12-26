@@ -178,7 +178,7 @@ export const FormCombobox = forwardRef<any, FormComboboxProps>(({ config, placeh
           asChild={!!children}
         >
           {config.loading
-            ? <span></span>
+            ? <span>Loading options...</span>
             : !!config.error
               ? <span className="text-destructive">{getErrorMessage(config.error)}</span>
               : (children ? children : current ? (config.renderValue ?? config.renderOption)(current) : <span className="text-muted-foreground">{placeholder}</span>)

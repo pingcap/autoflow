@@ -45,7 +45,11 @@ This document provides instructions for deploying the entire Autoflow applicatio
 4. Bootstrap the database with initial data:
 
     ```bash
+    # Use default admin credentials (admin@example.com with random password)
     docker compose run backend /bin/sh -c "python bootstrap.py"
+
+    # Or specify a custom admin email
+    docker compose run backend /bin/sh -c "python bootstrap.py --email new-admin@example.com"
     ```
 
     Running the bootstrap script creates an admin user. You can find the username and password in the output.

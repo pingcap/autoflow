@@ -360,15 +360,24 @@ Given the conversation history between the User and Assistant, along with the la
             - Set the background to "Other topics."
 
 3. **Goal Generation**:
-    - Determine the latest User intent from the follow-up question and the chat history.
-    - Reformulate the latest User follow-up question into a clear, standalone question suitable for processing by the agent.
-    - Specify the detected language for the answer.
-    - Define the desired answer format.
-    - Include any additional requirements as needed.
+    - **Clarify Intent to Avoid Ambiguity**:
+        - **Instructional Guidance**:
+            - If the User's question seeks guidance or a method (e.g., starts with "How to"), ensure the goal reflects a request for a step-by-step guide or best practices.
+        - **Information Retrieval**:
+            - If the User's question seeks specific information or confirmation (e.g., starts with "Can you" or "Is it possible"), rephrase it to focus on providing the requested information or verification without implying that the assistant should perform any actions.
+            - **Important**: Do not interpret these questions as requests for the assistant to execute operations. Instead, understand whether the user seeks to confirm certain information or requires a proposed solution, and restrict responses to information retrieval and guidance based on available documentation.
+    - **Reformulate the Latest User Follow-up Question**:
+        - Ensure the question is clear, directive, and suitable for a Q&A format.
+    - **Specify Additional Details**:
+        - **Detected Language**: Clearly indicate the language.
+        - **Desired Answer Format**: Specify if the answer should be in text, table, code snippet, etc.
+        - **Additional Requirements**: Include any other necessary instructions to tailor the response appropriately.
 
 4. **Output**:
     - Produce a goal string in the following format:
       "[Refined Question] (Lang: [Detected Language], Format: [Format], Background: [Specified Goal Scenario])"
+
+**Examples**:
 
 **Example 1**:
 
@@ -431,6 +440,22 @@ Follow-up question:
 Goal:
 
 Why is TiDB Serverless up to 70% cheaper than MySQL RDS? Please provide a comparison in a table format if possible. (Lang: English, Format: table, Background: Cost comparison between TiDB Serverless and MySQL RDS.)
+
+---------------------
+
+**Example 5 (Enhanced for Clarity and Guidance)**:
+
+Chat history:
+
+[]
+
+Follow-up question:
+
+"能否找到 tidb 中哪些视图的定义中包含已经被删除的表？"
+
+Goal:
+
+How to find which views in TiDB have definitions that include tables that have been deleted? (Lang: Chinese, Format: text, Background: TiDB product related consulting.)
 
 ---------------------
 

@@ -1,11 +1,10 @@
 import type { FormControlWidgetProps } from '@/components/form/control-widget';
 import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
 import { MinusIcon, PlusIcon } from 'lucide-react';
 import { cloneElement, type ReactElement, type ReactNode } from 'react';
-import { ControllerRenderProps, FieldPath, type FieldPathByValue, type FieldPathValue, FieldValues } from 'react-hook-form';
+import { ControllerRenderProps, FieldPath, type FieldPathByValue, type FieldPathValue, FieldValues, useFormContext } from 'react-hook-form';
 
 export interface FormFieldLayoutProps<
   TFieldValues extends FieldValues = FieldValues,
@@ -133,110 +132,79 @@ export function FormPrimitiveArrayFieldBasicLayout<
   label,
   description,
   children,
+  required,
   defaultValue,
 }: FormFieldLayoutProps<TFieldValues, TName> & { defaultValue: () => FieldPathValue<TFieldValues, TName>[0] }) {
-  return (
-    <FormField<TFieldValues, TName>
-      name={name}
-      render={({ field: arrayField }) => (
-        <FormItem>
-          <FormLabel>{label}</FormLabel>
-          <ol className="space-y-2">
-            {(arrayField.value as any[] ?? []).map((_, index) => (
-              <FormField
-                key={index}
-                name={`${name}.${index}`}
-                render={({ field }) => (
-                  <li>
-                    <FormItem>
-                      <div className="flex gap-2">
-                        <FormControl className="flex-1">
-                          {renderWidget(children, field as any)}
-                        </FormControl>
-                        <Button
-                          disabled={field.disabled}
-                          size="icon"
-                          variant="secondary"
-                          type="button"
-                          onClick={() => {
-                            const newArray = [...arrayField.value];
-                            newArray.splice(index, 0, defaultValue());
-                            arrayField.onChange(newArray);
-                          }}
-                        >
-                          <PlusIcon className="size-4" />
-                        </Button>
-                        <Button
-                          disabled={field.disabled}
-                          size="icon"
-                          variant="ghost"
-                          type="button"
-                          onClick={() => {
-                            const newArray = [...arrayField.value];
-                            newArray.splice(index, 1);
-                            arrayField.onChange(newArray);
-                          }}
-                        >
-                          <MinusIcon className="size-4" />
-                        </Button>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  </li>
-                )}
-              />
-            ))}
-          </ol>
-          <Button
-            className="w-full"
-            variant="outline"
-            type="button"
-            onClick={() => {
-              arrayField.onChange([...arrayField.value, defaultValue()]);
-            }}
-          >
-            <PlusIcon className="w-4 mr-1" />
-            New Item
-          </Button>
-          {description && <FormDescription className="break-words">{description}</FormDescription>}
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  );
-}
+  const form = useFormContext();
 
-export function FormCollapsedBasicLayout<
-  TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
-> ({
-  name,
-  label,
-  description,
-  children,
-  fallbackValue,
-}: FormFieldLayoutProps<TFieldValues, TName>) {
+  const arrayFieldValue: any[] = form.watch(name);
+  const arrayFieldOnChange = (values: any[]) => form.setValue(name, values as any, { shouldValidate: true });
+
   return (
-    <FormField<TFieldValues, TName>
-      name={name}
-      render={({ field }) => (
-        <Collapsible>
-          <FormItem>
-            <CollapsibleTrigger className="flex gap-2 items-center group cursor-pointer">
-              <PlusIcon className="opacity-50 group-hover:opacity-100 transition-opacity size-4 hidden group-data-[state=closed]:block" />
-              <MinusIcon className="opacity-50 group-hover:opacity-100 transition-opacity size-4 hidden group-data-[state=open]:block" />
-              <FormLabel className="cursor-pointer">{label}</FormLabel>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <FormControl>
-                {renderWidget(children, field, fallbackValue)}
-              </FormControl>
-            </CollapsibleContent>
-            {description && <FormDescription className="break-words">{description}</FormDescription>}
-            <FormMessage />
-          </FormItem>
-        </Collapsible>
-      )}
-    />
+    <FormItem>
+      <FormLabel>
+        {label}
+        {required && <sup className="text-destructive" aria-hidden>*</sup>}
+      </FormLabel>
+      <ol className="space-y-2">
+        {arrayFieldValue.map((_, index) => (
+          <FormField
+            key={index}
+            name={`${name}.${index}`}
+            render={({ field }) => (
+              <li>
+                <FormItem>
+                  <div className="flex gap-2">
+                    <FormControl className="flex-1">
+                      {renderWidget(children, field as any)}
+                    </FormControl>
+                    <Button
+                      disabled={field.disabled}
+                      size="icon"
+                      variant="secondary"
+                      type="button"
+                      onClick={() => {
+                        const newArray = [...arrayFieldValue];
+                        newArray.splice(index, 0, defaultValue());
+                        arrayFieldOnChange(newArray);
+                      }}
+                    >
+                      <PlusIcon className="size-4" />
+                    </Button>
+                    <Button
+                      disabled={field.disabled}
+                      size="icon"
+                      variant="ghost"
+                      type="button"
+                      onClick={() => {
+                        const newArray = [...arrayFieldValue];
+                        newArray.splice(index, 1);
+                        arrayFieldOnChange(newArray);
+                      }}
+                    >
+                      <MinusIcon className="size-4" />
+                    </Button>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              </li>
+            )}
+          />
+        ))}
+      </ol>
+      <Button
+        className="w-full"
+        variant="outline"
+        type="button"
+        onClick={() => {
+          arrayFieldOnChange([...arrayFieldValue, defaultValue()]);
+        }}
+      >
+        <PlusIcon className="w-4 mr-1" />
+        New Item
+      </Button>
+      {description && <FormDescription className="break-words">{description}</FormDescription>}
+      <FormMessage />
+    </FormItem>
   );
 }

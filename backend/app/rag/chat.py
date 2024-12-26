@@ -891,6 +891,17 @@ class ChatService:
 
         response_text = stackvm_response_text
         base_url = stream_chat_api_url.replace("/api/stream_execute_vm", "")
+        try:
+            post_verification_result_url = self._post_verification(
+                goal,
+                response_text,
+                self.db_chat_obj.id,
+                db_assistant_message.id,
+            )
+            db_assistant_message.post_verification_result_url = post_verification_result_url
+        except Exception as e:
+            logger.error("Specific error occurred during post verification job.", exc_info=True)
+
         db_assistant_message.content = response_text
         db_assistant_message.trace_url = (
             f"{base_url}?task_id={task_id}" if task_id else ""
@@ -920,6 +931,7 @@ class ChatService:
                 assistant_message=db_assistant_message,
             ),
         )
+
 
     def _parse_chat_messages(
         self, chat_messages: List[ChatMessage]

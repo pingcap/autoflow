@@ -79,6 +79,9 @@ test.describe('API', () => {
 
     await expectGetOkStep('/api/v1/admin/retrieve/documents?chat_engine=1&question=what%20is%20tidb&chat_engine=default&top_k=5');
     await expectGetOkStep('/api/v1/admin/embedding_retrieve?chat_engine=1&question=what%20is%20tidb&chat_engine=default&top_k=5');
+
+    await expectGetOkStep('/api/v1/admin/evaluation/datasets');
+    await expectGetOkStep('/api/v1/admin/evaluation/tasks');
   });
 });
 

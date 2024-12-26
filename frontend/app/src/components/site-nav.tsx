@@ -191,18 +191,6 @@ function SiteNavLinkItem ({ item, active, sub = false }: { item: NavLinkItem, ac
     badge = item.details;
   }
 
-  if (item.disabled && typeof item.disabled !== 'boolean') {
-    el = (
-      <Tooltip>
-        <TooltipTrigger asChild disabled={!!item.disabled}>
-          {el}
-        </TooltipTrigger>
-        <TooltipContent>
-          {item.disabled}
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
   if (item.onDelete) {
     el = (
       <div className="flex gap-2 items-center">
@@ -235,14 +223,31 @@ function SiteNavLinkItem ({ item, active, sub = false }: { item: NavLinkItem, ac
   const MenuItem = sub ? SidebarMenuSubItem : SidebarMenuItem;
   const MenuButton = sub ? SidebarMenuSubButton : SidebarMenuButton;
 
+  el = (
+    <MenuButton asChild isActive={active} disabled={!!item.disabled}>
+      <Link href={item.href}>
+        {el}
+      </Link>
+    </MenuButton>
+  );
+
+  if (item.disabled && typeof item.disabled !== 'boolean') {
+    el = (
+      <Tooltip>
+        <TooltipTrigger asChild disabled={!!item.disabled}>
+          {el}
+        </TooltipTrigger>
+        <TooltipContent>
+          {item.disabled}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
   return (
     <MenuItem>
-      <MenuButton asChild isActive={active} disabled={!!item.disabled}>
-        <Link href={item.href}>
-          {el}
-        </Link>
-      </MenuButton>
-      {badge && <SidebarMenuBadge className='pointer-events-auto'>{badge}</SidebarMenuBadge>}
+      {el}
+      {badge && <SidebarMenuBadge className="pointer-events-auto">{badge}</SidebarMenuBadge>}
     </MenuItem>
   );
 }

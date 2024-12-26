@@ -30,6 +30,16 @@ export function zodFile () {
   return z.custom<File>(value => value instanceof File);
 }
 
+export function zodJson () {
+  return z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.any().array(),
+    z.object({}).passthrough(),
+  ]);
+}
+
 const d = z
   .custom<string>(data => {
     if (typeof data !== 'string') {
@@ -64,4 +74,14 @@ export function zodPage<Z extends ZodType> (itemSchema: Z) {
     size: z.number(),
     pages: z.number(),
   });
+}
+
+export function noPage<T> (data: T[]): Page<T> {
+  return {
+    items: data,
+    total: data.length,
+    page: 1,
+    size: data.length,
+    pages: 1,
+  };
 }

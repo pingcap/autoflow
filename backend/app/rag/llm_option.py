@@ -88,7 +88,7 @@ admin_llm_options: List[LLMOption] = [
     LLMOption(
         provider=LLMProvider.GITEEAI,
         provider_display_name="Gitee AI",
-        provider_description="The Serverless API of Gitee AI offers ready-to-use cutting-edge model APIs for AI developers.",
+        provider_description="Gitee AI is a third-party model provider that offers ready-to-use cutting-edge model APIs for AI developers.",
         provider_url="https://ai.gitee.com",
         default_llm_model="Qwen2.5-72B-Instruct",
         default_config={

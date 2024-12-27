@@ -29,6 +29,7 @@ def get_kb_tidb_graph_store(session: Session, kb: KnowledgeBase) -> TiDBGraphSto
     entity_model = get_kb_entity_model(kb)
     relationship_model = get_kb_relationship_model(kb)
     inspection.inspect(relationship_model)
+    chunk_model = get_kb_chunk_model(kb)
 
     graph_store = TiDBGraphStore(
         dspy_lm=dspy_lm,
@@ -36,6 +37,7 @@ def get_kb_tidb_graph_store(session: Session, kb: KnowledgeBase) -> TiDBGraphSto
         embed_model=embed_model,
         entity_db_model=entity_model,
         relationship_db_model=relationship_model,
+        chunk_db_model=chunk_model,
     )
     return graph_store
 

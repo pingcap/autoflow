@@ -9,7 +9,7 @@ from app.models import User
 router = APIRouter()
 
 
-@router.get("/users")
+@router.get("/admin/users")
 def list_users(
     session: SessionDep,
     user: CurrentSuperuserDep,

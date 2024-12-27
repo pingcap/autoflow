@@ -8,7 +8,7 @@ from sqlmodel import select
 
 from app.api.deps import CurrentSuperuserDep, SessionDep
 from app.repositories import chat_repo
-from app.models import User, Chat, Feedback
+from app.models import Chat, Feedback
 from app.models.base import UUIDBaseModel
 
 router = APIRouter()
@@ -37,19 +37,6 @@ def chat_origin_trend(
 ) -> ChatStats:
     stats = chat_repo.chat_trend_by_origin(session, start_date, end_date)
     return ChatStats(start_date=start_date, end_date=end_date, values=stats)
-
-
-@router.get("/admin/stats/chats/users")
-def list_users(
-    session: SessionDep,
-    user: CurrentSuperuserDep,
-    params: Params = Depends(),
-) -> Page[User]:
-    return paginate(
-        session,
-        select(User).order_by(User.id),
-        params=params,
-    )
 
 
 class ChatOrigin(UUIDBaseModel):

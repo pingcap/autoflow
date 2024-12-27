@@ -44,6 +44,7 @@ from app.api.admin_routes import (
     stats as admin_stats,
     semantic_cache as admin_semantic_cache,
     langfuse as admin_langfuse,
+    user as admin_user,
 )
 from app.api.admin_routes.evaluation import (
     evaluation_task as admin_evaluation_task,
@@ -92,6 +93,7 @@ api_router.include_router(admin_evaluation_task.router, tags=["admin/evaluation/
 api_router.include_router(
     admin_evaluation_dataset.router, tags=["admin/evaluation/dataset"]
 )
+api_router.include_router(admin_user.router, tags=["admin/user"])
 
 api_router.include_router(
     fastapi_users.get_auth_router(auth_backend), prefix="/auth", tags=["auth"]

@@ -22,7 +22,7 @@ Setting up the project on your local machine is the first step to contributing t
 To test your local changes, you can build and run the project using:
 
 ```bash
-docker compose -f docker-compose.build.yml up
+docker compose -f docker-compose.dev.yml up
 ```
 
 ### Your First Contribution

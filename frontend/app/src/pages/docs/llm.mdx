@@ -38,6 +38,7 @@ Currently Autoflow supports the following LLM providers:
         "aws_region_name": "us-west-2"
     }
     ```
+- [Gitee AI](https://ai.gitee.com/serverless-api)
 - And all OpenAI-Like models:
     - [OpenRouter](https://openrouter.ai/)
         - Default config:
@@ -59,5 +60,19 @@ Currently Autoflow supports the following LLM providers:
         ```json
         {
             "api_base": "http://localhost:11434"
+        }
+        ```
+    - [vLLM](https://docs.vllm.ai/en/stable/)
+        - Default config:
+        ```json
+        {
+            "api_base": "http://localhost:8000/v1/"
+        }
+        ```
+    - [Xinference](https://inference.readthedocs.io/en/latest/index.html)
+        - Default config:
+        ```json
+        {
+            "api_base": "http://localhost:9997/v1/"
         }
         ```

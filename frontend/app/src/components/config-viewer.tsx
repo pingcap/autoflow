@@ -26,14 +26,14 @@ export function ConfigViewer ({ value: propValue }: { value: any }) {
     try {
       const string = JSON.stringify(propValue, undefined, 2);
       setValue(string);
-      const { value: result } = Highlight.highlight('json', string);
+      const { value: result } = Highlight.highlight(string, { language: 'json' });
       setValue(result);
     } catch {
     }
   }, [propValue]);
 
   return (
-    <code className='block p-2 rounded bg-accent'>
+    <code className="block p-2 rounded bg-accent">
       <pre className="whitespace-pre-wrap text-xs font-mono" dangerouslySetInnerHTML={{ __html: value }} />
     </code>
   );

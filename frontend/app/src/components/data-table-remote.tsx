@@ -11,10 +11,16 @@ import { getErrorMessage } from '@/lib/errors';
 import type { Page, PageParams } from '@/lib/request';
 import { cn } from '@/lib/utils';
 import { ColumnDef, type ColumnFilter, flexRender, getCoreRowModel, getSortedRowModel, SortingState, Table as ReactTable, useReactTable } from '@tanstack/react-table';
-import type { PaginationState } from '@tanstack/table-core';
+import type { CellContext, PaginationState, RowData } from '@tanstack/table-core';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { Fragment, type ReactNode, useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
+
+declare module '@tanstack/table-core' {
+  interface ColumnMeta<TData extends RowData, TValue> {
+    colSpan?: number | ((context: CellContext<TData, TValue>) => number);
+  }
+}
 
 export interface PageApiOptions {
   globalFilter: string;
@@ -37,9 +43,6 @@ interface DataTableRemoteProps<TData, TValue> {
    * @deprecated
    */
   after?: ReactNode;
-  /**
-   * @deprecated
-   */
   toolbar?: (table: ReactTable<TData>) => ReactNode;
   defaultSorting?: SortingState;
 }
@@ -146,7 +149,13 @@ export function DataTableRemote<TData, TValue> ({
   });
 
   return (
-    <DataTableProvider value={{ ...table, reload: () => { mutate(); } }}>
+    <DataTableProvider
+      value={{
+        ...table,
+        reload: () => { mutate(); },
+        loading: isLoading,
+      }}
+    >
       {before}
       {toolbar ? toolbar(table) : null}
       <TooltipProvider>
@@ -177,11 +186,20 @@ export function DataTableRemote<TData, TValue> ({
                     key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
+                    {row.getVisibleCells().map((cell) => {
+                      // Col span for advanced customization.
+                      const span = getColSpan(cell.column.columnDef, cell.getContext());
+
+                      if (span === 0) {
+                        return <Fragment key={cell.id} />;
+                      }
+
+                      return (
+                        <TableCell key={cell.id} colSpan={span}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      );
+                    })}
                   </TableRow>
                 ))
               ) : (
@@ -307,4 +325,15 @@ function steps (from: number, to: number) {
   }
 
   return arr;
+}
+
+function getColSpan<TData extends RowData, TValue> (columnDef: ColumnDef<TData, TValue>, context: CellContext<TData, TValue>) {
+  const colSpan = columnDef.meta?.colSpan;
+  if (colSpan == null) {
+    return undefined;
+  }
+  if (typeof colSpan === 'number') {
+    return colSpan;
+  }
+  return colSpan(context);
 }

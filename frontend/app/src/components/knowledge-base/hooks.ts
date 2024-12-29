@@ -33,3 +33,7 @@ export function mutateKnowledgeBases () {
     return false;
   });
 }
+
+export function mutateKnowledgeBaseDataSources (kbId: number) {
+  return mutate(`api.knowledge-bases.${kbId}.data-sources.list-all`);
+}

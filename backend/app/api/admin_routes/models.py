@@ -1,4 +1,5 @@
 from uuid import UUID
+from typing import Optional
 from pydantic import BaseModel
 
 from app.api.admin_routes.embedding_model.models import EmbeddingModelItem
@@ -35,3 +36,9 @@ class ChatEngineDescriptor(BaseModel):
     id: int
     name: str
     is_default: bool
+
+
+class RetrieveRequest(BaseModel):
+    query: str
+    chat_engine: Optional[str] = "default"
+    top_k: Optional[int] = 5

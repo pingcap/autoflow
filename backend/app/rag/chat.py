@@ -461,6 +461,7 @@ class ChatService:
                         graph_knowledges=graph_knowledges_context,
                         chat_history=self.chat_history,
                         question=self.user_question,
+                        current_date=datetime.now().strftime("%Y-%m-%d"),
                     ),
                 )
                 event.on_end(payload={EventPayload.COMPLETION: refined_question})
@@ -480,14 +481,18 @@ class ChatService:
                     MyCBEventType.CLARIFYING_QUESTION,
                     payload={EventPayload.QUERY_STR: refined_question},
                 ) as event:
-                    clarity_result = fast_llm.predict(
-                        prompt=get_prompt_by_jinja2_template(
-                            self.chat_engine_config.llm.clarifying_question_prompt,
-                            graph_knowledges=graph_knowledges_context,
-                            chat_history=self.chat_history,
-                            question=refined_question,
-                        ),
-                    ).strip().strip(".\"\'!")
+                    clarity_result = (
+                        fast_llm.predict(
+                            prompt=get_prompt_by_jinja2_template(
+                                self.chat_engine_config.llm.clarifying_question_prompt,
+                                graph_knowledges=graph_knowledges_context,
+                                chat_history=self.chat_history,
+                                question=refined_question,
+                            ),
+                        )
+                        .strip()
+                        .strip(".\"'!")
+                    )
 
                     clarity_needed = clarity_result.lower() != "false"
 
@@ -497,7 +502,6 @@ class ChatService:
                             f"Clarifying Question: {clarity_result}"
                         }
                     )
-
 
                     if clarity_needed:
                         if not annotation_silent:
@@ -829,7 +833,9 @@ class ChatService:
             if clean_goal:
                 goal = clean_goal
                 # todo: temporary add this to response_format, need to remove it later
-                response_format["Include SQLs Example Section"] = "If the answer contains some SQL operations, please feel free to provide a example SQLs at the end of the answer, which can provide better understanding for the user."
+                response_format["Include SQLs Example Section"] = (
+                    "If (and only if) the answer contains SQL operations, please feel free to provide a example section at the end of the answer, which can provide better understanding for the user."
+                )
         except Exception as e:
             logger.error(f"Failed to parse goal and response format: {e}")
 
@@ -840,10 +846,9 @@ class ChatService:
                     f"start to find_recent_assistant_messages_by_goal with goal: {goal}, response_format: {response_format}"
                 )
                 cache_messages = chat_repo.find_recent_assistant_messages_by_goal(
-                    self.db_session, {
-                        "goal": goal,
-                        "Lang": response_format.get("Lang", "English")
-                    }, 90
+                    self.db_session,
+                    {"goal": goal, "Lang": response_format.get("Lang", "English")},
+                    90,
                 )
                 logger.info(
                     f"find_recent_assistant_messages_by_goal result {len(cache_messages)} for goal {goal}"
@@ -912,9 +917,13 @@ class ChatService:
                 self.db_chat_obj.id,
                 db_assistant_message.id,
             )
-            db_assistant_message.post_verification_result_url = post_verification_result_url
+            db_assistant_message.post_verification_result_url = (
+                post_verification_result_url
+            )
         except Exception as e:
-            logger.error("Specific error occurred during post verification job.", exc_info=True)
+            logger.error(
+                "Specific error occurred during post verification job.", exc_info=True
+            )
 
         db_assistant_message.content = response_text
         db_assistant_message.trace_url = (
@@ -947,7 +956,6 @@ class ChatService:
                 assistant_message=db_assistant_message,
             ),
         )
-
 
     def _parse_chat_messages(
         self, chat_messages: List[ChatMessage]
@@ -1303,14 +1311,20 @@ def get_chat_message_recommend_questions(
         ),
     )
     recommend_question_list = recommend_questions.splitlines()
-    recommend_question_list = [question.strip() for question in recommend_question_list if question.strip()]
+    recommend_question_list = [
+        question.strip() for question in recommend_question_list if question.strip()
+    ]
 
     longest_question = 0
     for question in recommend_question_list:
         longest_question = max(longest_question, len(question))
 
     # check the output by if the output with format and the length
-    if "##" in recommend_questions or "**" in recommend_questions or longest_question > 500:
+    if (
+        "##" in recommend_questions
+        or "**" in recommend_questions
+        or longest_question > 500
+    ):
         regenerate_content = f"""
         Please note that you are generating a question list. You previously generated it incorrectly; try again.
         ----------------------------------------

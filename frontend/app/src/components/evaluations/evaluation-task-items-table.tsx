@@ -7,60 +7,64 @@ import { mono } from '@/components/cells/mono';
 import { percent } from '@/components/cells/percent';
 import { DataTableRemote } from '@/components/data-table-remote';
 import { documentCell, evaluationTaskStatusCell, textChunksArrayCell } from '@/components/evaluations/cells';
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
-import { noPage } from '@/lib/zod';
+import { type KeywordFilter, KeywordFilterToolbar } from '@/components/evaluations/keyword-filter-toolbar';
 import type { ColumnDef } from '@tanstack/react-table';
 import { createColumnHelper } from '@tanstack/table-core';
+import { useState } from 'react';
 
 const helper = createColumnHelper<EvaluationTaskItem>();
 
 const columns = [
   helper.accessor('id', { header: 'ID', cell: mono }),
+  helper.accessor('status', { header: 'Status', cell: evaluationTaskStatusCell, meta: { colSpan: context => context.row.original.status === 'error' ? 3 : 1 } }),
+  helper.accessor('factual_correctness', {
+    header: 'factual_correctness',
+    cell: context => percent(context, {
+      colorStops: [
+        { checkpoint: 0, color: 'hsl(var(--destructive))' },
+        { checkpoint: 1 - 0.618, color: 'hsl(var(--destructive))' },
+        { checkpoint: 0.5, color: 'hsl(var(--warning))' },
+        { checkpoint: 0.618, color: 'hsl(var(--success))' },
+        { checkpoint: 1, color: 'hsl(var(--success))' },
+      ],
+    }),
+    meta: { colSpan: context => context.row.original.status === 'error' ? 0 : 1 }
+  }),
+  helper.accessor('semantic_similarity', {
+    header: 'semantic_similarity',
+    cell: context => percent(context, {
+      colorStops: [
+        { checkpoint: 0, color: 'hsl(var(--destructive))' },
+        { checkpoint: 1 - 0.618, color: 'hsl(var(--destructive))' },
+        { checkpoint: 0.5, color: 'hsl(var(--warning))' },
+        { checkpoint: 0.618, color: 'hsl(var(--success))' },
+        { checkpoint: 1, color: 'hsl(var(--success))' },
+      ],
+    }),
+    meta: { colSpan: context => context.row.original.status === 'error' ? 0 : 1 }
+  }),
+  helper.accessor('query', { header: 'Query', cell: documentCell('Query') }),
   helper.accessor('chat_engine', { header: 'ChatEngine' }),
-  helper.accessor('status', { header: 'Status', cell: evaluationTaskStatusCell }),
-  helper.accessor('query', { header: 'Query', cell: documentCell('Query', 25) }),
-  helper.accessor('factual_correctness', { header: 'factual_correctness', cell: context => percent(context) }),
-  helper.accessor('semantic_similarity', { header: 'semantic_similarity', cell: context => percent(context) }),
-  helper.accessor('reference', { header: 'Reference', cell: documentCell('Reference', 25) }),
-  helper.accessor('response', { header: 'Response', cell: documentCell('Response', 25) }),
+  helper.accessor('reference', { header: 'Reference', cell: documentCell('Reference') }),
+  helper.accessor('response', { header: 'Response', cell: documentCell('Response') }),
   helper.accessor('retrieved_contexts', { header: 'Retrieved Contexts', cell: textChunksArrayCell }),
   helper.accessor('extra', { header: 'Extra', cell: metadataCell }),
-  helper.accessor('error_msg', { header: 'Error Message', cell: ctx => <ErrorPopper>{ctx.getValue()}</ErrorPopper> }),
   helper.accessor('created_at', { header: 'Created At', cell: datetime }),
   helper.accessor('updated_at', { header: 'Updated At', cell: datetime }),
 ] as ColumnDef<EvaluationTaskItem>[];
 
 export function EvaluationTaskItemsTable ({ evaluationTaskId }: { evaluationTaskId: number }) {
+  const [filter, setFilter] = useState<KeywordFilter>({});
   return (
     <DataTableRemote
       columns={columns}
+      toolbar={() => (
+        <KeywordFilterToolbar onFilterChange={setFilter} />
+      )}
       apiKey={`api.evaluation.tasks.${evaluationTaskId}.items.list`}
-      api={() => listEvaluationTaskItems(evaluationTaskId).then(res => noPage(res))}
+      api={(page) => listEvaluationTaskItems(evaluationTaskId, { ...page, ...filter })}
+      apiDeps={[filter.keyword]}
       idColumn="id"
     />
-  );
-}
-
-function ErrorPopper ({ children }: { children: string | null }) {
-  if (!children || children.length <= 25) {
-    return children;
-  }
-
-  const shortcut = children.slice(0, 25);
-
-  return (
-    <HoverCard>
-      <HoverCardTrigger>
-        {shortcut}{'... '}
-        <span className="text-muted-foreground">
-          ({children.length + ' characters'})
-        </span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-96 h-48">
-        <div className="size-full overflow-scroll">
-          <pre className="whitespace-pre">{children}</pre>
-        </div>
-      </HoverCardContent>
-    </HoverCard>
   );
 }

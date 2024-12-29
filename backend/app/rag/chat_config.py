@@ -222,10 +222,12 @@ def get_llm(
                 **config,
             )
         case LLMProvider.OPENAI_LIKE:
-            llm = OpenAILike(model=model, api_key=credentials, **config)
-            if not config.get("context_window"):
-                llm.context_window = 200 * 1000
-            return llm
+            config.setdefault("context_window", 200 * 1000)
+            return OpenAILike(
+                model=model,
+                api_key=credentials,
+                **config
+            )
         case LLMProvider.GEMINI:
             os.environ["GOOGLE_API_KEY"] = credentials
             return Gemini(model=model, api_key=credentials, **config)
@@ -267,6 +269,14 @@ def get_llm(
             config.setdefault("request_timeout", 60 * 10)
             config.setdefault("context_window", 4096)
             return Ollama(model=model, **config)
+        case LLMProvider.GITEEAI:
+            config.setdefault("context_window", 200 * 1000)
+            return OpenAILike(
+                model=model,
+                api_base="https://ai.gitee.com/v1",
+                api_key=credentials,
+                **config
+            )
         case _:
             raise ValueError(f"Got unknown LLM provider: {provider}")
 
@@ -338,6 +348,13 @@ def get_embed_model(
         case EmbeddingProvider.LOCAL:
             return LocalEmbedding(
                 model=model,
+                **config,
+            )
+        case EmbeddingProvider.GITEEAI:
+            return OpenAILikeEmbedding(
+                model=model,
+                api_base="https://ai.gitee.com/v1",
+                api_key=credentials,
                 **config,
             )
         case EmbeddingProvider.OPENAI_LIKE:

@@ -1,81 +1,58 @@
 import { type BaseCreateDatasourceParams, createDatasource, type CreateDatasourceSpecParams, uploadFiles } from '@/api/datasources';
 import { FormInput } from '@/components/form/control-widget';
-import { FormFieldBasicLayout, FormPrimitiveArrayFieldBasicLayout } from '@/components/form/field-layout';
-import { handleSubmitHelper } from '@/components/form/utils';
+import { formFieldLayout } from '@/components/form/field-layout';
+import { onSubmitHelper } from '@/components/form/utils';
 import { FilesInput } from '@/components/form/widgets/FilesInput';
 import { Button } from '@/components/ui/button';
-import { Form, FormField, FormItem, FormLabel } from '@/components/ui/form';
+import { Form, formDomEventHandlers, FormField, FormItem, FormLabel, useFormContext } from '@/components/ui/form.beta';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { zodFile } from '@/lib/zod';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from '@tanstack/react-form';
 import { FileDownIcon, GlobeIcon, PaperclipIcon } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
-import { useForm, useFormContext } from 'react-hook-form';
+import { useState } from 'react';
 import { z } from 'zod';
 
 const types = ['file', 'web_single_page', 'web_sitemap'] as const;
 
 const isType = (value: string | null): value is typeof types[number] => types.includes(value as any);
 
-export function CreateDatasourceForm ({ knowledgeBaseId, onCreated }: { knowledgeBaseId: number, onCreated?: () => void }) {
+const field = formFieldLayout<CreateDatasourceFormParams>();
+const fileField = formFieldLayout<CreateDatasourceFormParams & { data_source_type: 'file' }>();
+const sitemapField = formFieldLayout<CreateDatasourceFormParams & { data_source_type: 'web_sitemap' }>();
+const pagesField = formFieldLayout<CreateDatasourceFormParams & { data_source_type: 'web_single_page' }>();
+
+export function CreateDatasourceForm ({ knowledgeBaseId, transitioning, onCreated }: { knowledgeBaseId: number, transitioning?: boolean, onCreated?: () => void }) {
   const usp = useSearchParams()!;
   const uType = usp.get('type');
 
+  const [submissionError, setSubmissionError] = useState<unknown>(undefined);
+
   const form = useForm<CreateDatasourceFormParams>({
-    resolver: zodResolver(createDatasourceSchema),
+    validators: {
+      onSubmit: createDatasourceSchema,
+    },
     defaultValues: switchDatasource({
       data_source_type: 'file',
       name: '',
       files: [],
     }, isType(uType) ? uType : 'file'),
-  });
-
-  const handleSubmit = handleSubmitHelper(form, async (ds) => {
-    const createParams = await preCreate(ds);
-    await createDatasource(knowledgeBaseId, createParams);
-    onCreated?.();
+    onSubmit: onSubmitHelper(createDatasourceSchema, async (data) => {
+      const createParams = await preCreate(data);
+      await createDatasource(knowledgeBaseId, createParams);
+      onCreated?.();
+    }, setSubmissionError),
   });
 
   return (
-    <Form {...form}>
-      <form className="max-w-screen-sm space-y-4" onSubmit={handleSubmit}>
-        <FormField
-          name="data_source_type"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                Data Source Type
-              </FormLabel>
-              <ToggleGroup
-                className="w-max"
-                type="single"
-                value={field.value}
-                onValueChange={(value => {
-                  form.reset(switchDatasource(form.getValues(), value as never));
-                })}
-                onBlur={field.onBlur}
-              >
-                <ToggleGroupItem value="file">
-                  <PaperclipIcon className="size-4 mr-2" />
-                  File
-                </ToggleGroupItem>
-                <ToggleGroupItem value="web_single_page">
-                  <FileDownIcon className="size-4 mr-2" />
-                  Web Single Page
-                </ToggleGroupItem>
-                <ToggleGroupItem value="web_sitemap">
-                  <GlobeIcon className="size-4 mr-2" />
-                  Web Sitemap
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </FormItem>
-          )}
-        />
-        <SpecFields />
-        <FormFieldBasicLayout name="name" label="Datasource Name">
+    <Form form={form} disabled={transitioning} submissionError={submissionError}>
+      <form className="max-w-screen-sm space-y-4" {...formDomEventHandlers(form, transitioning)}>
+        <DataSourceTypeField />
+        <DataSourceTypeSpecFields />
+        <field.Basic name="name" label="Datasource Name">
           <FormInput />
-        </FormFieldBasicLayout>
-        <Button type="submit" disabled={form.formState.disabled || form.formState.isSubmitting}>
+        </field.Basic>
+        <Button type="submit" disabled={form.state.isSubmitting}>
           Create
         </Button>
       </form>
@@ -83,32 +60,72 @@ export function CreateDatasourceForm ({ knowledgeBaseId, onCreated }: { knowledg
   );
 }
 
-function SpecFields () {
-  const { watch: useWatch } = useFormContext<CreateDatasourceFormParams>();
-  const type = useWatch('data_source_type');
-
+function DataSourceTypeField () {
   return (
-    <>
-      {type === 'file' && (
-        <FormFieldBasicLayout name="files" label="Files" description="Currently support Markdown (*.md), PDF (*.pdf), Microsoft Word (*.docx), Microsoft PowerPoint (*.pptx), Microsoft Excel (*.xlsx) and Text (*.txt) files.">
-          <FilesInput accept={['text/plain', 'application/pdf', '.md', '.docx', '.pptx', '.xlsx']} />
-        </FormFieldBasicLayout>
+    <FormField<CreateDatasourceFormParams, 'data_source_type'>
+      name="data_source_type"
+      render={(field, form) => (
+        <FormItem>
+          <FormLabel>
+            Data Source Type
+          </FormLabel>
+          <ToggleGroup
+            className="w-max"
+            type="single"
+            value={field.state.value}
+            onValueChange={(value => {
+              form.reset(switchDatasource(form.state.values, value as never));
+            })}
+            onBlur={field.handleBlur}
+          >
+            <ToggleGroupItem value="file">
+              <PaperclipIcon className="size-4 mr-2" />
+              File
+            </ToggleGroupItem>
+            <ToggleGroupItem value="web_single_page">
+              <FileDownIcon className="size-4 mr-2" />
+              Web Single Page
+            </ToggleGroupItem>
+            <ToggleGroupItem value="web_sitemap">
+              <GlobeIcon className="size-4 mr-2" />
+              Web Sitemap
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </FormItem>
       )}
-      {type === 'web_single_page' && (
-        <FormPrimitiveArrayFieldBasicLayout name="urls" label="Page URL" defaultValue={() => ''}>
-          <FormInput placeholder="https://example.com/" />
-        </FormPrimitiveArrayFieldBasicLayout>
-      )}
-      {type === 'web_sitemap' && (
-        <FormFieldBasicLayout name="url" label="Sitemap URL">
-          <FormInput placeholder="https://example.com/sitemap.xml" />
-        </FormFieldBasicLayout>
-      )}
-    </>
+    />
   );
 }
 
-type CreateDatasourceFormParams = z.infer<typeof createDatasourceSchema>;
+function DataSourceTypeSpecFields () {
+  const { form } = useFormContext<CreateDatasourceFormParams>();
+
+  return (
+    <form.Subscribe selector={state => state.values.data_source_type}>
+      {(type) => (
+        <>
+          {type === 'file' && (
+            <fileField.Basic name="files" label="Files" description="Currently support Markdown (*.md), PDF (*.pdf), Microsoft Word (*.docx), Microsoft PowerPoint (*.pptx), Microsoft Excel (*.xlsx) and Text (*.txt) files.">
+              <FilesInput accept={['text/plain', 'application/pdf', '.md', '.docx', '.pptx', '.xlsx']} />
+            </fileField.Basic>
+          )}
+          {type === 'web_single_page' && (
+            <pagesField.PrimitiveArray name="urls" label="Page URL" newItemValue={() => ''}>
+              <FormInput placeholder="https://example.com/" />
+            </pagesField.PrimitiveArray>
+          )}
+          {type === 'web_sitemap' && (
+            <sitemapField.Basic name="url" label="Sitemap URL">
+              <FormInput placeholder="https://example.com/sitemap.xml" />
+            </sitemapField.Basic>
+          )}
+        </>
+      )}
+    </form.Subscribe>
+  );
+}
+
+export type CreateDatasourceFormParams = z.infer<typeof createDatasourceSchema>;
 
 export const createDatasourceSchema = z.object({
   name: z.string().trim().min(1, 'Must not blank'),

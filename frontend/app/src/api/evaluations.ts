@@ -30,6 +30,10 @@ export interface EvaluationTask {
   dataset_id: number;
 }
 
+export interface EvaluationTaskWithSummary extends EvaluationTask {
+  summary: EvaluationTaskSummary;
+}
+
 export const EvaluationTaskSummaryMetrics = [
   'avg_factual_correctness',
   'avg_semantic_similarity',
@@ -44,35 +48,34 @@ export const EvaluationTaskSummaryMetrics = [
 export type EvaluationTaskSummaryMetric = typeof EvaluationTaskSummaryMetrics[number];
 
 export interface EvaluationTaskSummary extends Record<EvaluationTaskSummaryMetric, number | null> {
-  task: EvaluationTask;
   not_start: number;
   succeed: number;
   errored: number;
   progressing: number;
 }
 
-export type EvaluationTaskItemStatus = 'not_start' | 'evaluating' | 'done' | 'error'
+export type EvaluationTaskItemStatus = 'not_start' | 'evaluating' | 'done' | 'error' | 'cancel'
 
 export interface EvaluationTaskItem {
-  created_at: Date
-  updated_at: Date
-  id: number
-  chat_engine: string
-  status: EvaluationTaskItemStatus
-  query: string
-  reference: string
-  response: string | null
-  retrieved_contexts: string[] | null
-  extra: any | null
-  error_msg: string | null
-  factual_correctness: number | null
-  semantic_similarity: number | null
-  evaluation_task_id: number
+  created_at: Date;
+  updated_at: Date;
+  id: number;
+  chat_engine: string;
+  status: EvaluationTaskItemStatus;
+  query: string;
+  reference: string;
+  response: string | null;
+  retrieved_contexts: string[] | null;
+  extra: any | null;
+  error_msg: string | null;
+  factual_correctness: number | null;
+  semantic_similarity: number | null;
+  evaluation_task_id: number;
 }
 
 export interface CreateEvaluationDatasetParams {
   name: string;
-  upload_id: number;
+  upload_id?: number;
 }
 
 export interface UpdateEvaluationDatasetParams {
@@ -119,17 +122,7 @@ const evaluationDatasetItemSchema = z.object({
   evaluation_dataset_id: z.number(),
 }) satisfies ZodType<EvaluationDatasetItem, any, any>;
 
-const evaluationTaskSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  user_id: z.string(),
-  created_at: zodJsonDate(),
-  updated_at: zodJsonDate(),
-  dataset_id: z.number(),
-}) satisfies ZodType<EvaluationTask, any, any>;
-
 const evaluationTaskSummarySchema = z.object({
-  task: evaluationTaskSchema,
   not_start: z.number(),
   succeed: z.number(),
   errored: z.number(),
@@ -144,12 +137,25 @@ const evaluationTaskSummarySchema = z.object({
   std_semantic_similarity: z.number().nullable(),
 }) satisfies ZodType<EvaluationTaskSummary, any, any>;
 
+const evaluationTaskSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  user_id: z.string(),
+  created_at: zodJsonDate(),
+  updated_at: zodJsonDate(),
+  dataset_id: z.number(),
+}) satisfies ZodType<EvaluationTask, any, any>;
+
+const evaluationTaskWithSummarySchema = evaluationTaskSchema.extend({
+  summary: evaluationTaskSummarySchema,
+});
+
 const evaluationTaskItemSchema = z.object({
   created_at: zodJsonDate(),
   updated_at: zodJsonDate(),
   id: z.number(),
   chat_engine: z.string(),
-  status: z.enum(['not_start', 'evaluating', 'done', 'error']),
+  status: z.enum(['not_start', 'evaluating', 'done', 'error', 'cancel']),
   query: z.string(),
   reference: z.string(),
   response: z.string().nullable(),
@@ -163,7 +169,7 @@ const evaluationTaskItemSchema = z.object({
 
 // Datasets
 
-export async function listEvaluationDatasets ({ ...params }: PageParams): Promise<Page<EvaluationDataset>> {
+export async function listEvaluationDatasets ({ ...params }: PageParams & { keyword?: string }): Promise<Page<EvaluationDataset>> {
   return fetch(requestUrl('/api/v1/admin/evaluation/datasets', params), {
     headers: await authenticationHeaders(),
   })
@@ -205,7 +211,7 @@ export async function deleteEvaluationDataset (id: number): Promise<void> {
 
 // Dataset Items
 
-export async function listEvaluationDatasetItems (datasetId: number, { ...params }: PageParams): Promise<Page<EvaluationDatasetItem>> {
+export async function listEvaluationDatasetItems (datasetId: number, { ...params }: PageParams & { keyword?: string }): Promise<Page<EvaluationDatasetItem>> {
   return fetch(requestUrl(`/api/v1/admin/evaluation/datasets/${datasetId}/dataset-items`, params), {
     headers: await authenticationHeaders(),
   })
@@ -242,6 +248,16 @@ export async function updateEvaluationDatasetItem (datasetId: number, id: number
     .then(handleResponse(evaluationDatasetItemSchema));
 }
 
+export async function getEvaluationDatasetItem (datasetId: number, id: number) {
+  return await fetch(requestUrl(`/api/v1/admin/evaluation/dataset-items/${id}`), {
+    method: 'GET',
+    headers: {
+      ...await authenticationHeaders(),
+    },
+  })
+    .then(handleResponse(evaluationDatasetItemSchema));
+}
+
 export async function deleteEvaluationDatasetItem (datasetId: number, id: number): Promise<void> {
   await fetch(requestUrl(`/api/v1/admin/evaluation/dataset-items/${id}`), {
     method: 'DELETE',
@@ -266,23 +282,31 @@ export async function createEvaluationTask (params: CreateEvaluationTaskParams):
     .then(handleResponse(evaluationTaskSchema));
 }
 
-export async function listEvaluationTasks ({ ...params }: PageParams): Promise<Page<EvaluationTask>> {
+export async function listEvaluationTasks ({ ...params }: PageParams & { keyword?: string }): Promise<Page<EvaluationTaskWithSummary>> {
   return fetch(requestUrl('/api/v1/admin/evaluation/tasks', params), {
     headers: await authenticationHeaders(),
   })
-    .then(handleResponse(zodPage(evaluationTaskSchema)));
+    .then(handleResponse(zodPage(evaluationTaskWithSummarySchema)));
 }
 
-export async function getEvaluationTaskSummary (id: number): Promise<EvaluationTaskSummary> {
+export async function getEvaluationTaskWithSummary (id: number): Promise<EvaluationTaskWithSummary> {
   return fetch(requestUrl(`/api/v1/admin/evaluation/tasks/${id}/summary`), {
     headers: await authenticationHeaders(),
   })
-    .then(handleResponse(evaluationTaskSummarySchema));
+    .then(handleResponse(evaluationTaskWithSummarySchema));
 }
 
-export async function listEvaluationTaskItems (id: number): Promise<EvaluationTaskItem[]> {
-  return fetch(requestUrl(`/api/v1/admin/evaluation/tasks/${id}/items`), {
+export async function cancelEvaluationTask (id: number): Promise<void> {
+  await fetch(requestUrl(`/api/v1/admin/evaluation/tasks/${id}`), {
+    method: 'DELETE',
     headers: await authenticationHeaders(),
   })
-    .then(handleResponse(evaluationTaskItemSchema.array()));
+    .then(handleErrors);
+}
+
+export async function listEvaluationTaskItems (id: number, params: PageParams & { keyword?: string }): Promise<Page<EvaluationTaskItem>> {
+  return fetch(requestUrl(`/api/v1/admin/evaluation/tasks/${id}/items`, params), {
+    headers: await authenticationHeaders(),
+  })
+    .then(handleResponse(zodPage(evaluationTaskItemSchema)));
 }

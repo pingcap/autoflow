@@ -121,6 +121,7 @@ Response:
 """
 
 DEFAULT_CONDENSE_QUESTION_PROMPT = """\
+Current Date: {{current_date}}
 ---------------------
 The prerequisite questions and their relevant knowledge for the user's main question.
 ---------------------

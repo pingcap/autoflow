@@ -158,6 +158,7 @@ async def create_user(
         logger.error(f"User {email} already exists")
         raise
 
+
 async def update_user_password(
     session: AsyncSession,
     user_id: uuid.UUID,

@@ -41,7 +41,9 @@ def upload_files(
             max_upload_file_size_in_mb = sys_max_upload_file_size / 1024 / 1024
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail="The upload file size ({:.2f} MiB) exceeds maximum allowed size ({:.2f} MiB)".format(upload_file_size_in_mb, max_upload_file_size_in_mb),
+                detail="The upload file size ({:.2f} MiB) exceeds maximum allowed size ({:.2f} MiB)".format(
+                    upload_file_size_in_mb, max_upload_file_size_in_mb
+                ),
             )
 
         file_ext = os.path.splitext(file.filename)[1].lower()

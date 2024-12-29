@@ -33,3 +33,21 @@ class GraphSearchRequest(BaseModel):
     include_meta: bool = True
     depth: int = 2
     with_degree: bool = True
+
+
+class KnowledgeRequest(BaseModel):
+    query: str
+    similarity_threshold: float = 0.55
+    top_k: int = 10
+
+
+class KnowledgeNeighborRequest(BaseModel):
+    entities_ids: List[int]
+    query: str
+    max_depth: int = 1
+    max_neighbors: int = 20
+    similarity_threshold: float = 0.55
+
+
+class KnowledgeChunkRequest(BaseModel):
+    relationships_ids: List[int]

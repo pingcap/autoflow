@@ -65,7 +65,7 @@ const zDate = z.coerce.date().or(z.literal('').transform(() => undefined)).optio
 export const listDocumentsFiltersSchema = z.object({
   name: z.string().optional(),
   source_uri: z.string().optional(),
-  knowledge_base_id: z.coerce.number().optional(),
+  knowledge_base_id: z.number().optional(),
   created_at_start: zDate,
   created_at_end: zDate,
   updated_at_start: zDate,

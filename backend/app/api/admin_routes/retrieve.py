@@ -2,6 +2,7 @@ from typing import Optional, List
 
 from fastapi import APIRouter
 from app.models import Document
+from app.api.admin_routes.models import RetrieveRequest
 from app.api.deps import SessionDep, CurrentSuperuserDep
 from app.rag.retrieve import RetrieveService
 from llama_index.core.schema import NodeWithScore
@@ -31,3 +32,13 @@ async def embedding_retrieve(
 ) -> List[NodeWithScore]:
     retrieve_service = RetrieveService(session, chat_engine)
     return retrieve_service._embedding_retrieve(question, top_k=top_k)
+
+
+@router.post("/admin/embedding_retrieve")
+async def embedding_search(
+    session: SessionDep,
+    user: CurrentSuperuserDep,
+    request: RetrieveRequest,
+) -> List[NodeWithScore]:
+    retrieve_service = RetrieveService(session, request.chat_engine)
+    return retrieve_service._embedding_retrieve(request.query, top_k=request.top_k)

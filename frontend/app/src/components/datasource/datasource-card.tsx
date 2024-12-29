@@ -3,6 +3,7 @@
 import { type Datasource, deleteDatasource } from '@/api/datasources';
 import { DangerousActionButton } from '@/components/dangerous-action-button';
 import { UpdateDatasourceForm } from '@/components/datasource/update-datasource-form';
+import { mutateKnowledgeBaseDataSources } from '@/components/knowledge-base/hooks';
 import { ManagedDialog } from '@/components/managed-dialog';
 import { ManagedPanelContext } from '@/components/managed-panel';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,7 @@ export function DatasourceCard ({ knowledgeBaseId, datasource }: { knowledgeBase
                   datasource={datasource}
                   onUpdated={() => {
                     router.refresh();
+                    void mutateKnowledgeBaseDataSources(knowledgeBaseId);
                     setOpen(false);
                   }}
                 />

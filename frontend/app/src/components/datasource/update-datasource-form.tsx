@@ -1,33 +1,42 @@
 import { type Datasource, updateDatasource } from '@/api/datasources';
 import { FormInput } from '@/components/form/control-widget';
-import { FormFieldBasicLayout } from '@/components/form/field-layout';
-import { handleSubmitHelper } from '@/components/form/utils';
+import { formFieldLayout } from '@/components/form/field-layout';
+import { onSubmitHelper } from '@/components/form/utils';
 import { Button } from '@/components/ui/button';
-import { Form } from '@/components/ui/form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { Form, formDomEventHandlers } from '@/components/ui/form.beta';
+import { useForm } from '@tanstack/react-form';
+import { useState } from 'react';
 import { z } from 'zod';
 
+const schema = z.object({
+  name: z.string().min(1, 'Must not empty'),
+});
+
+const field = formFieldLayout<typeof schema>();
+
 export function UpdateDatasourceForm ({ knowledgeBaseId, datasource, onUpdated }: { knowledgeBaseId: number, datasource: Datasource, onUpdated?: () => void }) {
+  const [submissionError, setSubmissionError] = useState<unknown>(undefined);
+
   const form = useForm<UpdateDatasourceFormParams>({
-    resolver: zodResolver(schema),
+    validators: {
+      onSubmit: schema,
+    },
     defaultValues: {
       name: datasource.name,
     },
-  });
-
-  const handleSubmit = handleSubmitHelper(form, async data => {
-    await updateDatasource(knowledgeBaseId, datasource.id, data);
-    onUpdated?.();
+    onSubmit: onSubmitHelper(schema, async data => {
+      await updateDatasource(knowledgeBaseId, datasource.id, data);
+      onUpdated?.();
+    }, setSubmissionError),
   });
 
   return (
-    <Form {...form}>
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <FormFieldBasicLayout name="name" label="Name">
+    <Form form={form} submissionError={submissionError}>
+      <form className="space-y-4" {...formDomEventHandlers(form)}>
+        <field.Basic name="name" label="Name">
           <FormInput />
-        </FormFieldBasicLayout>
-        <Button type="submit" disabled={form.formState.disabled || form.formState.isSubmitting}>
+        </field.Basic>
+        <Button type="submit" disabled={form.state.isSubmitting}>
           Update
         </Button>
       </form>
@@ -38,7 +47,3 @@ export function UpdateDatasourceForm ({ knowledgeBaseId, datasource, onUpdated }
 interface UpdateDatasourceFormParams {
   name: string;
 }
-
-const schema = z.object({
-  name: z.string().min(1, 'Must not empty'),
-});

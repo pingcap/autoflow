@@ -137,14 +137,16 @@ class ChatRepo(BaseRepo):
         # Dynamically add filters for each key-value pair in metadata
         for key, value in metadata.items():
             json_path = f"$.{key}"
-            filter_condition = func.JSON_UNQUOTE(func.JSON_EXTRACT(ChatMessage.meta, json_path)) == value
+            filter_condition = (
+                func.JSON_UNQUOTE(func.JSON_EXTRACT(ChatMessage.meta, json_path))
+                == value
+            )
             query = query.where(filter_condition)
 
         # Order by created_at in descending order
         query = query.order_by(desc(ChatMessage.created_at))
 
         return session.exec(query).all()
-
 
     def chat_trend_by_user(
         self, session: Session, start_date: date, end_date: date

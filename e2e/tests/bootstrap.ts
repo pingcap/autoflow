@@ -205,7 +205,7 @@ test('Bootstrap', async ({ browser, page }) => {
       await page.waitForSelector('[name=name]');
       await page.fill('input[name=name]', 'My Knowledge Base');
       await page.fill('textarea[name=description]', 'This is E2E Knowledge Base.');
-      await page.getByRole('button', { name: 'Submit', exact: true }).click();
+      await page.getByRole('button', { name: 'Create', exact: true }).click();
 
       await page.waitForURL(/\/knowledge-bases\/1\/data-sources/);
     }
@@ -220,7 +220,7 @@ test('Bootstrap', async ({ browser, page }) => {
         const nameInput = await page.waitForSelector('[name=name]');
         await nameInput.fill('sample.pdf');
 
-        await page.setInputFiles('[name=files]', 'sample.pdf');
+        await page.setInputFiles('[name=files]', 'res/sample.pdf');
 
         const createButton = page.getByRole('button', { name: 'Create' });
         await createButton.scrollIntoViewIfNeeded();

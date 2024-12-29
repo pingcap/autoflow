@@ -1,4 +1,4 @@
-import { type EvaluationDataset, type EvaluationTask, listEvaluationDatasets, listEvaluationTasks } from '@/api/evaluations';
+import { type EvaluationDataset, type EvaluationTask, getEvaluationDatasetItem, listEvaluationDatasets, listEvaluationTasks } from '@/api/evaluations';
 import { listAllHelper, ServerError } from '@/lib/request';
 import useSWR, { mutate } from 'swr';
 
@@ -25,10 +25,28 @@ export function useEvaluationDataset (id: number | null | undefined) {
   };
 }
 
+export function useEvaluationDatasetItem (datasetId: number, id: number) {
+  const { data, ...rest } = useSWR(`api.evaluation.datasets.${datasetId}.items.${id}`, () => getEvaluationDatasetItem(datasetId, id));
+
+  return {
+    evaluationDatasetItem: data,
+    ...rest,
+  };
+}
+
 export function mutateEvaluationDatasets () {
   return mutate(key => {
     if (typeof key === 'string') {
       return key.startsWith(`api.evaluation.datasets.`);
+    }
+    return false;
+  });
+}
+
+export function mutateEvaluationDataset (id: number) {
+  return mutate(key => {
+    if (typeof key === 'string') {
+      return key.startsWith(`api.evaluation.datasets.${id}.`);
     }
     return false;
   });

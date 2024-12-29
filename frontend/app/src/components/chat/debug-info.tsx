@@ -5,7 +5,6 @@ import { OptionDetail } from '@/components/option-detail';
 // import { MessageLangfuse } from '@/components/chat/message-langfuse';
 import { differenceInSeconds } from 'date-fns';
 import { WorkflowIcon } from 'lucide-react';
-import 'react-json-view-lite/dist/index.css';
 import { useMemo } from 'react';
 
 export interface DebugInfoProps {

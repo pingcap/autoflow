@@ -1,6 +1,7 @@
 import re
 from typing import Tuple, Dict
 
+
 def _parse_response_format(response_format_str: str) -> Dict[str, str]:
     """
     Parses the requirements string into a dictionary.

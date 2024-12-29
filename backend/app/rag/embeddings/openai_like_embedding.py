@@ -34,6 +34,7 @@ class OpenAILikeEmbedding(BaseEmbedding):
             **kwargs,
         )
 
+        self._model_kwargs = kwargs or {}
         self.model = model
         self._client = OpenAI(api_key=api_key, base_url=api_base)
         self._aclient = AsyncOpenAI(api_key=api_key, base_url=api_base)
@@ -42,7 +43,7 @@ class OpenAILikeEmbedding(BaseEmbedding):
         """Get embeddings."""
         # Call Zhipu AI Embedding API via OpenAI client
         embedding_objs = self._client.embeddings.create(
-            input=sentences, model=self.model
+            input=sentences, model=self.model, **self._model_kwargs
         ).data
         embeddings = [obj.embedding for obj in embedding_objs]
 
@@ -51,7 +52,7 @@ class OpenAILikeEmbedding(BaseEmbedding):
     async def aget_embeddings(self, sentences: list[str]) -> List[List[float]]:
         """Asynchronously get text embeddings."""
         result = await self._aclient.embeddings.create(
-            input=sentences, model=self.model
+            input=sentences, model=self.model, **self._model_kwargs
         )
         embeddings = [obj.embedding for obj in result.data]
 

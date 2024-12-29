@@ -1,10 +1,12 @@
+import { FormRootError } from '@/components/form/root-error';
 import { useGeneralSettingsFormContext } from '@/components/settings-form/context';
 import { Button } from '@/components/ui/button';
-import { Form } from '@/components/ui/form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, formDomEventHandlers } from '@/components/ui/form.beta';
+import { getErrorMessage } from '@/lib/errors';
+import { useForm } from '@tanstack/react-form';
+import { Loader2Icon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
+import { z, type ZodType } from 'zod';
 
 export interface GeneralSettingsFieldAccessor<Data, FieldData> {
   path: [keyof Data, ...(string | number | symbol)[]]
@@ -35,36 +37,48 @@ export function GeneralSettingsField<Data, FieldData> ({
 }) {
   const { data, disabled, readonly, onUpdateField } = useGeneralSettingsFormContext<Data>();
   const form = useForm<{ value: FieldData }>({
-    resolver: zodResolver(z.object({
-      value: schema,
-    })),
-    disabled: disabled || readonly || fieldReadonly,
+    validators: {
+      onChange: z.object({
+        value: schema,
+      }).strict() as ZodType<{ value: FieldData }, any, any>,
+      onSubmit: z.object({
+        value: schema,
+      }).strict() as ZodType<{ value: FieldData }, any, any>,
+    },
     defaultValues: {
       value: accessor.get(data),
     },
-  });
-
-  const handleSubmit = form.handleSubmit(async ({ value }) => {
-    await onUpdateField(value, accessor);
-    form.reset({
-      value,
-    });
+    onSubmit: async ({ value: { value }, formApi }) => {
+      try {
+        await onUpdateField(schema.parse(value), accessor);
+        formApi.reset({
+          value,
+        });
+      } catch (e) {
+        formApi.setErrorMap({
+          onChange: getErrorMessage(e),
+        });
+      }
+    },
   });
 
   return (
-    <Form {...form}>
-      <form className="space-y-6" onSubmit={handleSubmit} onReset={(event) => {
-        event.preventDefault();
-        form.reset({
-          value: accessor.get(data),
-        });
-      }}>
+    <Form<{ value: FieldData }, undefined> disabled={disabled || readonly || fieldReadonly} form={form}>
+      <form className="space-y-6" {...formDomEventHandlers(form)}>
         {children}
-        {!readonly && form.formState.dirtyFields.value && (
-          <div className="flex items-center gap-2">
-            <Button type="submit" disabled={disabled || readonly || fieldReadonly}>Save</Button>
-            <Button type="reset" variant="secondary" disabled={disabled || readonly || fieldReadonly}>Reset</Button>
-          </div>
+        <FormRootError />
+        {!readonly && (
+          <form.Subscribe selector={state => [state.isDirty, state.isSubmitting] as const}>
+            {([isDirty, isSubmitting]) => (isDirty || isSubmitting) && (
+              <div className="flex items-center gap-2">
+                <Button type="submit" disabled={disabled || isSubmitting || readonly || fieldReadonly}>
+                  {isSubmitting && <Loader2Icon className="animate-spin repeat-infinite" />}
+                  {isSubmitting ? 'Saving' : 'Save'}
+                </Button>
+                <Button type="reset" variant="secondary" disabled={disabled || isSubmitting || readonly || fieldReadonly}>Reset</Button>
+              </div>
+            )}
+          </form.Subscribe>
         )}
       </form>
     </Form>

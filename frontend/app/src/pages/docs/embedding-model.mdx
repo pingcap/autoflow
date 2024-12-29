@@ -31,9 +31,12 @@ OpenAI provides a variety of Embedding Models, we recommend using the OpenAI `te
 
 
 For more information, see the [OpenAI Embedding Models documentation](https://platform.openai.com/docs/guides/embeddings#embedding-models).
+
 ### OpenAI-Like
 
 Autoflow also supports embedding model providers (such as [ZhipuAI](#zhipuai)) that conform to the OpenAI API specification.
+
+You can also use models deployed on local AI model platforms (such as [vLLM](#vllm) and [Xinference](https://inference.readthedocs.io/en/latest/index.html)) that conform to the OpenAI API specification in Autoflow.
 
 To use OpenAI-Like embedding model providers, you need to provide the **base URL** of the embedding API as the following JSON format in **Advanced Settings**:
 
@@ -53,7 +56,7 @@ You need to set up the base URL in the **Advanced Settings** as follows:
 
 ```json
 {
-    "api_base": "https://open.bigmodel.cn/api/paas/v4"
+    "api_base": "https://open.bigmodel.cn/api/paas/v4/"
 }
 ```
 
@@ -64,6 +67,22 @@ You need to set up the base URL in the **Advanced Settings** as follows:
 | `embedding-3`   | 2048              | 8192       |
 
 For more information, see the [ZhipuAI embedding models documentation](https://open.bigmodel.cn/dev/api/vector/embedding-3).
+
+#### vLLM
+
+When serving locally, the default embedding API endpoint for vLLM is:
+
+`http://localhost:8000/v1/embeddings`
+
+You need to set up the base URL in the **Advanced Settings** as follows:
+
+```json
+{
+    "api_base": "http://localhost:8000/v1/"
+}
+```
+
+For more information, see the [vLLM documentation](https://docs.vllm.ai/en/stable/).
 
 ### JinaAI
 
@@ -125,6 +144,7 @@ Ollama is a lightweight framework for building and running large language models
 | Embedding Model    | Vector Dimensions | Max Tokens |
 | ------------------ | ----------------- | ---------- |
 | `nomic-embed-text` | 768               | 8192       |
+| `bge-m3`           | 1024              | 8192       |
 
 To use Ollama, you'll need to configure the API base URL in the **Advanced Settings**:
 
@@ -135,6 +155,20 @@ To use Ollama, you'll need to configure the API base URL in the **Advanced Setti
 ```
 
 For more information, see the [Ollama embedding models documentation](https://ollama.com/blog/embedding-models).
+
+### Gitee AI
+
+Gitee AI is a third-party model provider that offers ready-to-use cutting-edge model APIs for AI developers.
+
+**Supported Models**:
+
+| Embedding Model     | Vector Dimensions | Max Tokens |
+| ------------------- | ----------------- | ---------- |
+| `bge-m3`            | 1024              | 8192       |
+| `bge-large-zh-v1.5` | 1024              | 512        |
+| `bge-small-zh-v1.5` | 512               | 512        |
+
+For more information, see the [Gitee AI embedding models documentation](https://ai.gitee.com/docs/openapi/v1#tag/%E7%89%B9%E5%BE%81%E6%8A%BD%E5%8F%96/POST/embeddings).
 
 ### Local Embedding Server
 
@@ -153,4 +187,3 @@ To configure the Local Embedding Service, set the API URL in the **Advanced Sett
     "api_url": "http://local-embedding-reranker:5001/api/v1/embedding"
 }
 ```
-

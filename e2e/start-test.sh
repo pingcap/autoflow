@@ -9,7 +9,7 @@ F_UNDERLINED="\033[4m"
 C_AQUA="\033[38;5;14m"
 TAG="${F_BOLD}${F_UNDERLINED}${C_AQUA}[TiDB.AI Integration Test]${NO_FORMAT}"
 
-TIDB_VERSION=v8.4.0
+TIDB_VERSION=v8.5.0
 
 PATH=${PATH}:/home/runner/.tiup/bin
 

@@ -2,7 +2,7 @@ import type { ChatMessageSource } from '@/api/chats';
 import { useChatMessageField, useChatMessageStreamContainsState, useChatMessageStreamState } from '@/components/chat/chat-hooks';
 import { ChatMessageController } from '@/components/chat/chat-message-controller';
 import { AppChatStreamState } from '@/components/chat/chat-stream-state';
-import { isNotFinished, parseSource } from '@/components/chat/utils';
+import { isNotFinished, parseHref, parseSource } from '@/components/chat/utils';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -72,7 +72,7 @@ function MessageContextSource ({ index, animation, context }: { index: number, a
       initial={animation && { x: '-30%', opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
     >
-      <a className="flex flex-col justify-between space-y-1 p-2 max-w-full h-full" href={context.source_uri} target="_blank">
+      <a className="flex flex-col justify-between space-y-1 p-2 max-w-full h-full" {...parseHref(context)}>
         <div className="font-normal line-clamp-3 opacity-90">
           {context.name}
         </div>
@@ -90,8 +90,10 @@ export function MessageContextSourceCard ({ title, href }: { title?: string, hre
     return parseSource(href);
   }, [href]);
 
+  const isHttp = /^https?:\/\//.test(href ?? '');
+
   return (
-    <a className="flex flex-col justify-between space-y-1 p-2 max-w-full h-full" href={href} target="_blank">
+    <a className="flex flex-col justify-between space-y-1 p-2 max-w-full h-full" href={isHttp ? href : 'javascript:(void)'} target="_blank">
       <div className="font-normal line-clamp-3 opacity-90">
         {title}
       </div>

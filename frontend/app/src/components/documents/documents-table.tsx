@@ -7,6 +7,7 @@ import { datetime } from '@/components/cells/datetime';
 import { link } from '@/components/cells/link';
 import { mono } from '@/components/cells/mono';
 import { DatasourceCell } from '@/components/cells/reference';
+import { parseHref } from '@/components/chat/utils';
 import { DataTableRemote } from '@/components/data-table-remote';
 import { DocumentPreviewDialog } from '@/components/document-viewer';
 import { DocumentsTableFilters } from '@/components/documents/documents-table-filters';
@@ -14,7 +15,7 @@ import { NextLink } from '@/components/nextjs/NextLink';
 import { getErrorMessage } from '@/lib/errors';
 import type { CellContext, ColumnDef } from '@tanstack/react-table';
 import { createColumnHelper } from '@tanstack/table-core';
-import { UploadIcon } from 'lucide-react';
+import { FileDownIcon, FileIcon, UploadIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -27,7 +28,21 @@ const truncateUrl = (url: string, maxLength: number = 30): string => {
   return `${start}...${end}`;
 };
 
-const href = (cell: CellContext<any, string>) => <a className="underline" href={cell.getValue()} target="_blank">{truncateUrl(cell.getValue())}</a>;
+const href = (cell: CellContext<Document, string>) => {
+  const url = cell.getValue();
+  if (/^https?:\/\//.test(url)) {
+    return <a className="underline" href={url} target="_blank">{url}</a>;
+  } else if (url.startsWith('uploads/')) {
+    return (
+      <a className="underline" {...parseHref(cell.row.original)}>
+        <FileDownIcon className="inline-flex size-4 mr-1 stroke-1" />
+        {truncateUrl(url)}
+      </a>
+    );
+  } else {
+    return <span title={url}>{truncateUrl(url)}</span>;
+  }
+};
 
 const getColumns = (kbId: number) => [
   helper.accessor('id', { cell: mono }),

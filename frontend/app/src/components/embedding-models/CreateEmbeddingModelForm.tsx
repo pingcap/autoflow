@@ -32,7 +32,7 @@ const strCredentialForm = unsetForm.extend({
 
 const dictCredentialForm = unsetForm.extend({
   model: z.string().min(1, 'Must not empty'),
-  credentials: z.object({}).passthrough(),
+  credentials: zodJsonText(),
 });
 
 const field = formFieldLayout<CreateEmbeddingModel>();

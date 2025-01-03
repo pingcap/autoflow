@@ -46,6 +46,8 @@ class DecomposeQuery(dspy.Signature):
         - Limit the output to no more than 5 questions to maintain focus and relevance.
         - Ensure accuracy by reflecting the user's true intentions based on the provided query.
         - Ground all questions in factual information derived directly from the user's input.
+
+    Please only response in JSON format.
     """
 
     query: str = dspy.InputField(

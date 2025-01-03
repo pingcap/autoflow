@@ -1,4 +1,5 @@
 import logging
+from copy import deepcopy
 from typing import Optional, Dict
 
 from sqlalchemy.orm.decl_api import RegistryType
@@ -29,9 +30,11 @@ kb_sql_model_contexts: Dict[str, KBSQLModelContext] = {}
 def get_kb_scoped_registry(kb: KnowledgeBase) -> KBSQLModelContext:
     ns = f"knowledge_base_{kb.id}"
     if ns not in kb_sql_model_contexts:
+        class_registry = deepcopy(default_registry._class_registry)
+        print(len(class_registry))
         registry = RegistryType(
             metadata=default_registry.metadata,
-            class_registry=default_registry._class_registry.copy(),
+            class_registry=class_registry,
         )
         kb_sql_model_contexts[ns] = KBSQLModelContext(registry)
     return kb_sql_model_contexts[ns]

@@ -27,6 +27,8 @@ class RerankerProvider(str, enum.Enum):
     COHERE = "cohere"
     BAISHENG = "baisheng"
     LOCAL = "local"
+    VLLM = "vllm"
+    XINFERENCE = "xinference"
 
 
 class MimeTypes(str, enum.Enum):

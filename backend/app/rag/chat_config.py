@@ -30,6 +30,8 @@ from app.rag.node_postprocessor import MetadataPostFilter
 from app.rag.node_postprocessor.metadata_post_filter import MetadataFilters
 from app.rag.node_postprocessor.baisheng_reranker import BaishengRerank
 from app.rag.node_postprocessor.local_reranker import LocalRerank
+from app.rag.node_postprocessor.vllm_reranker import VLLMRerank
+from app.rag.node_postprocessor.xinference_reranker import XinferenceRerank
 from app.rag.embeddings.local_embedding import LocalEmbedding
 from app.repositories import chat_engine_repo, knowledge_base_repo
 from app.repositories.embedding_model import embed_model_repo
@@ -425,6 +427,20 @@ def get_reranker_model(
             return LocalRerank(
                 model=model,
                 top_n=top_n,
+                **config,
+            )
+        case RerankerProvider.VLLM:
+            return VLLMRerank(
+                model=model,
+                top_n=top_n,
+                api_key=credentials,
+                **config,
+            )
+        case RerankerProvider.XINFERENCE:
+            return XinferenceRerank(
+                model=model,
+                top_n=top_n,
+                api_key=credentials,
                 **config,
             )
         case _:

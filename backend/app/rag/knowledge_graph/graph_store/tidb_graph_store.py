@@ -239,12 +239,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
 
         try:
             for _, row in relationships_df.iterrows():
-                logger.info(
-                    "save entities for relationship %s -> %s -> %s",
-                    row["source_entity"],
-                    row["relationship_desc"],
-                    row["target_entity"],
-                )
+                logger.info("save entities for relationship %s -> %s -> %s", row["source_entity"], row["relationship_desc"], row["target_entity"])
                 source_entity = _find_or_create_entity_for_relation(
                     row["source_entity"], row["source_entity_description"]
                 )
@@ -1046,7 +1041,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
                     "resource": chunk.meta.get("resource"),
                     "source_uri": chunk.meta.get("source_uri"),
                     "tidb_version": chunk.meta.get("tidb_version"),
-                },
+                }
             }
             for chunk in chunks
         ]

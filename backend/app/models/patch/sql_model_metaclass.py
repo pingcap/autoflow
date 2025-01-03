@@ -38,7 +38,7 @@ from sqlmodel.main import (
 from typing_extensions import get_origin
 
 
-# Using CustomSQLModel and CustomSQLModelMetaclass, the default SQLModelMetaclass will mark this sqlmodel
+# Using CustomSQLModel and CustomSQLModelMetaclass, the default CustomSQLModelMetaclass will mark this sqlmodel
 # as __abstract__=True if you custom registry via kwargs, which will avoid it registering class into SQLAlchemy,
 # and then you will receive error while using some sqlalchemy feature.
 @__dataclass_transform__(kw_only_default=True, field_descriptors=(Field, FieldInfo))
@@ -148,7 +148,7 @@ class SQLModelMetaclass(ModelMetaclass, DeclarativeMeta):
             set_config_value(model=new_cls, parameter="registry", value=config_table)
             setattr(new_cls, "_sa_registry", config_registry)  # noqa: B010
             setattr(new_cls, "metadata", config_registry.metadata)  # noqa: B010
-            setattr(new_cls, "__abstract__", False)  # noqa: B010                           <- Using False instead of True
+            setattr(new_cls, "__abstract__", False)  # noqa: B010                           <- Using True instead of False
 
         return new_cls
 

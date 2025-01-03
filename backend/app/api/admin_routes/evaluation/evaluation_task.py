@@ -12,8 +12,7 @@ from sqlmodel import select, case, desc
 from app.api.admin_routes.evaluation.models import (
     CreateEvaluationTask,
     EvaluationTaskSummary,
-    ParamsWithKeyword,
-    EvaluationTaskOverview,
+    ParamsWithKeyword, EvaluationTaskOverview,
 )
 from app.api.admin_routes.evaluation.tools import must_get
 from app.api.deps import SessionDep, CurrentSuperuserDep
@@ -54,7 +53,9 @@ def create_evaluation_task(
     chat_engine = evaluation_task.chat_engine
     run_size = evaluation_task.run_size
 
-    dataset = must_get(session, EvaluationDataset, evaluation_dataset_id)
+    dataset = must_get(
+        session, EvaluationDataset, evaluation_dataset_id
+    )
 
     if run_size is not None and run_size < len(dataset.evaluation_data_list):
         dataset.evaluation_data_list = dataset.evaluation_data_list[:run_size]
@@ -116,7 +117,7 @@ def get_evaluation_task(
 
 @router.get("/admin/evaluation/tasks/{evaluation_task_id}/summary")
 def get_evaluation_task_summary(
-    evaluation_task_id: int, session: SessionDep, user: CurrentSuperuserDep
+        evaluation_task_id: int, session: SessionDep, user: CurrentSuperuserDep
 ) -> EvaluationTaskSummary:
     task = must_get(session, EvaluationTask, evaluation_task_id)
     return get_evaluation_task_summary(task, session)
@@ -128,7 +129,10 @@ def list_evaluation_task(
     user: CurrentSuperuserDep,
     params: ParamsWithKeyword = Depends(),
 ) -> Page[EvaluationTaskSummary]:
-    stmt = select(EvaluationTask).order_by(desc(EvaluationTask.id))
+    stmt = (
+        select(EvaluationTask)
+        .order_by(desc(EvaluationTask.id))
+    )
     if params.keyword:
         stmt = stmt.where(EvaluationTask.name.ilike(f"%{params.keyword}%"))
 
@@ -142,7 +146,7 @@ def list_evaluation_task(
         total=task_page.total,
         page=task_page.page,
         size=task_page.size,
-        pages=task_page.pages,
+        pages=task_page.pages
     )
 
 
@@ -209,41 +213,37 @@ def get_evaluation_task_summary(
 
     stats = {}
     if status_counts.not_start == 0 and status_counts.evaluating == 0:
-        stats_tuple = (
-            session.query(
-                func.avg(EvaluationTaskItem.factual_correctness).label(
-                    "avg_factual_correctness"
-                ),
-                func.avg(EvaluationTaskItem.semantic_similarity).label(
-                    "avg_semantic_similarity"
-                ),
-                func.min(EvaluationTaskItem.factual_correctness).label(
-                    "min_factual_correctness"
-                ),
-                func.min(EvaluationTaskItem.semantic_similarity).label(
-                    "min_semantic_similarity"
-                ),
-                func.max(EvaluationTaskItem.factual_correctness).label(
-                    "max_factual_correctness"
-                ),
-                func.max(EvaluationTaskItem.semantic_similarity).label(
-                    "max_semantic_similarity"
-                ),
-                func.stddev(EvaluationTaskItem.factual_correctness).label(
-                    "std_factual_correctness"
-                ),
-                func.stddev(EvaluationTaskItem.semantic_similarity).label(
-                    "std_semantic_similarity"
-                ),
-            )
-            .filter(
-                EvaluationTaskItem.evaluation_task_id == evaluation_task.id,
-                EvaluationTaskItem.status == EvaluationStatus.DONE,
-                EvaluationTaskItem.factual_correctness.isnot(None),
-                EvaluationTaskItem.semantic_similarity.isnot(None),
-            )
-            .one()
-        )
+        stats_tuple = session.query(
+            func.avg(EvaluationTaskItem.factual_correctness).label(
+                "avg_factual_correctness"
+            ),
+            func.avg(EvaluationTaskItem.semantic_similarity).label(
+                "avg_semantic_similarity"
+            ),
+            func.min(EvaluationTaskItem.factual_correctness).label(
+                "min_factual_correctness"
+            ),
+            func.min(EvaluationTaskItem.semantic_similarity).label(
+                "min_semantic_similarity"
+            ),
+            func.max(EvaluationTaskItem.factual_correctness).label(
+                "max_factual_correctness"
+            ),
+            func.max(EvaluationTaskItem.semantic_similarity).label(
+                "max_semantic_similarity"
+            ),
+            func.stddev(EvaluationTaskItem.factual_correctness).label(
+                "std_factual_correctness"
+            ),
+            func.stddev(EvaluationTaskItem.semantic_similarity).label(
+                "std_semantic_similarity"
+            ),
+        ).filter(
+            EvaluationTaskItem.evaluation_task_id == evaluation_task.id,
+            EvaluationTaskItem.status == EvaluationStatus.DONE,
+            EvaluationTaskItem.factual_correctness.isnot(None),
+            EvaluationTaskItem.semantic_similarity.isnot(None),
+        ).one()
 
         stats = dict(stats_tuple._mapping)
         logger.info(stats)

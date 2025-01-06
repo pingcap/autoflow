@@ -21,6 +21,8 @@ from llama_index.embeddings.bedrock import BedrockEmbedding
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.postprocessor.jinaai_rerank import JinaRerank
 from llama_index.postprocessor.cohere_rerank import CohereRerank
+from llama_index.postprocessor.xinference_rerank import XinferenceRerank
+from llama_index.postprocessor.bedrock_rerank import AWSBedrockRerank
 from sqlmodel import Session
 from google.oauth2 import service_account
 from google.auth.transport.requests import Request
@@ -31,7 +33,6 @@ from app.rag.node_postprocessor.metadata_post_filter import MetadataFilters
 from app.rag.node_postprocessor.baisheng_reranker import BaishengRerank
 from app.rag.node_postprocessor.local_reranker import LocalRerank
 from app.rag.node_postprocessor.vllm_reranker import VLLMRerank
-from app.rag.node_postprocessor.xinference_reranker import XinferenceRerank
 from app.rag.embeddings.local_embedding import LocalEmbedding
 from app.repositories import chat_engine_repo, knowledge_base_repo
 from app.repositories.embedding_model import embed_model_repo
@@ -433,15 +434,21 @@ def get_reranker_model(
             return VLLMRerank(
                 model=model,
                 top_n=top_n,
-                api_key=credentials,
                 **config,
             )
         case RerankerProvider.XINFERENCE:
             return XinferenceRerank(
                 model=model,
                 top_n=top_n,
-                api_key=credentials,
-                **config,
+                base_url=config.get("api_url")
+            )
+        case RerankerProvider.BEDROCK:
+            return AWSBedrockRerank(
+                rerank_model_name=model,
+                top_n=top_n,
+                aws_access_key_id=credentials["aws_access_key_id"],
+                aws_secret_access_key=credentials["aws_secret_access_key"],
+                region_name=credentials["aws_region_name"],
             )
         case _:
             raise ValueError(f"Got unknown reranker provider: {provider}")

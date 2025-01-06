@@ -46,10 +46,10 @@ dependencies = [
     "llama-index-postprocessor-cohere-rerank>=0.1.7",
     "llama-index-llms-bedrock>=0.1.12",
     "pypdf>=4.3.1",
-    "llama-index-llms-ollama<=0.3.0",
-    "llama-index-embeddings-ollama<=0.3.0",
-    "llama-index-embeddings-jinaai<=0.3.0",
-    "llama-index-embeddings-cohere<=0.3.0",
+    "llama-index-llms-ollama>=0.5.0",
+    "llama-index-embeddings-ollama>=0.5.0",
+    "llama-index-embeddings-jinaai>=0.4.0",
+    "llama-index-embeddings-cohere>=0.4.0",
     "python-docx>=1.1.2",
     "python-pptx>=1.0.2",
     "colorama>=0.4.6",
@@ -58,7 +58,9 @@ dependencies = [
     "retry>=0.9.2",
     "langchain-openai>=0.2.9",
     "ragas>=0.2.6",
-    "llama-index-embeddings-bedrock<=0.3.0",
+    "llama-index-embeddings-bedrock>=0.4.0",
+    "llama-index-postprocessor-xinference-rerank>=0.2.0",
+    "llama-index-postprocessor-bedrock-rerank>=0.3.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"

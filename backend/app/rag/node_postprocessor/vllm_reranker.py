@@ -15,7 +15,6 @@ dispatcher = get_dispatcher(__name__)
 
 
 class VLLMRerank(BaseNodePostprocessor):
-    api_key: str = Field(default="", description="API key.")
     api_url: str = Field(default="", description="API url.")
     model: str = Field(default="", description="The model to use when calling API.")
 
@@ -27,11 +26,9 @@ class VLLMRerank(BaseNodePostprocessor):
         self,
         top_n: int = 2,
         model: str = "BAAI/bge-reranker-v2-m3",
-        api_key: str = "",
         api_url: str = "http://localhost:8000/v1/score",
     ):
         super().__init__(top_n=top_n, model=model)
-        self.api_key = api_key
         self.api_url = api_url
         self.model = model
         self._session = requests.Session()

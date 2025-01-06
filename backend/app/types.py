@@ -29,6 +29,7 @@ class RerankerProvider(str, enum.Enum):
     LOCAL = "local"
     VLLM = "vllm"
     XINFERENCE = "xinference"
+    BEDROCK = "bedrock"
 
 
 class MimeTypes(str, enum.Enum):

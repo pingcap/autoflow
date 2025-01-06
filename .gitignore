@@ -1,5 +1,6 @@
 *_dev.ipynb
 .idea
+.vscode
 .env
 
 redis-data

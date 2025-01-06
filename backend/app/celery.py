@@ -16,6 +16,7 @@ app.conf.update(
         {"app.tasks.evaluate.*": {"queue": "evaluation"}},
         {"*": {"queue": "default"}},
     ],
+    broker_connection_retry_on_startup=True,
 )
 
 app.autodiscover_tasks(["app"])

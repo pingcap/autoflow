@@ -67,4 +67,6 @@ requires-python = ">= 3.8"
 managed = true
 virtual = true
 universal = true
-dev-dependencies = []
+dev-dependencies = [
+    "pre-commit>=4.0.1",
+]

@@ -71,6 +71,8 @@ certifi==2024.6.2
 cffi==1.16.0
     # via argon2-cffi-bindings
     # via cryptography
+cfgv==3.4.0
+    # via pre-commit
 charset-normalizer==3.3.2
     # via requests
 click==8.1.7
@@ -122,6 +124,8 @@ dill==0.3.7
 dirtyjson==1.0.8
     # via llama-index-core
     # via llama-index-legacy
+distlib==0.3.9
+    # via virtualenv
 distro==1.9.0
     # via anthropic
     # via openai
@@ -150,6 +154,7 @@ fastavro==1.9.5
 filelock==3.15.1
     # via huggingface-hub
     # via transformers
+    # via virtualenv
 flower==2.0.1
 frozenlist==1.4.1
     # via aiohttp
@@ -256,6 +261,8 @@ huggingface-hub==0.23.3
     # via transformers
 humanize==4.9.0
     # via flower
+identify==2.6.5
+    # via pre-commit
 idna==3.7
     # via anyio
     # via email-validator
@@ -415,6 +422,8 @@ nltk==3.9.1
     # via llama-index
     # via llama-index-core
     # via llama-index-legacy
+nodeenv==1.9.1
+    # via pre-commit
 numpy==1.26.4
     # via datasets
     # via langchain
@@ -485,11 +494,14 @@ pillow==10.3.0
     # via llama-index-core
     # via llama-index-llms-gemini
     # via python-pptx
+platformdirs==4.3.6
+    # via virtualenv
 playwright==1.45.1
 pluggy==1.5.0
     # via pytest
 portalocker==2.10.1
     # via deepeval
+pre-commit==4.0.1
 prometheus-client==0.20.0
     # via flower
 prompt-toolkit==3.0.47
@@ -595,6 +607,7 @@ pyyaml==6.0.1
     # via langchain-core
     # via llama-index-core
     # via optuna
+    # via pre-commit
     # via transformers
     # via uvicorn
 ragas==0.2.6
@@ -751,6 +764,8 @@ vine==5.1.0
     # via amqp
     # via celery
     # via kombu
+virtualenv==20.28.1
+    # via pre-commit
 watchfiles==0.24.0
     # via uvicorn
 wcwidth==0.2.13

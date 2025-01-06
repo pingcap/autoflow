@@ -31,13 +31,14 @@ export function FAQBox({ title, children }) {
 - [Paid] **But** the token of OpenAI is paid, you should have an account of https://platform.openai.com for an API token.
 </FAQBox>
 
-<FAQBox title="Can I use a different chat model?">
-  Currently we use OpenAI as chat model by default, and can't change to another one.
-  But we plan to add more LLMs support, such as: 
+<FAQBox title="Which LLMs are supported/tested by this RAG app?">
+  AutoFlow uses LLM to extract knowledge graph from docs and generate responses to user queries, so the LLM is the core of this RAG app, the Smarter LLM, the better the performance.
+  Currently the online demo(https://tidb.ai) is using OpenAI as chat model by default, and the following LLMs are supported/tested by this RAG app:
 
-- [Claude3](https://claude.ai/)
-- [Gemini](https://gemini.google.com/)
-- [Ollama](https://ollama.ai/)
+- [gpt-4/gpt-4o/gpt-4o-mini](https://platform.openai.com/)
+- [Gemini 1.5/Gemini 2.0](https://gemini.google.com/)
+- [Claude 3.5 Sonnet](https://claude.ai/)
+- [glm-4-plus](https://bigmodel.cn/)
 - ...
 
 </FAQBox>

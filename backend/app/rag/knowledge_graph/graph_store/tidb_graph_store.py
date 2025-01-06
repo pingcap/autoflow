@@ -49,6 +49,7 @@ class MergeEntities(dspy.Signature):
     If the entities are distinct despite their same name that may be due to different contexts or perspectives, do not merge the entities and return none as the merged entity.
 
     Considerations: Ensure your decision is based on a comprehensive analysis of the content and context provided within the entity descriptions and metadata.
+    Please only response in JSON Format.
     """
 
     entities: List[Entity] = dspy.InputField(
@@ -394,9 +395,13 @@ class TiDBGraphStore(KnowledgeGraphStore):
 
     def _try_merge_entities(self, entities: List[Entity]) -> Entity:
         logger.info(f"Trying to merge entities: {entities[0].name}")
-        with dspy.settings.context(lm=self._dspy_lm):
-            pred = self.merge_entities_prog(entities=entities)
-            return pred.merged_entity
+        try:
+            with dspy.settings.context(lm=self._dspy_lm):
+                pred = self.merge_entities_prog(entities=entities)
+                return pred.merged_entity
+        except Exception as e:
+            logger.error(f"Failed to merge entities: {e}", exc_info=True)
+            return None
 
     def retrieve_with_weight(
         self,

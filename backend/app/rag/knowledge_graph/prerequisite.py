@@ -1,6 +1,6 @@
 import logging
 import dspy
-from dspy.functional import TypedChainOfThought, TypedPredictor
+from dspy.functional import TypedChainOfThought
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
@@ -30,6 +30,8 @@ class DecomposePrerequisites(dspy.Signature):
     - Ensure that the prerequisite questions are directly relevant and necessary for answering the main query.
     - Do not include unnecessary or unrelated questions.
     - Ensure that the questions are grounded and factual, based on the query provided.
+
+    Please only response in JSON format.
     """
 
     query: str = dspy.InputField(

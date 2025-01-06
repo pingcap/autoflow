@@ -69,4 +69,10 @@ requires-python = ">= 3.8"
 managed = true
 virtual = true
 universal = true
-dev-dependencies = []
+dev-dependencies = [
+    "pre-commit>=4.0.1",
+    "ruff>=0.8.6",
+]
+
+[tool.ruff.lint]
+ignore = ["E711", "E712", "F811", "F821", "F841"]

@@ -1,6 +1,6 @@
 from celery.utils.log import get_task_logger
 from sqlalchemy import delete
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from app.celery import app as celery_app
 from app.core.db import engine
@@ -10,7 +10,6 @@ from app.models import (
     KnowledgeBaseDataSource,
     DataSource,
 )
-from app.models.knowledge_base import KnowledgeBase
 from app.rag.datasource import get_data_source_loader
 from app.repositories import knowledge_base_repo, document_repo
 from .build_index import build_index_for_document
@@ -196,7 +195,7 @@ def purge_kb_datasource_related_resources(kb_id: int, datasource_id: int):
         )
 
         graph_repo.delete_orphaned_entities(session)
-        logger.info(f"Deleted orphaned entities successfully.")
+        logger.info("Deleted orphaned entities successfully.")
 
         chunk_repo.delete_by_datasource(session, datasource_id)
         logger.info(f"Deleted chunks from data source #{datasource_id} successfully.")

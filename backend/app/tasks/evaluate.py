@@ -1,7 +1,6 @@
 import logging
 import traceback
 
-import httpx
 from llama_index.core.base.llms.types import ChatMessage
 
 from app.celery import app as celery_app
@@ -150,7 +149,7 @@ def evaluate_task(evaluation_task_item: EvaluationTaskItem):
             show_progress=False,
         )
 
-        logger.debug(f"eval_result to_pandas")
+        logger.debug("eval_result to_pandas")
         result_list = eval_result.to_pandas().to_dict(orient="records")
         logger.debug(f"result list {result_list}")
         if len(result_list) != 1:

@@ -16,7 +16,7 @@ from fastapi_users_db_sqlmodel.access_token import SQLModelAccessTokenDatabaseAs
 from fastapi_users.exceptions import UserAlreadyExists, UserNotExists
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.core.config import settings, Environment
+from app.core.config import settings
 from app.core.db import get_db_async_session
 from app.models import User, UserSession
 from app.auth.db import get_user_db, get_user_session_db

@@ -226,11 +226,7 @@ def get_llm(
             )
         case LLMProvider.OPENAI_LIKE:
             config.setdefault("context_window", 200 * 1000)
-            return OpenAILike(
-                model=model,
-                api_key=credentials,
-                **config
-            )
+            return OpenAILike(model=model, api_key=credentials, **config)
         case LLMProvider.GEMINI:
             os.environ["GOOGLE_API_KEY"] = credentials
             return Gemini(model=model, api_key=credentials, **config)
@@ -278,7 +274,7 @@ def get_llm(
                 model=model,
                 api_base="https://ai.gitee.com/v1",
                 api_key=credentials,
-                **config
+                **config,
             )
         case _:
             raise ValueError(f"Got unknown LLM provider: {provider}")

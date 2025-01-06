@@ -12,7 +12,6 @@ from fastapi.responses import StreamingResponse
 from fastapi_pagination import Params, Page
 
 from app.api.deps import SessionDep, OptionalUserDep, CurrentUserDep
-from app.rag.chat_config import ChatEngineConfig
 from app.repositories import chat_repo
 from app.models import Chat, ChatUpdate
 from app.rag.chat import (

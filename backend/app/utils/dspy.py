@@ -2,7 +2,6 @@ import os
 import datetime
 import hashlib
 from typing import Any, Literal
-import logging
 
 import dspy
 import requests

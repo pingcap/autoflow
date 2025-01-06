@@ -42,6 +42,7 @@ export interface PublicWebsiteSettings {
   'custom_js_button_img_src': string;
   'custom_js_logo_src': string;
   'ga_id': string | null;
+  'max_upload_file_size': number | null;
   'enable_post_verifications': boolean;
   'enable_post_verifications_for_widgets': boolean;
 }

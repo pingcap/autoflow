@@ -5,8 +5,6 @@ from datetime import datetime
 from fastapi_pagination import Params
 from pydantic import BaseModel
 
-from app.models import EvaluationTask
-
 
 class CreateEvaluationTask(BaseModel):
     name: str

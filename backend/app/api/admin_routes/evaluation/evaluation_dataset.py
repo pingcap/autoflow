@@ -95,9 +95,7 @@ def create_evaluation_dataset(
 def delete_evaluation_dataset(
     evaluation_dataset_id: int, session: SessionDep, user: CurrentSuperuserDep
 ) -> bool:
-    evaluation_dataset = must_get(
-        session, EvaluationDataset, evaluation_dataset_id
-    )
+    evaluation_dataset = must_get(session, EvaluationDataset, evaluation_dataset_id)
 
     session.delete(evaluation_dataset)
     session.commit()
@@ -112,9 +110,7 @@ def update_evaluation_dataset(
     session: SessionDep,
     user: CurrentSuperuserDep,
 ) -> EvaluationDataset:
-    evaluation_dataset = must_get(
-        session, EvaluationDataset, evaluation_dataset_id
-    )
+    evaluation_dataset = must_get(session, EvaluationDataset, evaluation_dataset_id)
 
     evaluation_dataset.name = updated_evaluation_dataset.name
 
@@ -131,10 +127,7 @@ def list_evaluation_dataset(
     user: CurrentSuperuserDep,
     params: ParamsWithKeyword = Depends(),
 ) -> Page[EvaluationDataset]:
-    stmt = (
-        select(EvaluationDataset)
-        .order_by(desc(EvaluationDataset.id))
-    )
+    stmt = select(EvaluationDataset).order_by(desc(EvaluationDataset.id))
 
     if params.keyword:
         stmt = stmt.where(EvaluationDataset.name.ilike(f"%{params.keyword}%"))

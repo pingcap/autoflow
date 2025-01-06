@@ -2,7 +2,6 @@ from typing import List
 from pydantic import BaseModel
 
 from app.types import EmbeddingProvider
-from app.core.config import settings
 
 
 class EmbeddingModelOption(BaseModel):
@@ -27,7 +26,7 @@ admin_embed_model_options: List[EmbeddingModelOption] = [
         provider_description="The OpenAI API provides a simple interface for developers to create an intelligence layer in their applications, powered by OpenAI's state of the art models.",
         provider_url="https://platform.openai.com",
         default_embedding_model="text-embedding-3-small",
-        embedding_model_description=f"Find more information about OpenAI Embedding at https://platform.openai.com/docs/guides/embeddings",
+        embedding_model_description="Find more information about OpenAI Embedding at https://platform.openai.com/docs/guides/embeddings",
         credentials_display_name="OpenAI API Key",
         credentials_description="The API key of OpenAI, you can find it in https://platform.openai.com/api-keys",
         credentials_type="str",
@@ -39,7 +38,7 @@ admin_embed_model_options: List[EmbeddingModelOption] = [
         provider_description="Jina AI provides multimodal, bilingual long-context embeddings for search and RAG",
         provider_url="https://jina.ai/embeddings/",
         default_embedding_model="jina-embeddings-v2-base-en",
-        embedding_model_description=f"Find more information about Jina AI Embeddings at https://jina.ai/embeddings/",
+        embedding_model_description="Find more information about Jina AI Embeddings at https://jina.ai/embeddings/",
         credentials_display_name="Jina API Key",
         credentials_description="The API key of Jina, you can find it in https://jina.ai/embeddings/",
         credentials_type="str",
@@ -51,7 +50,7 @@ admin_embed_model_options: List[EmbeddingModelOption] = [
         provider_description="Cohere provides industry-leading large language models (LLMs) and RAG capabilities tailored to meet the needs of enterprise use cases that solve real-world problems.",
         provider_url="https://cohere.com/embeddings",
         default_embedding_model="embed-multilingual-v3.0",
-        embedding_model_description=f"Documentation: https://docs.cohere.com/docs/cohere-embed",
+        embedding_model_description="Documentation: https://docs.cohere.com/docs/cohere-embed",
         credentials_display_name="Cohere API Key",
         credentials_description="You can get one from https://dashboard.cohere.com/api-keys",
         credentials_type="str",
@@ -79,7 +78,7 @@ admin_embed_model_options: List[EmbeddingModelOption] = [
         provider_description="Ollama is a lightweight framework for building and running large language models and embed models.",
         provider_url="https://ollama.com",
         default_embedding_model="nomic-embed-text",
-        embedding_model_description=f"Documentation: https://ollama.com/blog/embedding-models",
+        embedding_model_description="Documentation: https://ollama.com/blog/embedding-models",
         default_config={
             "api_base": "http://localhost:11434",
         },
@@ -107,7 +106,7 @@ admin_embed_model_options: List[EmbeddingModelOption] = [
         provider_description="Gitee AI is a third-party model provider that offers ready-to-use cutting-edge model APIs for AI developers.",
         provider_url="https://ai.gitee.com",
         default_embedding_model="bge-large-zh-v1.5",
-        embedding_model_description=f"Find more information about Gitee AI Embeddings at https://ai.gitee.com/docs/openapi/v1#tag/%E7%89%B9%E5%BE%81%E6%8A%BD%E5%8F%96/POST/embeddings",
+        embedding_model_description="Find more information about Gitee AI Embeddings at https://ai.gitee.com/docs/openapi/v1#tag/%E7%89%B9%E5%BE%81%E6%8A%BD%E5%8F%96/POST/embeddings",
         credentials_display_name="Gitee AI API Key",
         credentials_description="The API key of Gitee AI, you can find it in https://ai.gitee.com/dashboard/settings/tokens",
         credentials_type="str",

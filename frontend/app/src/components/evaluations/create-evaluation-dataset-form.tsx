@@ -5,6 +5,7 @@ import { withCreateEntityForm as withCreateEntityForm } from '@/components/form/
 import { formFieldLayout } from '@/components/form/field-layout';
 import { FileInput } from '@/components/form/widgets/FileInput';
 import { zodFile } from '@/lib/zod';
+import Link from 'next/link';
 import type { ComponentProps } from 'react';
 import { z } from 'zod';
 
@@ -41,7 +42,7 @@ export function CreateEvaluationDatasetForm ({ transitioning, onCreated }: Omit<
       <field.Basic name="name" label="Name" required>
         <FormInput />
       </field.Basic>
-      <field.Basic name="upload_file" label="Upload File">
+      <field.Basic name="upload_file" label="Upload File" description={<>Evaluation dataset CSV file. See the <Link className='underline' href='/docs/evaluation#prerequisites'>documentation</Link> for the format.</>}>
         <FileInput accept={['.csv']} />
       </field.Basic>
     </FormImpl>

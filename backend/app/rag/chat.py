@@ -920,7 +920,7 @@ class ChatService:
             db_assistant_message.post_verification_result_url = (
                 post_verification_result_url
             )
-        except Exception as e:
+        except Exception:
             logger.error(
                 "Specific error occurred during post verification job.", exc_info=True
             )

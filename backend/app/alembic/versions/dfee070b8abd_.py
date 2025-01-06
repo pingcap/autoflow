@@ -8,8 +8,6 @@ Create Date: 2024-09-10 10:45:50.318277
 
 from alembic import op
 import sqlalchemy as sa
-import sqlmodel.sql.sqltypes
-from tidb_vector.sqlalchemy import VectorType
 from sqlalchemy.dialects import mysql
 
 # revision identifiers, used by Alembic.

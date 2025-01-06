@@ -26,53 +26,105 @@ If you want to use the new LLM while answering user queries, you need switch to 
 
 Currently Autoflow supports the following LLM providers:
 
-- [OpenAI](https://platform.openai.com/)
-- [Google Gemini](https://gemini.google.com/)
-- [Anthropic Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude)
-- [Amazon Bedrock](https://aws.amazon.com/bedrock/)
-    - To use Amazon Bedrock, you'll need to provide a JSON Object of your AWS Credentials, as described in the [AWS CLI config global settings](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html#cli-configure-files-global):
-    ```json
-    {
-        "aws_access_key_id": "****",
-        "aws_secret_access_key": "****",
-        "aws_region_name": "us-west-2"
-    }
-    ```
-- [Gitee AI](https://ai.gitee.com/serverless-api)
-- And all OpenAI-Like models:
-    - [OpenRouter](https://openrouter.ai/)
-        - Default config:
-        ```json
-        {
-            "api_base": "https://openrouter.ai/api/v1/"
-        }
-        ```
-    - [BigModel](https://open.bigmodel.cn/)
-        - Default config:
-        ```json
-        {
-            "api_base": "https://open.bigmodel.cn/api/paas/v4/",
-            "is_chat_model": true
-        }
-        ```
-    - [Ollama](https://ollama.com/)
-        - Default config:
-        ```json
-        {
-            "api_base": "http://localhost:11434"
-        }
-        ```
-    - [vLLM](https://docs.vllm.ai/en/stable/)
-        - Default config:
-        ```json
-        {
-            "api_base": "http://localhost:8000/v1/"
-        }
-        ```
-    - [Xinference](https://inference.readthedocs.io/en/latest/index.html)
-        - Default config:
-        ```json
-        {
-            "api_base": "http://localhost:9997/v1/"
-        }
-        ```
+### OpenAI
+
+To learn more about OpenAI, please visit [OpenAI](https://platform.openai.com/).
+
+### Google Gemini
+
+To learn more about Google Gemini, please visit [Google Gemini](https://gemini.google.com/).
+
+### Anthropic Vertex AI
+
+To learn more about Anthropic Vertex AI, please visit [Anthropic Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude)
+
+### Amazon Bedrock
+
+To use Amazon Bedrock, you'll need to provide a JSON Object of your AWS Credentials, as described in the [AWS CLI config global settings](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html#cli-configure-files-global):
+
+```json
+{
+    "aws_access_key_id": "****",
+    "aws_secret_access_key": "****",
+    "aws_region_name": "us-west-2"
+}
+```
+
+To learn more about Amazon Bedrock, please visit [Amazon Bedrock](https://aws.amazon.com/bedrock/).
+
+### Gitee AI
+
+To learn more about Gitee AI, please visit [Gitee AI](https://ai.gitee.com/serverless-api).
+
+### OpenAI-Like
+
+Autoflow also support the providers that conform to the OpenAI API specification.
+
+To use OpenAI-Like LLM providers, you need to provide the **api_base** of the LLM API as the following JSON format in **Advanced Settings**:
+
+```json
+{
+    "api_base": "{api_base_url}"
+}
+```
+
+#### OpenRouter
+
+Default config:
+
+```json
+{
+   "api_base": "https://openrouter.ai/api/v1/"
+}
+```
+
+To learn more about OpenRouter, please visit [OpenRouter](https://openrouter.ai/).
+
+#### ZhipuAI BigModel
+
+Default config:
+
+```json
+{
+    "api_base": "https://open.bigmodel.cn/api/paas/v4/",
+    "is_chat_model": true
+}
+```
+
+To learn more about BigModel, please visit [BigModel](https://open.bigmodel.cn/).
+
+#### Ollama
+
+Default config:
+
+```json
+{
+    "api_base": "http://localhost:11434"
+}
+```
+
+To learn more about Ollama, please visit [Ollama](https://ollama.com/).
+
+#### vLLM
+
+Default config:
+
+```json
+{
+    "api_base": "http://localhost:8000/v1/"
+}
+```
+
+To learn more about vLLM, please visit [vLLM](https://docs.vllm.ai/en/stable/).
+
+#### Xinference
+
+Default config:
+
+```json
+{
+    "api_base": "http://localhost:9997/v1/"
+}
+```
+
+To learn more about Xinference, please visit [Xinference](https://inference.readthedocs.io/en/latest/).

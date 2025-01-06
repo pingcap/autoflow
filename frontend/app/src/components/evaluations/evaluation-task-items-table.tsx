@@ -17,8 +17,8 @@ const helper = createColumnHelper<EvaluationTaskItem>();
 const columns = [
   helper.accessor('id', { header: 'ID', cell: mono }),
   helper.accessor('status', { header: 'Status', cell: evaluationTaskStatusCell, meta: { colSpan: context => context.row.original.status === 'error' ? 3 : 1 } }),
-  helper.accessor('factual_correctness', {
-    header: 'factual_correctness',
+  helper.accessor('semantic_similarity', {
+    header: 'semantic_similarity',
     cell: context => percent(context, {
       colorStops: [
         { checkpoint: 0, color: 'hsl(var(--destructive))' },
@@ -30,8 +30,8 @@ const columns = [
     }),
     meta: { colSpan: context => context.row.original.status === 'error' ? 0 : 1 }
   }),
-  helper.accessor('semantic_similarity', {
-    header: 'semantic_similarity',
+  helper.accessor('factual_correctness', {
+    header: 'factual_correctness',
     cell: context => percent(context, {
       colorStops: [
         { checkpoint: 0, color: 'hsl(var(--destructive))' },

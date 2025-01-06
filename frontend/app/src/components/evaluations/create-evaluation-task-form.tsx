@@ -31,7 +31,7 @@ export function CreateEvaluationTaskForm ({ transitioning, onCreated }: Omit<Com
       <field.Basic name="chat_engine" label="Chat Engine">
         <ChatEngineSelect />
       </field.Basic>
-      <field.Basic name="run_size" label="Run Size">
+      <field.Basic name="run_size" label="Run Size" description="Number of evaluation dataset items to run. Default to run whole dataset.">
         <FormInput type="number" min={1} step={1} />
       </field.Basic>
     </FormImpl>

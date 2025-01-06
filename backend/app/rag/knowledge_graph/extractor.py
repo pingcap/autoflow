@@ -46,6 +46,7 @@ class ExtractGraphTriplet(dspy.Signature):
 
     Objective: Produce a detailed and comprehensive knowledge graph that captures the full spectrum of entities mentioned in the text, along with their interrelations, reflecting both broad concepts and intricate details specific to the database domain.
 
+    Please only response in JSON format.
     """
 
     text = dspy.InputField(
@@ -62,6 +63,8 @@ class ExtractCovariate(dspy.Signature):
     Ensure all extracted covariates is clearly connected to the correct entity for accuracy and comprehensive understanding.
     Ensure that all extracted covariates are factual and verifiable within the text itself, without relying on external knowledge or assumptions.
     Collectively, the covariates should provide a thorough and precise summary of the entity's characteristics as described in the source material.
+
+    Please only response in JSON format.
     """
 
     text = dspy.InputField(

@@ -1,6 +1,7 @@
 import { type BaseCreateDatasourceParams, createDatasource, type CreateDatasourceSpecParams, uploadFiles } from '@/api/datasources';
 import { FormInput } from '@/components/form/control-widget';
 import { formFieldLayout } from '@/components/form/field-layout';
+import { FormRootError } from '@/components/form/root-error';
 import { onSubmitHelper } from '@/components/form/utils';
 import { FilesInput } from '@/components/form/widgets/FilesInput';
 import { Button } from '@/components/ui/button';
@@ -49,9 +50,10 @@ export function CreateDatasourceForm ({ knowledgeBaseId, transitioning, onCreate
       <form className="max-w-screen-sm space-y-4" {...formDomEventHandlers(form, transitioning)}>
         <DataSourceTypeField />
         <DataSourceTypeSpecFields />
-        <field.Basic name="name" label="Datasource Name">
+        <field.Basic name="name" label="Datasource Name" required>
           <FormInput />
         </field.Basic>
+        <FormRootError title='Failed to create datasource' />
         <Button type="submit" disabled={form.state.isSubmitting}>
           Create
         </Button>
@@ -105,18 +107,18 @@ function DataSourceTypeSpecFields () {
       {(type) => (
         <>
           {type === 'file' && (
-            <fileField.Basic name="files" label="Files" description="Currently support Markdown (*.md), PDF (*.pdf), Microsoft Word (*.docx), Microsoft PowerPoint (*.pptx), Microsoft Excel (*.xlsx) and Text (*.txt) files.">
+            <fileField.Basic name="files" label="Files" description="Currently support Markdown (*.md), PDF (*.pdf), Microsoft Word (*.docx), Microsoft PowerPoint (*.pptx), Microsoft Excel (*.xlsx) and Text (*.txt) files." required>
               <FilesInput accept={['text/plain', 'application/pdf', '.md', '.docx', '.pptx', '.xlsx']} />
             </fileField.Basic>
           )}
           {type === 'web_single_page' && (
             <pagesField.PrimitiveArray name="urls" label="Page URL" newItemValue={() => ''}>
-              <FormInput placeholder="https://example.com/" />
+              <FormInput placeholder="https://example.com/" required />
             </pagesField.PrimitiveArray>
           )}
           {type === 'web_sitemap' && (
             <sitemapField.Basic name="url" label="Sitemap URL">
-              <FormInput placeholder="https://example.com/sitemap.xml" />
+              <FormInput placeholder="https://example.com/sitemap.xml" required />
             </sitemapField.Basic>
           )}
         </>

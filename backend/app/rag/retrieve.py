@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional, Type
+from typing import List, Type
 
 from llama_index.core import VectorStoreIndex
 from llama_index.core.schema import NodeWithScore

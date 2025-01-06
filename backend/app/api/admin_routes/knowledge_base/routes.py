@@ -36,7 +36,7 @@ from app.tasks import (
     build_kg_index_for_chunk,
     build_index_for_document,
 )
-from app.repositories import knowledge_base_repo, data_source_repo, chat_engine_repo
+from app.repositories import knowledge_base_repo, data_source_repo
 from app.tasks.knowledge_base import (
     import_documents_for_knowledge_base,
     stats_for_knowledge_base,

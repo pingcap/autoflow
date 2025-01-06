@@ -9,7 +9,6 @@ Create Date: 2024-08-08 03:55:14.042290
 from alembic import op
 import sqlalchemy as sa
 import sqlmodel.sql.sqltypes
-from tidb_vector.sqlalchemy import VectorType
 from app.models.base import AESEncryptedColumn
 
 

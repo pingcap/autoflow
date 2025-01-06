@@ -2,7 +2,6 @@ import time
 import threading
 import logging
 from sqlmodel import Session, select
-from datetime import datetime, UTC
 
 from app.models import SiteSetting as DBSiteSetting
 from app.core.db import engine

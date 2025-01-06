@@ -62,7 +62,7 @@ export function DataTableRemote<TData, TValue> ({
   defaultSorting = [],
 }: DataTableRemoteProps<TData, TValue>) {
   const [pagination, setPagination] = useState<PaginationState>(() => {
-    return { pageIndex: 0, pageSize: 10 };
+    return { pageIndex: 0, pageSize: 20 };
   });
   const [rowSelection, setRowSelection] = useState({});
   const [columnFilters, setColumnFilters] = useState<ColumnFilter[]>([]);
@@ -236,7 +236,7 @@ function getSortingSearchString (sorting: SortingState) {
   return sorting.map(({ id, desc }) => `${id}:${desc ? 'desc' : 'asc'}`).join(',');
 }
 
-const sizes = [10, 20, 50, 100];
+const sizes = [20, 50, 100];
 
 function TablePagination ({ className, limit = 4, loading, table }: { className?: string, limit?: number, loading: boolean, table: ReactTable<any> }) {
   const options = table.getPageOptions();

@@ -8,7 +8,7 @@ from sqlalchemy import update
 
 from app.api.deps import CurrentSuperuserDep, SessionDep
 from app.exceptions import InternalServerError, LLMNotFound
-from app.models import AdminLLM, LLM, ChatEngine, DataSource, KnowledgeBase
+from app.models import AdminLLM, LLM, ChatEngine, KnowledgeBase
 from app.rag.chat_config import get_llm
 from app.rag.llm_option import LLMOption, admin_llm_options
 from app.repositories.llm import llm_repo

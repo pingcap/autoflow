@@ -35,9 +35,15 @@ export function WebsiteSettings ({ schema }: { schema: AllSettings }) {
         <SettingsField name="social_twitter" item={schema.social_twitter} />
         <SettingsField name="social_discord" item={schema.social_discord} />
       </section>
+      <Separator />
       <section className="space-y-6">
         <h2 className="text-lg font-medium">Analytics</h2>
         <SettingsField name="ga_id" item={schema.ga_id} />
+      </section>
+      <Separator />
+      <section className="space-y-6">
+        <h2 className="text-lg font-medium">Uploads</h2>
+        <SettingsField name="max_upload_file_size" item={schema.max_upload_file_size} />
       </section>
     </div>
   );

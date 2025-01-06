@@ -113,7 +113,7 @@ def remove_kb_document(
         )
 
         graph_repo.delete_orphaned_entities(session)
-        logger.info(f"Deleted orphaned entities successfully.")
+        logger.info("Deleted orphaned entities successfully.")
 
         chunk_repo.delete_by_document(session, document_id)
         logger.info(f"Deleted chunks of document #{document_id} successfully.")

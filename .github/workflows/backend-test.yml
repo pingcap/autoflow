@@ -1,0 +1,30 @@
+name: Backend Test
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - backend/**
+  pull_request:
+    branches:
+      - main
+    paths:
+      - backend/**
+
+jobs:
+  backend-test:
+    name: Backend Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Ruff Format
+        uses: astral-sh/ruff-action@v3
+      - name: Run Ruff Check
+        run: ruff check
+      - name: Run Ruff Format
+        run: ruff format

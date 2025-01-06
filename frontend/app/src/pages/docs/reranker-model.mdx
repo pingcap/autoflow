@@ -17,5 +17,48 @@ After logging in with an admin account, you can configure the Reranker Model in 
 
 Currently AutoFlow supports the following reranker providers:
 
-* [Jina AI Reranker](https://jina.ai/reranker)
-* [Cohere](https://cohere.com/rerank)
+### JinaAI
+
+To learn more about JinaAI reranking, please visit [Jina AI Reranker](https://jina.ai/reranker/).
+
+### Cohere
+
+To learn more about Cohere reranking, please visit [Cohere Rerank](https://cohere.com/rerank/).
+
+### vLLM
+
+To use vLLM rerankers, you need to provide the **api_url** of the reranker API as the following JSON format in **Advanced Settings**:
+
+```json
+{
+    "api_url": "{api_base_url}"
+}
+```
+
+To learn more about vLLM reranking, please visit [vLLM Sentence Pair Scoring Models](https://docs.vllm.ai/en/latest/models/supported_models.html#sentence-pair-scoring-task-score).
+
+### Xorbits Inference (Xinference)
+
+To use Xinference rerankers, you need to provide the **api_url** of the reranker API as the following JSON format in **Advanced Settings**:
+
+```json
+{
+    "api_url": "{api_base_url}"
+}
+```
+
+To learn more about Xinference reranking, please visit [Xinference Rerank](https://inference.readthedocs.io/en/latest/models/model_abilities/rerank.html).
+
+### Amazon Bedrock
+
+To use Amazon Bedrock rerankers, you'll need to provide a JSON Object of your AWS Credentials, as described in the [AWS CLI config global settings](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html#cli-configure-files-global):
+
+```json
+{
+    "aws_access_key_id": "****",
+    "aws_secret_access_key": "****",
+    "aws_region_name": "us-west-2"
+}
+```
+
+To find more reranking models supported by Amazon Bedrock, please visit [Amazon Bedrock Models Reference](https://docs.aws.amazon.com/bedrock/latest/userguide/foundation-models-reference.html).

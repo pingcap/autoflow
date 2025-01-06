@@ -41,7 +41,7 @@ class DefaultLLMNotFound(LLMException):
     status_code = 404
 
     def __init__(self):
-        self.detail = f"default llm is not found"
+        self.detail = "default llm is not found"
 
 
 # Embedding model
@@ -62,7 +62,7 @@ class DefaultEmbeddingModelNotFound(EmbeddingModelException):
     status_code = 404
 
     def __init__(self):
-        self.detail = f"default embedding model is not found"
+        self.detail = "default embedding model is not found"
 
 
 # Reranker model
@@ -83,7 +83,7 @@ class DefaultRerankerModelNotFound(RerankerModelException):
     status_code = 404
 
     def __init__(self):
-        self.detail = f"default reranker model is not found"
+        self.detail = "default reranker model is not found"
 
 
 # Knowledge base
@@ -113,28 +113,28 @@ class KBNoLLMConfigured(KBException):
     status_code = 500
 
     def __init__(self):
-        self.detail = f"must configured a LLM for knowledge base"
+        self.detail = "must configured a LLM for knowledge base"
 
 
 class KBNoEmbedModelConfigured(KBException):
     status_code = 500
 
     def __init__(self):
-        self.detail = f"must configured a embedding model for knowledge base"
+        self.detail = "must configured a embedding model for knowledge base"
 
 
 class KBNoVectorIndexConfigured(KBException):
     status_code = 500
 
     def __init__(self):
-        self.detail = f"must configured vector index as one of the index method for knowledge base, which is required for now"
+        self.detail = "must configured vector index as one of the index method for knowledge base, which is required for now"
 
 
 class KBNotAllowedUpdateEmbedModel(KBException):
     status_code = 500
 
     def __init__(self):
-        self.detail = f"update embedding model is not allowed once the knowledge base has been created"
+        self.detail = "update embedding model is not allowed once the knowledge base has been created"
 
 
 class KBIsUsedByChatEngines(KBException):

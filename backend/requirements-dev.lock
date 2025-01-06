@@ -644,6 +644,7 @@ rich==13.7.1
     # via typer
 rsa==4.9
     # via google-auth
+ruff==0.8.6
 s3transfer==0.10.2
     # via boto3
 safetensors==0.4.3

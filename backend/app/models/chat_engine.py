@@ -8,7 +8,6 @@ from sqlmodel import (
     JSON,
     DateTime,
     Relationship as SQLRelationship,
-    SQLModel,
 )
 
 from .base import UpdatableBaseModel

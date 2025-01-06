@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
 
 from app.api.routes import (
@@ -45,7 +45,6 @@ from app.api.admin_routes.evaluation import (
 )
 
 from app.auth.users import auth_backend, fastapi_users
-from app.api.deps import current_superuser
 
 api_router = APIRouter()
 api_router.include_router(index.router, tags=["index"])

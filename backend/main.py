@@ -147,7 +147,7 @@ def runserver(host, port):
 @click.option(
     "--tidb-ai-chat-engine",
     default="default",
-    help=f"TiDB AI chat engine, default=default",
+    help="TiDB AI chat engine, default=default",
 )
 def runeval(dataset, llm_provider, run_name, tidb_ai_chat_engine):
     from app.evaluation.evals import Evaluation
@@ -176,7 +176,7 @@ def runeval(dataset, llm_provider, run_name, tidb_ai_chat_engine):
 @click.option(
     "--tidb-ai-chat-engine",
     default="default",
-    help=f"TiDB AI chat engine, default=default",
+    help="TiDB AI chat engine, default=default",
 )
 @click.option("--run-size", default=30, help="Run size, default=30")
 def runeval_dataset(csv, llm_provider, run_name, tidb_ai_chat_engine, run_size):

@@ -69,4 +69,8 @@ virtual = true
 universal = true
 dev-dependencies = [
     "pre-commit>=4.0.1",
+    "ruff>=0.8.6",
 ]
+
+[tool.ruff.lint]
+ignore = ["E711", "E712", "F811", "F821", "F841"]

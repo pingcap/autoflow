@@ -1,6 +1,6 @@
 import logging
 import dspy
-from dspy.functional import TypedChainOfThought, TypedPredictor
+from dspy.functional import TypedPredictor
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from llama_index.core.tools import FunctionTool

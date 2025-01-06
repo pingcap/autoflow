@@ -140,7 +140,7 @@ class Settings(BaseSettings):
         secret = self.SECRET_KEY
         if not secret:
             raise ValueError(
-                f"Please set a secret key using the SECRET_KEY environment variable."
+                "Please set a secret key using the SECRET_KEY environment variable."
             )
 
         min_length = 32

@@ -45,7 +45,7 @@ def get_kb_vector_dims(kb: KnowledgeBase):
         vector_dimension = kb.embedding_model.vector_dimension
     else:
         logger.warning(
-            f"This knowledge base doesn't configured a embedding model or this vector vector_dimension "
-            f"of the embedding model is miss."
+            "This knowledge base doesn't configured a embedding model or this vector vector_dimension "
+            "of the embedding model is miss."
         )
     return vector_dimension

@@ -1,6 +1,6 @@
 from typing import Optional, Any
 
-from sqlmodel import Field, Column, JSON, String, SQLModel
+from sqlmodel import Field, Column, JSON, String
 
 from .base import UpdatableBaseModel, AESEncryptedColumn
 from app.types import EmbeddingProvider

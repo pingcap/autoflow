@@ -1,6 +1,5 @@
-from fastapi import FastAPI, HTTPException, APIRouter
+from fastapi import HTTPException, APIRouter
 from fastapi.responses import StreamingResponse
-from sqlmodel import Session
 from app.api.deps import SessionDep
 from app.repositories import document_repo
 from app.file_storage import get_file_storage

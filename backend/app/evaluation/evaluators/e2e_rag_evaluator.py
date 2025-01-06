@@ -1,5 +1,5 @@
 import time
-from typing import Any, Optional, Sequence, List, Mapping
+from typing import Optional, Sequence, Mapping
 from llama_index.core.evaluation.base import EvaluationResult
 from deepeval import evaluate
 from deepeval.test_case import LLMTestCase

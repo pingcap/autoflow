@@ -1,6 +1,6 @@
 import logging
 import dspy
-from dspy.functional import TypedChainOfThought, TypedPredictor
+from dspy.functional import TypedChainOfThought
 from typing import List, Optional
 from pydantic import BaseModel, Field
 

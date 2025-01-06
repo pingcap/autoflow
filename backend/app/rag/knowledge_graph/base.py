@@ -8,8 +8,8 @@ import concurrent.futures
 from sqlmodel import Session
 
 from llama_index.core.data_structs import IndexLPG
-from llama_index.core.callbacks import CallbackManager, trace_method
-from llama_index.core.callbacks.schema import CBEventType, EventPayload
+from llama_index.core.callbacks import CallbackManager
+from llama_index.core.callbacks.schema import EventPayload
 from llama_index.core.indices.base import BaseIndex
 from llama_index.core.storage.docstore.types import RefDocInfo
 from llama_index.core.storage.storage_context import StorageContext
@@ -319,7 +319,7 @@ class KnowledgeGraphIndex(BaseIndex[IndexLPG]):
                     relationship_meta_filters=relationship_meta_filters,
                     session=tmp_session,
                 )
-            except Exception as exc:
+            except Exception:
                 tmp_session.rollback()
                 traceback.print_exc()
                 raise

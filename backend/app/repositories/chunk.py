@@ -1,4 +1,4 @@
-from typing import Type, Optional
+from typing import Type
 
 from sqlalchemy import func, delete
 from sqlmodel import Session, select, SQLModel

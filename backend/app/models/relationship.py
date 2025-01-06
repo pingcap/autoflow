@@ -102,14 +102,14 @@ def get_kb_relationship_model(kb: KnowledgeBase) -> Type[SQLModel]:
         source_entity_id: int = Field(foreign_key=f"{entities_table_name}.id")
         source_entity: entity_model = SQLRelationship(
             sa_relationship_kwargs={
-                "primaryjoin": f"KBRelationship.source_entity_id == KBEntity.id",
+                "primaryjoin": "KBRelationship.source_entity_id == KBEntity.id",
                 "lazy": "joined",
             },
         )
         target_entity_id: int = Field(foreign_key=f"{entities_table_name}.id")
         target_entity: entity_model = SQLRelationship(
             sa_relationship_kwargs={
-                "primaryjoin": f"KBRelationship.target_entity_id == KBEntity.id",
+                "primaryjoin": "KBRelationship.target_entity_id == KBEntity.id",
                 "lazy": "joined",
             },
         )

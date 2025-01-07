@@ -42,3 +42,5 @@ class RetrieveRequest(BaseModel):
     query: str
     chat_engine: Optional[str] = "default"
     top_k: Optional[int] = 5
+    similarity_top_k: Optional[int] = None
+    oversampling_factor: Optional[int] = 5

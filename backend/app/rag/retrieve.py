@@ -1,5 +1,5 @@
 import logging
-from typing import List, Type
+from typing import List, Optional, Type
 
 from llama_index.core import VectorStoreIndex
 from llama_index.core.schema import NodeWithScore
@@ -42,7 +42,6 @@ class RetrieveService:
 
         self.chat_engine_config = ChatEngineConfig.load_from_db(db_session, engine_name)
         self.db_chat_engine = self.chat_engine_config.get_db_chat_engine()
-        self._reranker = self.chat_engine_config.get_reranker(db_session)
 
         if self.chat_engine_config.knowledge_base:
             # TODO: Support multiple knowledge base retrieve.
@@ -57,7 +56,13 @@ class RetrieveService:
         else:
             self._embed_model = get_default_embed_model(self.db_session)
 
-    def retrieve(self, question: str, top_k: int = 10) -> List[DBDocument]:
+    def retrieve(
+        self,
+        question: str,
+        top_k: int = 10,
+        similarity_top_k: Optional[int] = None,
+        oversampling_factor: int = 5,
+    ) -> List[DBDocument]:
         """
         Retrieve the related documents based on the user question.
         Args:
@@ -69,13 +74,19 @@ class RetrieveService:
             A list of related documents.
         """
         try:
-            return self._retrieve(question, top_k)
+            return self._retrieve(
+                question, top_k, similarity_top_k, oversampling_factor
+            )
         except Exception as e:
             logger.exception(e)
 
-    def _retrieve(self, question: str, top_k: int) -> List[DBDocument]:
-        # TODO: move to __init__?
-        _llm = self.chat_engine_config.get_llama_llm(self.db_session)
+    def _retrieve(
+        self,
+        question: str,
+        top_k: int = 10,
+        similarity_top_k: Optional[int] = None,
+        oversampling_factor: int = 5,
+    ) -> List[DBDocument]:
         _fast_llm = self.chat_engine_config.get_fast_llama_llm(self.db_session)
         _fast_dspy_lm = self.chat_engine_config.get_fast_dspy_lm(self.db_session)
 
@@ -135,29 +146,31 @@ class RetrieveService:
 
         # 3. Retrieve the related chunks from the vector store
         # 4. Rerank after the retrieval
-        # 5. Generate a response using the refined question and related chunks
-        text_qa_template = get_prompt_by_jinja2_template(
-            self.chat_engine_config.llm.text_qa_prompt,
-            graph_knowledges=graph_knowledges_context,
-        )
-        refine_template = get_prompt_by_jinja2_template(
-            self.chat_engine_config.llm.refine_prompt,
-            graph_knowledges=graph_knowledges_context,
-        )
+
+        # Vector Index
         vector_store = TiDBVectorStore(
-            session=self.db_session, chunk_db_model=self._chunk_model
+            session=self.db_session,
+            chunk_db_model=self._chunk_model,
+            oversampling_factor=oversampling_factor,
         )
         vector_index = VectorStoreIndex.from_vector_store(
             vector_store,
             embed_model=self._embed_model,
         )
 
+        # Node postprocessors
+        metadata_filter = self.chat_engine_config.get_metadata_filter()
+        reranker = self.chat_engine_config.get_reranker(self.db_session, top_n=top_k)
+        if reranker:
+            node_postprocessors = [metadata_filter, reranker]
+        else:
+            node_postprocessors = [metadata_filter]
+
+        # Retriever Engine
         retrieve_engine = vector_index.as_retriever(
-            node_postprocessors=[self._reranker],
-            streaming=True,
-            text_qa_template=text_qa_template,
-            refine_template=refine_template,
-            similarity_top_k=top_k,
+            similarity_top_k=similarity_top_k or top_k,
+            filters=metadata_filter.filters,
+            node_postprocessors=node_postprocessors,
         )
 
         node_list: List[NodeWithScore] = retrieve_engine.retrieve(refined_question)
@@ -165,17 +178,36 @@ class RetrieveService:
 
         return source_documents
 
-    def _embedding_retrieve(self, question: str, top_k: int) -> List[NodeWithScore]:
+    def _embedding_retrieve(
+        self,
+        question: str,
+        top_k: int = 10,
+        similarity_top_k: Optional[int] = None,
+        oversampling_factor: int = 5,
+    ) -> List[NodeWithScore]:
+        # Vector Index
         vector_store = TiDBVectorStore(
-            session=self.db_session, chunk_db_model=self._chunk_model
+            session=self.db_session,
+            chunk_db_model=self._chunk_model,
+            oversampling_factor=oversampling_factor,
         )
         vector_index = VectorStoreIndex.from_vector_store(
-            vector_store, embed_model=self._embed_model
+            vector_store,
+            embed_model=self._embed_model,
         )
 
+        # Node postprocessors
+        metadata_filter = self.chat_engine_config.get_metadata_filter()
+        reranker = self.chat_engine_config.get_reranker(self.db_session, top_n=top_k)
+        if reranker:
+            node_postprocessors = [metadata_filter, reranker]
+        else:
+            node_postprocessors = [metadata_filter]
+
+        # Retriever Engine
         retrieve_engine = vector_index.as_retriever(
-            node_postprocessors=[self._reranker],
-            similarity_top_k=top_k,
+            node_postprocessors=node_postprocessors,
+            similarity_top_k=similarity_top_k or top_k,
         )
 
         node_list: List[NodeWithScore] = retrieve_engine.retrieve(question)

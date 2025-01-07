@@ -55,8 +55,13 @@ class TiDBVectorStore(BasePydanticVectorStore):
         self,
         session: Optional[Session] = None,
         chunk_db_model: SQLModel = Chunk,
+        oversampling_factor: int = 5,
         **kwargs: Any,
     ) -> None:
+        """
+        Args:
+            oversampling_factor (int): The oversampling factor for the similarity search. The higher the factor, the higher recall rate.
+        """
         super().__init__(**kwargs)
         self._session = session
         self._owns_session = session is None
@@ -64,6 +69,7 @@ class TiDBVectorStore(BasePydanticVectorStore):
             self._session = Session(engine)
 
         self._chunk_db_model = chunk_db_model
+        self._oversampling_factor = oversampling_factor
 
     def ensure_table_schema(self) -> None:
         inspector = sqlalchemy.inspect(engine)
@@ -179,7 +185,7 @@ class TiDBVectorStore(BasePydanticVectorStore):
         if query.query_embedding is None:
             raise ValueError("Query embedding must be provided.")
 
-        stmt = select(
+        subquery = select(
             self._chunk_db_model.id,
             self._chunk_db_model.text,
             self._chunk_db_model.meta,
@@ -190,9 +196,14 @@ class TiDBVectorStore(BasePydanticVectorStore):
 
         if query.filters:
             for f in query.filters.filters:
-                stmt = stmt.where(self._chunk_db_model.meta[f.key] == f.value)
+                subquery = subquery.where(self._chunk_db_model.meta[f.key] == f.value)
 
-        stmt = stmt.order_by(asc("distance")).limit(query.similarity_top_k)
+        subquery = (
+            subquery.order_by(asc("distance"))
+            .limit(query.similarity_top_k * self._oversampling_factor)
+            .subquery("sub")
+        )
+        stmt = select(subquery).order_by(asc("distance")).limit(query.similarity_top_k)
         results = self._session.exec(stmt)
 
         nodes = []

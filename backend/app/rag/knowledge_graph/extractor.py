@@ -112,7 +112,9 @@ class Extractor(dspy.Module):
         elif "bedrock" in self.dspy_lm.provider.lower():
             # Fix: add bedrock branch to fix 'Malformed input request' error
             # subject must not be valid against schema {"required":["messages"]}: extraneous key [response_mime_type] is not permitted
-            return {}
+            return {
+                 "max_tokens": 8192
+            }
         else:
             return {
                 "response_mime_type": "application/json",

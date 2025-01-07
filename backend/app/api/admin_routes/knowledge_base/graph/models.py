@@ -33,6 +33,7 @@ class GraphSearchRequest(BaseModel):
     include_meta: bool = True
     depth: int = 2
     with_degree: bool = True
+    relationship_meta_filters: dict = {}
 
 
 class KnowledgeRequest(BaseModel):

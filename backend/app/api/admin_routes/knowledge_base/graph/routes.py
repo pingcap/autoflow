@@ -207,7 +207,7 @@ def search_graph(session: SessionDep, kb_id: int, request: GraphSearchRequest):
             request.include_meta,
             request.with_degree,
             False,
-            {},
+            request.relationship_meta_filters,
         )
         return {
             "entities": entities,

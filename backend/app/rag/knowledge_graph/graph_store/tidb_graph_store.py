@@ -417,7 +417,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
         with_degree: bool = False,
         with_chunks: bool = True,
         # experimental feature to filter relationships based on meta, can be removed in the future
-        relationship_meta_filters: Dict = {},
+        relationship_meta_filters: dict = {},
         session: Optional[Session] = None,
     ) -> Tuple[list, list, list]:
         if not embedding:

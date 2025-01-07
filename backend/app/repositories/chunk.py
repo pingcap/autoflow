@@ -6,7 +6,7 @@ from app.repositories.base_repo import BaseRepo
 
 from app.models import (
     Chunk as DBChunk,
-    Document,
+    Document as DBDocument,
 )
 
 
@@ -21,6 +21,18 @@ class ChunkRepo(BaseRepo):
             ).first()
             is not None
         )
+
+    def get_documents_by_chunk_ids(
+        self, session: Session, chunk_ids: list[int]
+    ) -> list[DBDocument]:
+        stmt = select(DBDocument).where(
+            DBDocument.id.in_(
+                select(self.model_cls.document_id).where(
+                    self.model_cls.id.in_(chunk_ids),
+                )
+            ),
+        )
+        return list(session.exec(stmt).all())
 
     def get_document_chunks(self, session: Session, document_id: int):
         return session.exec(

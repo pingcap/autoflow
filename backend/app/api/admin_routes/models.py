@@ -40,5 +40,9 @@ class ChatEngineDescriptor(BaseModel):
 
 class RetrieveRequest(BaseModel):
     query: str
-    chat_engine: Optional[str] = "default"
+    knowledge_base_ids: list[int] = []
+    document_ids: list[int] = []
+    enable_reranker: bool = True
+    # If enable_reranker is True, but rerank_model_id is None, use the default rerank model
+    rerank_model_id: Optional[int] = None
     top_k: Optional[int] = 5

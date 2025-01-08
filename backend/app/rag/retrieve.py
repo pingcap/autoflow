@@ -49,7 +49,7 @@ class ChatEngineBasedRetrieveService:
         chunk_repo = ChunkRepo(chunk_model)
         chunk_ids = [node.node.node_id for node in nodes]
 
-        return chunk_repo.get_documents_by_chunk_ids(chunk_ids)
+        return chunk_repo.get_documents_by_chunk_ids(db_session, chunk_ids)
 
     def chat_engine_retrieve_chunks(
         self,

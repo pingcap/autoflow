@@ -118,7 +118,7 @@ class ChatEngineBasedRetriever(BaseRetriever):
             )
 
             if kg_config.using_intent_search:
-                sub_queries = graph_index.intent_analyze(query_bundle.query_str)
+                sub_queries = graph_index.intent_analyze(query)
                 result = graph_index.graph_semantic_search(
                     sub_queries, include_meta=True
                 )
@@ -129,7 +129,7 @@ class ChatEngineBasedRetriever(BaseRetriever):
                 graph_knowledges_context = graph_knowledges.template
             else:
                 entities, relations = graph_index.retrieve_with_weight(
-                    query_bundle.query_str,
+                    query,
                     [],
                     depth=kg_config.depth,
                     include_meta=kg_config.include_meta,

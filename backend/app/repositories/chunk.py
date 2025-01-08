@@ -43,8 +43,8 @@ class ChunkRepo(BaseRepo):
         return session.scalar(select(func.count(self.model_cls.id)))
 
     def delete_by_datasource(self, session: Session, datasource_id: int):
-        doc_ids_subquery = select(Document.id).where(
-            Document.data_source_id == datasource_id
+        doc_ids_subquery = select(DBDocument.id).where(
+            DBDocument.data_source_id == datasource_id
         )
         stmt = delete(self.model_cls).where(
             self.model_cls.document_id.in_(doc_ids_subquery)

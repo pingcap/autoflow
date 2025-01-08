@@ -1,4 +1,6 @@
 from http import HTTPStatus
+from uuid import UUID
+
 from fastapi import HTTPException
 
 # Common
@@ -19,7 +21,7 @@ class ChatException(HTTPException):
 class ChatNotFound(ChatException):
     status_code = 404
 
-    def __init__(self, chat_id: int):
+    def __init__(self, chat_id: UUID):
         self.detail = f"chat #{chat_id} is not found"
 
 

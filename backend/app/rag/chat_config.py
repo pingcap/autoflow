@@ -176,13 +176,18 @@ class ChatEngineConfig(BaseModel):
         llama_llm = self.get_fast_llama_llm(session)
         return get_dspy_lm_by_llama_llm(llama_llm)
 
-    def get_reranker(self, session: Session) -> Optional[BaseNodePostprocessor]:
+    # FIXME: Reranker top_n should be config in the retrival config.
+    def get_reranker(
+        self, session: Session, top_n: int = None
+    ) -> Optional[BaseNodePostprocessor]:
         if not self._db_reranker:
-            return get_default_reranker_model(session)
+            return get_default_reranker_model(session, top_n)
+
+        top_n = self._db_reranker.top_n if top_n is None else top_n
         return get_reranker_model(
             self._db_reranker.provider,
             self._db_reranker.model,
-            self._db_reranker.top_n,
+            top_n,
             self._db_reranker.config,
             self._db_reranker.credentials,
         )
@@ -427,14 +432,18 @@ def get_reranker_model(
             raise ValueError(f"Got unknown reranker provider: {provider}")
 
 
-def get_default_reranker_model(session: Session) -> Optional[BaseNodePostprocessor]:
+# FIXME: Reranker top_n should be config in the retrival config.
+def get_default_reranker_model(
+    session: Session, top_n: int = None
+) -> Optional[BaseNodePostprocessor]:
     db_reranker = reranker_model_repo.get_default(session)
     if not db_reranker:
         return None
+    top_n = db_reranker.top_n if top_n is None else top_n
     return get_reranker_model(
         db_reranker.provider,
         db_reranker.model,
-        db_reranker.top_n,
+        top_n,
         db_reranker.config,
         db_reranker.credentials,
     )

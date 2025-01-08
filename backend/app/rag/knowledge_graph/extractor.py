@@ -109,6 +109,10 @@ class Extractor(dspy.Module):
             # ollama support set format=json in the top-level request config, but not in the request's option
             # https://github.com/ollama/ollama/blob/5e2653f9fe454e948a8d48e3c15c21830c1ac26b/api/types.go#L70
             return {}
+        elif "bedrock" in self.dspy_lm.provider.lower():
+            # Fix: add bedrock branch to fix 'Malformed input request' error
+            # subject must not be valid against schema {"required":["messages"]}: extraneous key [response_mime_type] is not permitted
+            return {}
         else:
             return {
                 "response_mime_type": "application/json",

@@ -1,28 +1,28 @@
 import logging
+from typing import List
 from llama_index.core.retrievers import BaseRetriever
 from llama_index.core import VectorStoreIndex
 from llama_index.core.schema import NodeWithScore, QueryBundle
-from pydantic import List
 from sqlmodel import Session
 
-from backend.app.models.chunk import get_kb_chunk_model
-from backend.app.models.entity import get_kb_entity_model
-from backend.app.models.relationship import get_kb_relationship_model
-from backend.app.rag.chat import get_prompt_by_jinja2_template
-from backend.app.rag.chat_config import ChatEngineConfig
-from backend.app.rag.knowledge_base.config import get_kb_embed_model
-from backend.app.rag.knowledge_graph.base import KnowledgeGraphIndex
-from backend.app.rag.vector_store.tidb_vector_store import TiDBVectorStore
-from backend.app.rag.knowledge_graph.graph_store.tidb_graph_store import TiDBGraphStore
-from backend.app.repositories.knowledge_base import knowledge_base_repo
+from app.models.chunk import get_kb_chunk_model
+from app.models.entity import get_kb_entity_model
+from app.models.relationship import get_kb_relationship_model
+from app.rag.chat import get_prompt_by_jinja2_template
+from app.rag.chat_config import ChatEngineConfig
+from app.rag.knowledge_base.config import get_kb_embed_model
+from app.rag.knowledge_graph.base import KnowledgeGraphIndex
+from app.rag.vector_store.tidb_vector_store import TiDBVectorStore
+from app.rag.knowledge_graph.graph_store.tidb_graph_store import TiDBGraphStore
+from app.repositories.knowledge_base import knowledge_base_repo
 
 
 logger = logging.getLogger(__name__)
 
 
-class LegacyChatEngineRetriever(BaseRetriever):
+class ChatEngineBasedRetriever(BaseRetriever):
     """
-    Legacy chat engine retriever, which is dependent on the configuration of the chat engine.
+    Chat engine based retriever, which is dependent on the configuration of the chat engine.
     """
 
     def __init__(
@@ -31,16 +31,21 @@ class LegacyChatEngineRetriever(BaseRetriever):
         engine_name: str = "default",
         chat_engine_config: ChatEngineConfig = None,
         top_k: int = 10,
+        similarity_top_k: int = None,
+        oversampling_factor: int = 5,
+        enable_kg_enchance_query_refine: bool = False,
     ):
         self.db_session = db_session
         self.engine_name = engine_name
         self.top_k = top_k
+        self.similarity_top_k = similarity_top_k
+        self.oversampling_factor = oversampling_factor
+        self.enable_kg_enchance_query_refine = enable_kg_enchance_query_refine
 
         self.chat_engine_config = chat_engine_config or ChatEngineConfig.load_from_db(
             db_session, engine_name
         )
         self.db_chat_engine = self.chat_engine_config.get_db_chat_engine()
-        self._llm = self.chat_engine_config.get_llama_llm(self.db_session)
         self._fast_llm = self.chat_engine_config.get_fast_llama_llm(self.db_session)
         self._fast_dspy_lm = self.chat_engine_config.get_fast_dspy_lm(self.db_session)
         self._reranker = self.chat_engine_config.get_reranker(db_session)
@@ -64,6 +69,40 @@ class LegacyChatEngineRetriever(BaseRetriever):
             return []
 
         # 1. Retrieve entities, relations, and chunks from the knowledge graph
+        # 2. Refine the user question using graph information
+        refined_query = self._refine_query(query_bundle.query_str)
+
+        # 3. Retrieve the related chunks from the vector store
+        # 4. Rerank after the retrieval
+        vector_store = TiDBVectorStore(
+            session=self.db_session,
+            chunk_db_model=self._chunk_model,
+            oversampling_factor=self.oversampling_factor,
+        )
+        vector_index = VectorStoreIndex.from_vector_store(
+            vector_store,
+            embed_model=self._embed_model,
+        )
+
+        # Node postprocessors
+        metadata_filter = self.chat_engine_config.get_metadata_filter()
+        reranker = self.chat_engine_config.get_reranker(
+            self.db_session, top_n=self.top_k
+        )
+        if reranker:
+            node_postprocessors = [metadata_filter, reranker]
+        else:
+            node_postprocessors = [metadata_filter]
+
+        # Retriever Engine
+        retrieve_engine = vector_index.as_retriever(
+            node_postprocessors=node_postprocessors,
+            similarity_top_k=self.similarity_top_k or self.top_k,
+        )
+
+        return retrieve_engine.retrieve(refined_query)
+
+    def _refine_query(self, query: str) -> str:
         kg_config = self.chat_engine_config.knowledge_graph
         if kg_config.enabled:
             graph_store = TiDBGraphStore(
@@ -107,27 +146,12 @@ class LegacyChatEngineRetriever(BaseRetriever):
             entities, relations = [], []
             graph_knowledges_context = ""
 
-        # 2. Refine the user question using graph information and chat history
-        refined_question = self._fast_llm.predict(
+        refined_query = self._fast_llm.predict(
             get_prompt_by_jinja2_template(
                 self.chat_engine_config.llm.condense_question_prompt,
                 graph_knowledges=graph_knowledges_context,
-                question=query_bundle.query_str,
+                question=query,
             ),
         )
 
-        # 3. Retrieve the related chunks from the vector store
-        # 4. Rerank after the retrieval
-        vector_store = TiDBVectorStore(
-            session=self.db_session, chunk_db_model=self._chunk_model
-        )
-        vector_index = VectorStoreIndex.from_vector_store(
-            vector_store,
-            embed_model=self._embed_model,
-        )
-        retrieve_engine = vector_index.as_retriever(
-            node_postprocessors=[self._reranker],
-            similarity_top_k=self.top_k,
-        )
-
-        return retrieve_engine.retrieve(refined_question)
+        return refined_query

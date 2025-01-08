@@ -113,7 +113,7 @@ class ChatService:
             #   anonymous user can only access anonymous chat by track_id
             self.db_chat_obj = chat_repo.get(self.db_session, chat_id)
             if not self.db_chat_obj:
-                raise ChatNotFound()
+                raise ChatNotFound(chat_id)
             try:
                 self.chat_engine_config = ChatEngineConfig.load_from_db(
                     db_session, self.db_chat_obj.engine.name

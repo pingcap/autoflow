@@ -46,3 +46,5 @@ class RetrieveRequest(BaseModel):
     # If enable_reranker is True, but rerank_model_id is None, use the default rerank model
     rerank_model_id: Optional[int] = None
     top_k: Optional[int] = 5
+    similarity_top_k: Optional[int] = None
+    oversampling_factor: Optional[int] = 5

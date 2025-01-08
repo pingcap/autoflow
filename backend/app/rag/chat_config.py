@@ -1,6 +1,6 @@
 import os
 import logging
-from typing import Optional
+from typing import Dict, Optional
 
 import dspy
 from llama_index.llms.bedrock.utils import BEDROCK_FOUNDATION_LLMS
@@ -82,7 +82,7 @@ class KnowledgeGraphOption(BaseModel):
     include_meta: bool = True
     with_degree: bool = False
     using_intent_search: bool = True
-    relationship_meta_filters: Optional[dict] = None
+    relationship_meta_filters: Optional[Dict] = None
 
 
 class ExternalChatEngine(BaseModel):

@@ -33,7 +33,6 @@ class GraphSearchRequest(BaseModel):
     include_meta: bool = True
     depth: int = 2
     with_degree: bool = True
-    with_chunk: bool = False
     relationship_meta_filters: dict = {}
 
 

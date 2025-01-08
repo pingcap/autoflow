@@ -35,12 +35,12 @@ class ChatEngineBasedRetrieveService:
 
         nodes = self.chat_engine_retrieve_chunks(
             db_session,
-            question,
-            top_k,
-            chat_engine_name,
-            similarity_top_k,
-            oversampling_factor,
-            enable_kg_enchance_query_refine,
+            question=question,
+            top_k=top_k,
+            chat_engine_name=chat_engine_name,
+            similarity_top_k=similarity_top_k,
+            oversampling_factor=oversampling_factor,
+            enable_kg_enchance_query_refine=enable_kg_enchance_query_refine,
         )
 
         linked_knowledge_base = chat_engine_config.knowledge_base.linked_knowledge_base

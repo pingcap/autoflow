@@ -38,13 +38,10 @@ class ChatEngineDescriptor(BaseModel):
     is_default: bool
 
 
-class RetrieveRequest(BaseModel):
+class ChatEngineBasedRetrieveRequest(BaseModel):
     query: str
-    knowledge_base_ids: list[int] = []
-    document_ids: list[int] = []
-    enable_reranker: bool = True
-    # If enable_reranker is True, but rerank_model_id is None, use the default rerank model
-    rerank_model_id: Optional[int] = None
+    chat_engine: Optional[str] = "default"
     top_k: Optional[int] = 5
     similarity_top_k: Optional[int] = None
     oversampling_factor: Optional[int] = 5
+    enable_kg_enchance_query_refine: Optional[bool] = True

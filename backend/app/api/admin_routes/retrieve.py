@@ -3,7 +3,7 @@ from typing import Optional, List
 
 from fastapi import APIRouter
 from app.models import Document
-from app.api.admin_routes.models import RetrieveRequest
+from app.api.admin_routes.models import ChatEngineBasedRetrieveRequest
 from app.api.deps import SessionDep, CurrentSuperuserDep
 from llama_index.core.schema import NodeWithScore
 from app.rag.retrieve import retrieve_service
@@ -28,12 +28,12 @@ async def retrieve_documents(
     try:
         return retrieve_service.chat_engine_retrieve_documents(
             session,
-            question,
-            top_k,
-            chat_engine,
-            similarity_top_k,
-            oversampling_factor,
-            enable_kg_enchance_query_refine,
+            question=question,
+            top_k=top_k,
+            chat_engine_name=chat_engine,
+            similarity_top_k=similarity_top_k,
+            oversampling_factor=oversampling_factor,
+            enable_kg_enchance_query_refine=enable_kg_enchance_query_refine,
         )
     except KBNotFound as e:
         raise e
@@ -56,8 +56,9 @@ async def embedding_retrieve(
     try:
         return retrieve_service.chat_engine_retrieve_chunks(
             session,
-            question,
+            question=question,
             top_k=top_k,
+            chat_engine_name=chat_engine,
             similarity_top_k=similarity_top_k,
             oversampling_factor=oversampling_factor,
             enable_kg_enchance_query_refine=enable_kg_enchance_query_refine,
@@ -73,7 +74,7 @@ async def embedding_retrieve(
 async def embedding_search(
     session: SessionDep,
     user: CurrentSuperuserDep,
-    request: RetrieveRequest,
+    request: ChatEngineBasedRetrieveRequest,
 ) -> List[NodeWithScore]:
     try:
         return retrieve_service.chat_engine_retrieve_chunks(

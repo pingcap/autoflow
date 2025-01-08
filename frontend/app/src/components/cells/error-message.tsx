@@ -1,4 +1,5 @@
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { PythonViewer } from '@/components/py-viewer';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import type { CellContext } from '@tanstack/react-table';
 
 export function errorMessageCell<Row> (trimLength = 25) {
@@ -15,18 +16,24 @@ export function AutoErrorMessagePopper ({ trimLength = 25, children }: { trimLen
   const shortcut = children.slice(0, trimLength);
 
   return (
-    <HoverCard>
-      <HoverCardTrigger>
+    <Dialog>
+      <DialogTrigger>
         {shortcut}{'... '}
         <span className="text-muted-foreground">
           ({children.length + ' characters'})
         </span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-96 h-48">
+      </DialogTrigger>
+      <DialogContent className="max-w-screen-lg h-[80vh]">
+        <DialogHeader>
+          <DialogTitle>
+            Error Message
+          </DialogTitle>
+          <DialogDescription className="sr-only" />
+        </DialogHeader>
         <div className="size-full overflow-scroll">
-          <pre className="whitespace-pre">{children}</pre>
+          <PythonViewer value={children} />
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      </DialogContent>
+    </Dialog>
   );
 }

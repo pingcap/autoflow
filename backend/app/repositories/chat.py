@@ -242,5 +242,10 @@ class ChatRepo(BaseRepo):
         stats.sort(key=lambda x: x["date"])
         return stats
 
+    def list_chat_origins(self, session: Session):
+        return session.exec(
+            select(Chat.origin, Chat.id).order_by(Chat.created_at.desc())
+        )
+
 
 chat_repo = ChatRepo()

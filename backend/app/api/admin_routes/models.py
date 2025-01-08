@@ -20,6 +20,7 @@ class EmbeddingModelDescriptor(EmbeddingModelItem):
 
 class UserDescriptor(BaseModel):
     id: UUID
+    email: str
 
 
 class KnowledgeBaseDescriptor(BaseModel):

@@ -11,8 +11,9 @@ on:
       - labeled
     paths:
       - backend/**
+      - .github/workflows/backend-build.yml
   workflow_dispatch:
-    
+
 
 
 env:

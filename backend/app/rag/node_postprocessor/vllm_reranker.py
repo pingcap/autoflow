@@ -26,7 +26,7 @@ class VLLMRerank(BaseNodePostprocessor):
         self,
         top_n: int = 2,
         model: str = "BAAI/bge-reranker-v2-m3",
-        api_url: str = "http://localhost:8000/v1/score",
+        api_url: str = "http://localhost:8000",
     ):
         super().__init__(top_n=top_n, model=model)
         self.api_url = api_url
@@ -35,7 +35,7 @@ class VLLMRerank(BaseNodePostprocessor):
 
     @classmethod
     def class_name(cls) -> str:
-        return "OpenAILikeRerank"
+        return "VLLMRerank"
 
     def _postprocess_nodes(
         self,
@@ -70,17 +70,19 @@ class VLLMRerank(BaseNodePostprocessor):
                 for node in nodes
             ]
             resp = self._session.post(  # type: ignore
-                self.api_url,
+                url=f"{self.api_url}/v1/score",
                 json={
                     "text_1": query_bundle.query_str,
                     "model": self.model,
                     "text_2": texts,
                 },
-            ).json()
-            if "data" not in resp:
-                raise RuntimeError(f"Got error from reranker: {resp}")
+            )
+            resp.raise_for_status()
+            resp_json = resp.json()
+            if "data" not in resp_json:
+                raise RuntimeError(f"Got error from reranker: {resp_json}")
 
-            results = zip(range(len(nodes)), resp["data"])
+            results = zip(range(len(nodes)), resp_json["data"])
             results = sorted(results, key=lambda x: x[1]["score"], reverse=True)[: self.top_n]
 
             new_nodes = []

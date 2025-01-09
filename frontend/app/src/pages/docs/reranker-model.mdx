@@ -35,6 +35,14 @@ To use vLLM rerankers, you need to provide the **api_url** of the reranker API a
 }
 ```
 
+Default config:
+
+```json
+{
+    "api_url": "http://localhost:8000"
+}
+```
+
 To learn more about vLLM reranking, please visit [vLLM Sentence Pair Scoring Models](https://docs.vllm.ai/en/latest/models/supported_models.html#sentence-pair-scoring-task-score).
 
 ### Xorbits Inference (Xinference)
@@ -43,7 +51,15 @@ To use Xinference rerankers, you need to provide the **api_url** of the reranker
 
 ```json
 {
-    "api_url": "{api_base_url}"
+    "base_url": "{api_base_url}"
+}
+```
+
+Default config:
+
+```json
+{
+    "base_url": "http://localhost:9997"
 }
 ```
 

@@ -436,7 +436,7 @@ def get_reranker_model(
             return XinferenceRerank(
                 model=model,
                 top_n=top_n,
-                base_url=config.get("api_url")
+                **config,
             )
         case RerankerProvider.BEDROCK:
             return AWSBedrockRerank(
@@ -445,6 +445,7 @@ def get_reranker_model(
                 aws_access_key_id=credentials["aws_access_key_id"],
                 aws_secret_access_key=credentials["aws_secret_access_key"],
                 region_name=credentials["aws_region_name"],
+                **config,
             )
         case _:
             raise ValueError(f"Got unknown reranker provider: {provider}")

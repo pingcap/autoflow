@@ -51,13 +51,13 @@ beautifulsoup4==4.12.3
     # via markdownify
 billiard==4.2.0
     # via celery
-boto3==1.35.92
+boto3==1.35.93
     # via anthropic
     # via cohere
     # via llama-index-embeddings-bedrock
     # via llama-index-llms-bedrock
     # via llama-index-postprocessor-bedrock-rerank
-botocore==1.35.92
+botocore==1.35.93
     # via anthropic
     # via boto3
     # via s3transfer
@@ -315,13 +315,13 @@ langsmith==0.1.143
     # via langchain-core
 llama-cloud==0.1.6
     # via llama-index-indices-managed-llama-cloud
-llama-index==0.12.9
+llama-index==0.12.10
 llama-index-agent-openai==0.4.1
     # via llama-index
     # via llama-index-program-openai
 llama-index-cli==0.4.0
     # via llama-index
-llama-index-core==0.12.9
+llama-index-core==0.12.10.post1
     # via llama-index
     # via llama-index-agent-openai
     # via llama-index-cli
@@ -360,7 +360,7 @@ llama-index-llms-anthropic==0.6.3
     # via llama-index-llms-bedrock
 llama-index-llms-bedrock==0.3.3
 llama-index-llms-gemini==0.4.2
-llama-index-llms-ollama==0.5.0
+llama-index-llms-ollama==0.4.2
 llama-index-llms-openai==0.3.12
     # via llama-index
     # via llama-index-agent-openai
@@ -419,7 +419,6 @@ networkx==3.3
 nltk==3.9.1
     # via llama-index
     # via llama-index-core
-    # via llama-index-legacy
 nodeenv==1.9.1
     # via pre-commit
 numpy==1.26.4
@@ -434,7 +433,7 @@ numpy==1.26.4
     # via shapely
     # via tidb-vector
     # via transformers
-ollama==0.4.5
+ollama==0.3.1
     # via llama-index-embeddings-ollama
     # via llama-index-llms-ollama
 openai==1.59.3
@@ -533,7 +532,7 @@ pyasn1-modules==0.4.0
     # via google-auth
 pycparser==2.22
     # via cffi
-pydantic==2.10.4
+pydantic==2.8.2
     # via anthropic
     # via cohere
     # via deepeval
@@ -548,12 +547,11 @@ pydantic==2.10.4
     # via langsmith
     # via llama-cloud
     # via llama-index-core
-    # via ollama
     # via openai
     # via pydantic-settings
     # via ragas
     # via sqlmodel
-pydantic-core==2.27.2
+pydantic-core==2.20.1
     # via pydantic
 pydantic-settings==2.6.1
     # via langchain-community

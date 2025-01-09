@@ -1,14 +1,31 @@
-*_dev.ipynb
-.idea
-.vscode
-.env
-.ruff_cache
-
-redis-data
-data
-venv
-.venv
-local-embedding-reranker
-
+# Swp files
 *.swp
 *.swo
+
+# IDE configuration
+.idea
+.vscode
+
+# Ruff cache
+.ruff_cache
+
+# Docker mount points
+redis-data
+data
+
+# Python virtual environment
+venv
+.venv
+
+# Environment variables
+.env
+
+# Act
+.secrets
+.vars
+
+# Local embedding reranker
+local-embedding-reranker
+
+# Jupyter notebooks (development)
+*_dev.ipynb

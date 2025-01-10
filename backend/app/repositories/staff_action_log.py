@@ -1,6 +1,6 @@
 from sqlmodel import Session
 
-from app.models import StaffActionLog
+from app.models.staff_action_log import StaffActionLog
 from app.repositories.base_repo import BaseRepo
 
 

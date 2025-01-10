@@ -50,8 +50,8 @@ dependencies = [
     "llama-index-llms-openai-like>=0.3.3",
     "llama-index-llms-bedrock>=0.3.3",
     "llama-index-llms-ollama>=0.5.0",
-    "llama-index-llms-gemini>=0.4.3",
-    "llama-index-llms-anthropic>=0.6.3",
+    # 0.4.3: AttributeError: module 'google.generativeai.types' has no attribute 'RequestOptions'
+    "llama-index-llms-gemini==0.4.2",
     "llama-index-embeddings-ollama>=0.5.0",
     "llama-index-embeddings-jinaai>=0.4.0",
     "llama-index-embeddings-cohere>=0.4.0",

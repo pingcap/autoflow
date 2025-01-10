@@ -1,9 +1,8 @@
 from typing import Optional, Any
-
 from sqlmodel import Field, Column, JSON, String
 
+from app.rag.llms.provider import LLMProvider
 from .base import UpdatableBaseModel, AESEncryptedColumn
-from app.types import LLMProvider
 
 
 class BaseLLM(UpdatableBaseModel):

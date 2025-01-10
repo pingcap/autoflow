@@ -7,7 +7,7 @@ from fastapi_pagination import Params, Page
 from fastapi_pagination.ext.sqlmodel import paginate
 from sqlalchemy.orm.attributes import flag_modified
 
-from app.models import ChatEngine, ChatEngineUpdate
+from app.models.chat_engine import ChatEngine, ChatEngineUpdate
 from app.repositories.base_repo import BaseRepo
 
 

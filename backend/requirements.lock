@@ -354,7 +354,7 @@ llama-index-indices-managed-llama-cloud==0.6.3
 llama-index-llms-anthropic==0.6.3
     # via llama-index-llms-bedrock
 llama-index-llms-bedrock==0.3.3
-llama-index-llms-gemini==0.4.3
+llama-index-llms-gemini==0.4.2
 llama-index-llms-ollama==0.5.0
 llama-index-llms-openai==0.3.13
     # via llama-index

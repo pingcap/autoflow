@@ -85,9 +85,9 @@ admin_reranker_model_options: List[RerankerModelOption] = [
         reranker_model_description="Reference: https://docs.vllm.ai/en/latest/models/supported_models.html#sentence-pair-scoring-task-score",
         default_top_n=10,
         default_config={
-            "api_url": "http://localhost:8000",
+            "base_url": "http://localhost:8000",
         },
-        config_description="api_url is the url of the vLLM server, ensure it can be accessed from this server",
+        config_description="base_url is the base url of the vLLM server, ensure it can be accessed from this server",
         credentials_display_name="vLLM API Key",
         credentials_description="vLLM doesn't require an API key, set a dummy string here is ok",
         credentials_type="str",

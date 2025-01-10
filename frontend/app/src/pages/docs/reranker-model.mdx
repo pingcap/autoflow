@@ -27,11 +27,11 @@ To learn more about Cohere reranking, please visit [Cohere Rerank](https://coher
 
 ### vLLM
 
-To use vLLM rerankers, you need to provide the **api_url** of the reranker API as the following JSON format in **Advanced Settings**:
+To use vLLM rerankers, you need to provide the **base_url** of the reranker API as the following JSON format in **Advanced Settings**:
 
 ```json
 {
-    "api_url": "{api_base_url}"
+    "base_url": "{api_base_url}"
 }
 ```
 
@@ -39,7 +39,7 @@ Default config:
 
 ```json
 {
-    "api_url": "http://localhost:8000"
+    "base_url": "http://localhost:8000"
 }
 ```
 
@@ -47,7 +47,7 @@ To learn more about vLLM reranking, please visit [vLLM Sentence Pair Scoring Mod
 
 ### Xorbits Inference (Xinference)
 
-To use Xinference rerankers, you need to provide the **api_url** of the reranker API as the following JSON format in **Advanced Settings**:
+To use Xinference rerankers, you need to provide the **base_url** of the reranker API as the following JSON format in **Advanced Settings**:
 
 ```json
 {

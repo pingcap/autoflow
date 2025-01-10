@@ -15,7 +15,7 @@ dispatcher = get_dispatcher(__name__)
 
 
 class VLLMRerank(BaseNodePostprocessor):
-    api_url: str = Field(default="", description="API url.")
+    base_url: str = Field(default="", description="The base URL of vLLM API.")
     model: str = Field(default="", description="The model to use when calling API.")
 
     top_n: int = Field(description="Top N nodes to return.")
@@ -26,10 +26,10 @@ class VLLMRerank(BaseNodePostprocessor):
         self,
         top_n: int = 2,
         model: str = "BAAI/bge-reranker-v2-m3",
-        api_url: str = "http://localhost:8000",
+        base_url: str = "http://localhost:8000",
     ):
         super().__init__(top_n=top_n, model=model)
-        self.api_url = api_url
+        self.base_url = base_url
         self.model = model
         self._session = requests.Session()
 
@@ -70,7 +70,7 @@ class VLLMRerank(BaseNodePostprocessor):
                 for node in nodes
             ]
             resp = self._session.post(  # type: ignore
-                url=f"{self.api_url}/v1/score",
+                url=f"{self.base_url}/v1/score",
                 json={
                     "text_1": query_bundle.query_str,
                     "model": self.model,

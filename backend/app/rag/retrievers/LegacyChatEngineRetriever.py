@@ -33,14 +33,14 @@ class ChatEngineBasedRetriever(BaseRetriever):
         top_k: int = 10,
         similarity_top_k: int = None,
         oversampling_factor: int = 5,
-        enable_kg_enchance_query_refine: bool = False,
+        enable_kg_enhance_query_refine: bool = False,
     ):
         self.db_session = db_session
         self.engine_name = engine_name
         self.top_k = top_k
         self.similarity_top_k = similarity_top_k
         self.oversampling_factor = oversampling_factor
-        self.enable_kg_enchance_query_refine = enable_kg_enchance_query_refine
+        self.enable_kg_enhance_query_refine = enable_kg_enhance_query_refine
 
         self.chat_engine_config = chat_engine_config or ChatEngineConfig.load_from_db(
             db_session, engine_name
@@ -128,7 +128,7 @@ class ChatEngineBasedRetriever(BaseRetriever):
                 )
                 graph_knowledges_context = graph_knowledges.template
             else:
-                entities, relations = graph_index.retrieve_with_weight(
+                entities, relations, _ = graph_index.retrieve_with_weight(
                     query,
                     [],
                     depth=kg_config.depth,

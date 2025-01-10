@@ -27,7 +27,7 @@ class ChatEngineBasedRetrieveService:
         chat_engine_name: str = "default",
         similarity_top_k: Optional[int] = None,
         oversampling_factor: Optional[int] = None,
-        enable_kg_enchance_query_refine: bool = False,
+        enable_kg_enhance_query_refine: bool = False,
     ) -> List[DBDocument]:
         chat_engine_config = ChatEngineConfig.load_from_db(db_session, chat_engine_name)
         if not chat_engine_config.knowledge_base:
@@ -40,7 +40,7 @@ class ChatEngineBasedRetrieveService:
             chat_engine_name=chat_engine_name,
             similarity_top_k=similarity_top_k,
             oversampling_factor=oversampling_factor,
-            enable_kg_enchance_query_refine=enable_kg_enchance_query_refine,
+            enable_kg_enhance_query_refine=enable_kg_enhance_query_refine,
         )
 
         linked_knowledge_base = chat_engine_config.knowledge_base.linked_knowledge_base
@@ -59,7 +59,7 @@ class ChatEngineBasedRetrieveService:
         chat_engine_name: str = "default",
         similarity_top_k: Optional[int] = None,
         oversampling_factor: Optional[int] = None,
-        enable_kg_enchance_query_refine: bool = False,
+        enable_kg_enhance_query_refine: bool = False,
     ) -> List[NodeWithScore]:
         retriever = ChatEngineBasedRetriever(
             db_session=db_session,
@@ -67,7 +67,7 @@ class ChatEngineBasedRetrieveService:
             top_k=top_k,
             similarity_top_k=similarity_top_k,
             oversampling_factor=oversampling_factor,
-            enable_kg_enchance_query_refine=enable_kg_enchance_query_refine,
+            enable_kg_enhance_query_refine=enable_kg_enhance_query_refine,
         )
         return retriever.retrieve(question)
 

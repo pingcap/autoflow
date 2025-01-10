@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("/admin/retrieve/documents")
-async def retrieve_documents(
+def retrieve_documents(
     session: SessionDep,
     user: CurrentSuperuserDep,
     question: str,
@@ -23,7 +23,7 @@ async def retrieve_documents(
     top_k: Optional[int] = 5,
     similarity_top_k: Optional[int] = None,
     oversampling_factor: Optional[int] = 5,
-    enable_kg_enchance_query_refine: Optional[bool] = True,
+    enable_kg_enhance_query_refine: Optional[bool] = True,
 ) -> List[Document]:
     try:
         return retrieve_service.chat_engine_retrieve_documents(
@@ -33,7 +33,7 @@ async def retrieve_documents(
             chat_engine_name=chat_engine,
             similarity_top_k=similarity_top_k,
             oversampling_factor=oversampling_factor,
-            enable_kg_enchance_query_refine=enable_kg_enchance_query_refine,
+            enable_kg_enhance_query_refine=enable_kg_enhance_query_refine,
         )
     except KBNotFound as e:
         raise e
@@ -43,7 +43,7 @@ async def retrieve_documents(
 
 
 @router.get("/admin/embedding_retrieve")
-async def embedding_retrieve(
+def embedding_retrieve(
     session: SessionDep,
     user: CurrentSuperuserDep,
     question: str,
@@ -51,18 +51,19 @@ async def embedding_retrieve(
     top_k: Optional[int] = 5,
     similarity_top_k: Optional[int] = None,
     oversampling_factor: Optional[int] = 5,
-    enable_kg_enchance_query_refine: Optional[bool] = True,
+    enable_kg_enhance_query_refine=False,
 ) -> List[NodeWithScore]:
     try:
-        return retrieve_service.chat_engine_retrieve_chunks(
+        nodes = retrieve_service.chat_engine_retrieve_chunks(
             session,
             question=question,
             top_k=top_k,
             chat_engine_name=chat_engine,
             similarity_top_k=similarity_top_k,
             oversampling_factor=oversampling_factor,
-            enable_kg_enchance_query_refine=enable_kg_enchance_query_refine,
+            enable_kg_enhance_query_refine=enable_kg_enhance_query_refine,
         )
+        return nodes
     except KBNotFound as e:
         raise e
     except Exception as e:
@@ -71,7 +72,7 @@ async def embedding_retrieve(
 
 
 @router.post("/admin/embedding_retrieve")
-async def embedding_search(
+def embedding_search(
     session: SessionDep,
     user: CurrentSuperuserDep,
     request: ChatEngineBasedRetrieveRequest,
@@ -83,7 +84,7 @@ async def embedding_search(
             top_k=request.top_k,
             similarity_top_k=request.similarity_top_k,
             oversampling_factor=request.oversampling_factor,
-            enable_kg_enchance_query_refine=request.enable_kg_enchance_query_refine,
+            enable_kg_enhance_query_refine=request.enable_kg_enhance_query_refine,
         )
     except KBNotFound as e:
         raise e

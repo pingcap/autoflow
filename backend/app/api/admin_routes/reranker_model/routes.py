@@ -14,7 +14,7 @@ from app.models import RerankerModel, AdminRerankerModel, ChatEngine
 from app.repositories.reranker_model import reranker_model_repo
 from app.rag.rerankers import (
     get_reranker_model,
-    admin_reranker_model_options,
+    reranker_provider_options,
     RerankerProviderOption,
 )
 
@@ -22,11 +22,18 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@router.get("/admin/reranker-models/options")
+@router.get("/admin/reranker-models/provider/options")
+def list_reranker_model_provider_options(
+    user: CurrentSuperuserDep,
+) -> List[RerankerProviderOption]:
+    return reranker_provider_options
+
+
+@router.get("/admin/reranker-models/options", deprecated=True)
 def get_reranker_model_options(
     user: CurrentSuperuserDep,
 ) -> List[RerankerProviderOption]:
-    return admin_reranker_model_options
+    return reranker_provider_options
 
 
 @router.post("/admin/reranker-models/test")

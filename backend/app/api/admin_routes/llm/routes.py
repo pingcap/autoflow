@@ -20,7 +20,12 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@router.get("/admin/llms/options")
+@router.get("/admin/llms/provider/options")
+def list_llm_provider_options(user: CurrentSuperuserDep) -> List[LLMProviderOption]:
+    return llm_provider_options
+
+
+@router.get("/admin/llms/options", deprecated=True)
 def get_llm_options(user: CurrentSuperuserDep) -> List[LLMProviderOption]:
     return llm_provider_options
 

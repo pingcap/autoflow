@@ -29,7 +29,7 @@ class RerankerProviderOption(BaseModel):
     credentials_type: str = "str"
 
 
-admin_reranker_model_options: List[RerankerProviderOption] = [
+reranker_provider_options: List[RerankerProviderOption] = [
     RerankerProviderOption(
         provider=RerankerProvider.JINA,
         provider_display_name="Jina AI",

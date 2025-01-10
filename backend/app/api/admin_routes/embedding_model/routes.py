@@ -24,7 +24,14 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@router.get("/admin/embedding-models/options")
+@router.get("/admin/embedding-models/provider/options")
+def list_embedding_model_provider_options(
+    user: CurrentSuperuserDep,
+) -> List[EmbeddingProviderOption]:
+    return embedding_provider_options
+
+
+@router.get("/admin/embedding-models/options", deprecated=True)
 def get_embedding_model_options(
     user: CurrentSuperuserDep,
 ) -> List[EmbeddingProviderOption]:

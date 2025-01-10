@@ -9,8 +9,12 @@ from sqlalchemy import update
 from app.api.deps import CurrentSuperuserDep, SessionDep
 from app.exceptions import InternalServerError, LLMNotFound
 from app.models import AdminLLM, LLM, ChatEngine, KnowledgeBase
-from app.rag.llms import get_llm, LLMProviderOption, llm_provider_options
 from app.repositories.llm import llm_repo
+from app.rag.llms import (
+    get_llm,
+    LLMProviderOption,
+    llm_provider_options,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

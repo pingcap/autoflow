@@ -1,10 +1,21 @@
+import enum
+
 from typing import List
 from pydantic import BaseModel
 
-from app.types import EmbeddingProvider
+
+class EmbeddingProvider(str, enum.Enum):
+    OPENAI = "openai"
+    JINA = "jina"
+    COHERE = "cohere"
+    BEDROCK = "bedrock"
+    OLLAMA = "ollama"
+    GITEEAI = "giteeai"
+    LOCAL = "local"
+    OPENAI_LIKE = "openai_like"
 
 
-class EmbeddingModelOption(BaseModel):
+class EmbeddingProviderOption(BaseModel):
     provider: EmbeddingProvider
     provider_display_name: str | None = None
     provider_description: str | None = None
@@ -19,8 +30,8 @@ class EmbeddingModelOption(BaseModel):
     credentials_type: str = "str"
 
 
-admin_embed_model_options: List[EmbeddingModelOption] = [
-    EmbeddingModelOption(
+embedding_provider_options: List[EmbeddingProviderOption] = [
+    EmbeddingProviderOption(
         provider=EmbeddingProvider.OPENAI,
         provider_display_name="OpenAI",
         provider_description="The OpenAI API provides a simple interface for developers to create an intelligence layer in their applications, powered by OpenAI's state of the art models.",
@@ -32,7 +43,7 @@ admin_embed_model_options: List[EmbeddingModelOption] = [
         credentials_type="str",
         default_credentials="sk-****",
     ),
-    EmbeddingModelOption(
+    EmbeddingProviderOption(
         provider=EmbeddingProvider.JINA,
         provider_display_name="JinaAI",
         provider_description="Jina AI provides multimodal, bilingual long-context embeddings for search and RAG",
@@ -44,7 +55,7 @@ admin_embed_model_options: List[EmbeddingModelOption] = [
         credentials_type="str",
         default_credentials="jina_****",
     ),
-    EmbeddingModelOption(
+    EmbeddingProviderOption(
         provider=EmbeddingProvider.COHERE,
         provider_display_name="Cohere",
         provider_description="Cohere provides industry-leading large language models (LLMs) and RAG capabilities tailored to meet the needs of enterprise use cases that solve real-world problems.",
@@ -56,7 +67,7 @@ admin_embed_model_options: List[EmbeddingModelOption] = [
         credentials_type="str",
         default_credentials="*****",
     ),
-    EmbeddingModelOption(
+    EmbeddingProviderOption(
         provider=EmbeddingProvider.BEDROCK,
         provider_display_name="Bedrock",
         provider_description="Amazon Bedrock is a fully managed foundation models service.",
@@ -72,7 +83,7 @@ admin_embed_model_options: List[EmbeddingModelOption] = [
             "aws_region_name": "us-west-2",
         },
     ),
-    EmbeddingModelOption(
+    EmbeddingProviderOption(
         provider=EmbeddingProvider.OLLAMA,
         provider_display_name="Ollama",
         provider_description="Ollama is a lightweight framework for building and running large language models and embed models.",
@@ -88,7 +99,7 @@ admin_embed_model_options: List[EmbeddingModelOption] = [
         credentials_type="str",
         default_credentials="dummy",
     ),
-    EmbeddingModelOption(
+    EmbeddingProviderOption(
         provider=EmbeddingProvider.OPENAI_LIKE,
         provider_display_name="OpenAI Like",
         provider_description="OpenAI-Like is a set of platforms that provide text embeddings similar to OpenAI. Such as ZhiPuAI.",
@@ -100,7 +111,7 @@ admin_embed_model_options: List[EmbeddingModelOption] = [
         credentials_type="str",
         default_credentials="dummy",
     ),
-    EmbeddingModelOption(
+    EmbeddingProviderOption(
         provider=EmbeddingProvider.GITEEAI,
         provider_display_name="Gitee AI",
         provider_description="Gitee AI is a third-party model provider that offers ready-to-use cutting-edge model APIs for AI developers.",
@@ -112,7 +123,7 @@ admin_embed_model_options: List[EmbeddingModelOption] = [
         credentials_type="str",
         default_credentials="****",
     ),
-    EmbeddingModelOption(
+    EmbeddingProviderOption(
         provider=EmbeddingProvider.LOCAL,
         provider_display_name="Local Embedding",
         provider_description="Autoflow's local embedding server, deployed on your own infrastructure and powered by sentence-transformers.",

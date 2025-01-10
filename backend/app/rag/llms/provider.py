@@ -1,10 +1,20 @@
+import enum
+
 from typing import List
 from pydantic import BaseModel
 
-from app.types import LLMProvider
+
+class LLMProvider(str, enum.Enum):
+    OPENAI = "openai"
+    GEMINI = "gemini"
+    ANTHROPIC_VERTEX = "anthropic_vertex"
+    OPENAI_LIKE = "openai_like"
+    BEDROCK = "bedrock"
+    OLLAMA = "ollama"
+    GITEEAI = "giteeai"
 
 
-class LLMOption(BaseModel):
+class LLMProviderOption(BaseModel):
     provider: LLMProvider
     provider_display_name: str | None = None
     provider_description: str | None = None
@@ -19,8 +29,8 @@ class LLMOption(BaseModel):
     credentials_type: str = "str"
 
 
-admin_llm_options: List[LLMOption] = [
-    LLMOption(
+llm_provider_options: List[LLMProviderOption] = [
+    LLMProviderOption(
         provider=LLMProvider.OPENAI,
         provider_display_name="OpenAI",
         provider_description="The OpenAI API provides a simple interface for developers to create an intelligence layer in their applications, powered by OpenAI's state of the art models.",
@@ -32,7 +42,7 @@ admin_llm_options: List[LLMOption] = [
         credentials_type="str",
         default_credentials="sk-****",
     ),
-    LLMOption(
+    LLMProviderOption(
         provider=LLMProvider.OPENAI_LIKE,
         provider_display_name="OpenAI Like",
         default_llm_model="",
@@ -51,7 +61,7 @@ admin_llm_options: List[LLMOption] = [
         credentials_type="str",
         default_credentials="sk-****",
     ),
-    LLMOption(
+    LLMProviderOption(
         provider=LLMProvider.GEMINI,
         provider_display_name="Gemini",
         provider_description="The Gemini API and Google AI Studio help you start working with Google's latest models. Access the whole Gemini model family and turn your ideas into real applications that scale.",
@@ -63,7 +73,7 @@ admin_llm_options: List[LLMOption] = [
         credentials_type="str",
         default_credentials="AIza****",
     ),
-    LLMOption(
+    LLMProviderOption(
         provider=LLMProvider.OLLAMA,
         provider_display_name="Ollama",
         provider_description="Ollama is a lightweight framework for building and running large language models.",
@@ -85,7 +95,7 @@ admin_llm_options: List[LLMOption] = [
         credentials_type="str",
         default_credentials="dummy",
     ),
-    LLMOption(
+    LLMProviderOption(
         provider=LLMProvider.GITEEAI,
         provider_display_name="Gitee AI",
         provider_description="Gitee AI is a third-party model provider that offers ready-to-use cutting-edge model APIs for AI developers.",
@@ -105,7 +115,7 @@ admin_llm_options: List[LLMOption] = [
         credentials_type="str",
         default_credentials="****",
     ),
-    LLMOption(
+    LLMProviderOption(
         provider=LLMProvider.ANTHROPIC_VERTEX,
         provider_display_name="Anthropic Vertex AI",
         provider_description="Anthropic's Claude models are now generally available through Vertex AI.",
@@ -121,7 +131,7 @@ admin_llm_options: List[LLMOption] = [
             "private_key_id": "****",
         },
     ),
-    LLMOption(
+    LLMProviderOption(
         provider=LLMProvider.BEDROCK,
         provider_display_name="Bedrock",
         provider_description="Amazon Bedrock is a fully managed foundation models service.",

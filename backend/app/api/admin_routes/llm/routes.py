@@ -9,8 +9,7 @@ from sqlalchemy import update
 from app.api.deps import CurrentSuperuserDep, SessionDep
 from app.exceptions import InternalServerError, LLMNotFound
 from app.models import AdminLLM, LLM, ChatEngine, KnowledgeBase
-from app.rag.chat_config import get_llm
-from app.rag.llm_option import LLMOption, admin_llm_options
+from app.rag.llms import get_llm, LLMProviderOption, llm_provider_options
 from app.repositories.llm import llm_repo
 
 router = APIRouter()
@@ -18,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("/admin/llms/options")
-def get_llm_options(user: CurrentSuperuserDep) -> List[LLMOption]:
-    return admin_llm_options
+def get_llm_options(user: CurrentSuperuserDep) -> List[LLMProviderOption]:
+    return llm_provider_options
 
 
 @router.get("/admin/llms")

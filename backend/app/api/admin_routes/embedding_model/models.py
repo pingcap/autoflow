@@ -3,7 +3,7 @@ from typing import Any
 
 from pydantic import BaseModel, field_validator
 from typing_extensions import Optional
-from app.types import EmbeddingProvider
+from app.rag.embeddings.provider import EmbeddingProvider
 
 
 class EmbeddingModelCreate(BaseModel):

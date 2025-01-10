@@ -1,10 +1,19 @@
+import enum
 from typing import List
 from pydantic import BaseModel
 
-from app.types import RerankerProvider
+
+class RerankerProvider(str, enum.Enum):
+    JINA = "jina"
+    COHERE = "cohere"
+    BAISHENG = "baisheng"
+    LOCAL = "local"
+    VLLM = "vllm"
+    XINFERENCE = "xinference"
+    BEDROCK = "bedrock"
 
 
-class RerankerModelOption(BaseModel):
+class RerankerProviderOption(BaseModel):
     provider: RerankerProvider
     provider_display_name: str | None = None
     provider_description: str | None = None
@@ -20,8 +29,8 @@ class RerankerModelOption(BaseModel):
     credentials_type: str = "str"
 
 
-admin_reranker_model_options: List[RerankerModelOption] = [
-    RerankerModelOption(
+admin_reranker_model_options: List[RerankerProviderOption] = [
+    RerankerProviderOption(
         provider=RerankerProvider.JINA,
         provider_display_name="Jina AI",
         provider_description="We provide best-in-class embeddings, rerankers, LLM-reader and prompt optimizers, pioneering search AI for multimodal data.",
@@ -34,7 +43,7 @@ admin_reranker_model_options: List[RerankerModelOption] = [
         credentials_type="str",
         default_credentials="jina_****",
     ),
-    RerankerModelOption(
+    RerankerProviderOption(
         provider=RerankerProvider.COHERE,
         provider_display_name="Cohere",
         provider_description="Cohere provides industry-leading large language models (LLMs) and RAG capabilities tailored to meet the needs of enterprise use cases that solve real-world problems.",
@@ -47,7 +56,7 @@ admin_reranker_model_options: List[RerankerModelOption] = [
         credentials_type="str",
         default_credentials="*****",
     ),
-    RerankerModelOption(
+    RerankerProviderOption(
         provider=RerankerProvider.BAISHENG,
         provider_display_name="BaiSheng",
         default_reranker_model="bge-reranker-v2-m3",
@@ -61,7 +70,7 @@ admin_reranker_model_options: List[RerankerModelOption] = [
         credentials_type="str",
         default_credentials="*****",
     ),
-    RerankerModelOption(
+    RerankerProviderOption(
         provider=RerankerProvider.LOCAL,
         provider_display_name="Local Reranker",
         provider_description="TIDB.AI's local reranker server, deployed on your own infrastructure and powered by sentence-transformers.",
@@ -77,7 +86,7 @@ admin_reranker_model_options: List[RerankerModelOption] = [
         credentials_type="str",
         default_credentials="dummy",
     ),
-    RerankerModelOption(
+    RerankerProviderOption(
         provider=RerankerProvider.VLLM,
         provider_display_name="vLLM",
         provider_description="vLLM is a fast and easy-to-use library for LLM inference and serving.",
@@ -93,7 +102,7 @@ admin_reranker_model_options: List[RerankerModelOption] = [
         credentials_type="str",
         default_credentials="dummy",
     ),
-    RerankerModelOption(
+    RerankerProviderOption(
         provider=RerankerProvider.XINFERENCE,
         provider_display_name="Xinference Reranker",
         provider_description="Xorbits Inference (Xinference) is an open-source platform to streamline the operation and integration of a wide array of AI models.",
@@ -109,7 +118,7 @@ admin_reranker_model_options: List[RerankerModelOption] = [
         credentials_type="str",
         default_credentials="dummy",
     ),
-    RerankerModelOption(
+    RerankerProviderOption(
         provider=RerankerProvider.BEDROCK,
         provider_display_name="Bedrock Reranker",
         provider_description="Amazon Bedrock is a fully managed foundation models service.",
@@ -125,5 +134,5 @@ admin_reranker_model_options: List[RerankerModelOption] = [
             "aws_secret_access_key": "****",
             "aws_region_name": "us-west-2",
         },
-    )
+    ),
 ]

@@ -52,7 +52,9 @@ def get_dspy_lm_by_llama_llm(llama_llm: BaseLLM) -> dspy.LM:
         bedrock = dspy.Bedrock(region_name=llama_llm.region_name)
         if llama_llm.model.startswith("anthropic"):
             return dspy.AWSAnthropic(
-                bedrock, model=llama_llm.model, max_new_tokens=llama_llm.max_tokens or 8192
+                bedrock,
+                model=llama_llm.model,
+                max_new_tokens=llama_llm.max_tokens or 8192,
             )
         elif llama_llm.model.startswith("meta"):
             return dspy.AWSMeta(

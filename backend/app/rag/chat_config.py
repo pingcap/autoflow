@@ -1,43 +1,26 @@
-import os
 import logging
-from typing import Dict, Optional
-
 import dspy
-from llama_index.llms.bedrock.utils import BEDROCK_FOUNDATION_LLMS
-from pydantic import BaseModel
-from llama_index.llms.openai import OpenAI
-from llama_index.llms.openai_like import OpenAILike
-from llama_index.llms.gemini import Gemini
-from llama_index.llms.bedrock import Bedrock
-from llama_index.llms.ollama import Ollama
-from llama_index.core.llms.llm import LLM
-from llama_index.core.base.embeddings.base import BaseEmbedding
-from llama_index.core.postprocessor.types import BaseNodePostprocessor
-from llama_index.embeddings.openai import OpenAIEmbedding
-from llama_index.embeddings.jinaai import JinaEmbedding
-from llama_index.embeddings.cohere import CohereEmbedding
-from llama_index.embeddings.bedrock import BedrockEmbedding
-from llama_index.embeddings.ollama import OllamaEmbedding
-from llama_index.postprocessor.jinaai_rerank import JinaRerank
-from llama_index.postprocessor.cohere_rerank import CohereRerank
-from llama_index.postprocessor.xinference_rerank import XinferenceRerank
-from llama_index.postprocessor.bedrock_rerank import AWSBedrockRerank
-from sqlmodel import Session
-from google.oauth2 import service_account
-from google.auth.transport.requests import Request
 
-from app.rag.embeddings.openai_like_embedding import OpenAILikeEmbedding
-from app.rag.node_postprocessor import MetadataPostFilter
-from app.rag.node_postprocessor.metadata_post_filter import MetadataFilters
-from app.rag.node_postprocessor.baisheng_reranker import BaishengRerank
-from app.rag.node_postprocessor.local_reranker import LocalRerank
-from app.rag.node_postprocessor.vllm_reranker import VLLMRerank
-from app.rag.embeddings.local_embedding import LocalEmbedding
-from app.repositories import chat_engine_repo, knowledge_base_repo
-from app.repositories.embedding_model import embed_model_repo
-from app.repositories.llm import llm_repo
-from app.repositories.reranker_model import reranker_model_repo
-from app.types import LLMProvider, EmbeddingProvider, RerankerProvider
+from typing import Dict, Optional
+from pydantic import BaseModel
+from sqlmodel import Session
+
+from llama_index.core.postprocessor.types import BaseNodePostprocessor
+from llama_index.core.llms.llm import LLM
+
+from app.utils.dspy import get_dspy_lm_by_llama_llm
+from app.rag.llms import get_default_llm, get_llm
+from app.rag.rerankers import get_default_reranker_model, get_reranker_model
+from app.rag.postprocessors import get_metadata_post_filter, MetadataFilters
+
+
+from app.models import (
+    ChatEngine as DBChatEngine,
+    LLM as DBLLM,
+    RerankerModel as DBRerankerModel,
+    KnowledgeBase,
+)
+from app.repositories import chat_engine_repo
 from app.rag.default_prompt import (
     DEFAULT_INTENT_GRAPH_KNOWLEDGE,
     DEFAULT_NORMAL_GRAPH_KNOWLEDGE,
@@ -49,15 +32,7 @@ from app.rag.default_prompt import (
     DEFAULT_GENERATE_GOAL_PROMPT,
     DEFAULT_CLARIFYING_QUESTION_PROMPT,
 )
-from app.models import (
-    ChatEngine as DBChatEngine,
-    LLM as DBLLM,
-    RerankerModel as DBRerankerModel,
-    KnowledgeBase,
-)
 
-from app.rag.llms.anthropic_vertex import AnthropicVertex
-from app.utils.dspy import get_dspy_lm_by_llama_llm
 
 logger = logging.getLogger(__name__)
 
@@ -208,283 +183,3 @@ class ChatEngineConfig(BaseModel):
                 "post_verification_token": True,
             }
         )
-
-
-# LLM
-
-
-def get_llm(
-    provider: LLMProvider,
-    model: str,
-    config: dict,
-    credentials: str | list | dict | None,
-) -> LLM:
-    match provider:
-        case LLMProvider.OPENAI:
-            return OpenAI(
-                model=model,
-                api_key=credentials,
-                **config,
-            )
-        case LLMProvider.OPENAI_LIKE:
-            config.setdefault("context_window", 200 * 1000)
-            return OpenAILike(model=model, api_key=credentials, **config)
-        case LLMProvider.GEMINI:
-            os.environ["GOOGLE_API_KEY"] = credentials
-            return Gemini(model=model, api_key=credentials, **config)
-        case LLMProvider.BEDROCK:
-            access_key_id = credentials["aws_access_key_id"]
-            secret_access_key = credentials["aws_secret_access_key"]
-            region_name = credentials["aws_region_name"]
-
-            context_size = None
-            if model not in BEDROCK_FOUNDATION_LLMS:
-                context_size = 200000
-
-            llm = Bedrock(
-                model=model,
-                aws_access_key_id=access_key_id,
-                aws_secret_access_key=secret_access_key,
-                region_name=region_name,
-                context_size=context_size,
-                **config,
-            )
-            # Note: Because llama index Bedrock class doesn't set up these values to the corresponding
-            # attributes in its constructor function, we pass the values again via setter to pass them to
-            # `get_dspy_lm_by_llama_llm` function.
-            llm.aws_access_key_id = access_key_id
-            llm.aws_secret_access_key = secret_access_key
-            llm.region_name = region_name
-            return llm
-        case LLMProvider.ANTHROPIC_VERTEX:
-            google_creds: service_account.Credentials = (
-                service_account.Credentials.from_service_account_info(
-                    credentials,
-                    scopes=["https://www.googleapis.com/auth/cloud-platform"],
-                )
-            )
-            google_creds.refresh(request=Request())
-            if "max_tokens" not in config:
-                config.update(max_tokens=4096)
-            return AnthropicVertex(model=model, credentials=google_creds, **config)
-        case LLMProvider.OLLAMA:
-            config.setdefault("request_timeout", 60 * 10)
-            config.setdefault("context_window", 4096)
-            return Ollama(model=model, **config)
-        case LLMProvider.GITEEAI:
-            config.setdefault("context_window", 200 * 1000)
-            return OpenAILike(
-                model=model,
-                api_base="https://ai.gitee.com/v1",
-                api_key=credentials,
-                **config,
-            )
-        case _:
-            raise ValueError(f"Got unknown LLM provider: {provider}")
-
-
-def get_default_llm(session: Session) -> Optional[LLM]:
-    db_llm = llm_repo.get_default(session)
-    if not db_llm:
-        return None
-    return get_llm(
-        db_llm.provider,
-        db_llm.model,
-        db_llm.config,
-        db_llm.credentials,
-    )
-
-
-def must_get_default_llm(session: Session) -> LLM:
-    db_llm = llm_repo.must_get_default(session)
-    return get_llm(
-        db_llm.provider,
-        db_llm.model,
-        db_llm.config,
-        db_llm.credentials,
-    )
-
-
-# Embedding model
-
-
-def get_embed_model(
-    provider: EmbeddingProvider,
-    model: str,
-    config: dict,
-    credentials: str | list | dict | None,
-) -> BaseEmbedding:
-    match provider:
-        case EmbeddingProvider.OPENAI:
-            return OpenAIEmbedding(
-                model=model,
-                api_key=credentials,
-                **config,
-            )
-        case EmbeddingProvider.JINA:
-            return JinaEmbedding(
-                model=model,
-                api_key=credentials,
-                **config,
-            )
-        case EmbeddingProvider.COHERE:
-            return CohereEmbedding(
-                model_name=model,
-                cohere_api_key=credentials,
-                **config,
-            )
-        case EmbeddingProvider.BEDROCK:
-            return BedrockEmbedding(
-                model_name=model,
-                aws_access_key_id=credentials["aws_access_key_id"],
-                aws_secret_access_key=credentials["aws_secret_access_key"],
-                region_name=credentials["aws_region_name"],
-                **config,
-            )
-        case EmbeddingProvider.OLLAMA:
-            return OllamaEmbedding(
-                model_name=model,
-                **config,
-            )
-        case EmbeddingProvider.LOCAL:
-            return LocalEmbedding(
-                model=model,
-                **config,
-            )
-        case EmbeddingProvider.GITEEAI:
-            return OpenAILikeEmbedding(
-                model=model,
-                api_base="https://ai.gitee.com/v1",
-                api_key=credentials,
-                **config,
-            )
-        case EmbeddingProvider.OPENAI_LIKE:
-            return OpenAILikeEmbedding(
-                model=model,
-                api_key=credentials,
-                **config,
-            )
-        case _:
-            raise ValueError(f"Got unknown embedding provider: {provider}")
-
-
-def get_default_embed_model(session: Session) -> Optional[BaseEmbedding]:
-    db_embed_model = embed_model_repo.get_default(session)
-    if not db_embed_model:
-        return None
-    return get_embed_model(
-        db_embed_model.provider,
-        db_embed_model.model,
-        db_embed_model.config,
-        db_embed_model.credentials,
-    )
-
-
-def must_get_default_embed_model(session: Session) -> BaseEmbedding:
-    db_embed_model = embed_model_repo.must_get_default(session)
-    return get_embed_model(
-        db_embed_model.provider,
-        db_embed_model.model,
-        db_embed_model.config,
-        db_embed_model.credentials,
-    )
-
-
-# Reranker model
-
-
-def get_reranker_model(
-    provider: RerankerProvider,
-    model: str,
-    top_n: int,
-    config: dict,
-    credentials: str | list | dict | None,
-) -> BaseNodePostprocessor:
-    match provider:
-        case RerankerProvider.JINA:
-            return JinaRerank(
-                model=model,
-                top_n=top_n,
-                api_key=credentials,
-                **config,
-            )
-        case RerankerProvider.COHERE:
-            return CohereRerank(
-                model=model,
-                top_n=top_n,
-                api_key=credentials,
-                **config,
-            )
-        case RerankerProvider.BAISHENG:
-            return BaishengRerank(
-                model=model,
-                top_n=top_n,
-                api_key=credentials,
-                **config,
-            )
-        case RerankerProvider.LOCAL:
-            return LocalRerank(
-                model=model,
-                top_n=top_n,
-                **config,
-            )
-        case RerankerProvider.VLLM:
-            return VLLMRerank(
-                model=model,
-                top_n=top_n,
-                **config,
-            )
-        case RerankerProvider.XINFERENCE:
-            return XinferenceRerank(
-                model=model,
-                top_n=top_n,
-                **config,
-            )
-        case RerankerProvider.BEDROCK:
-            return AWSBedrockRerank(
-                rerank_model_name=model,
-                top_n=top_n,
-                aws_access_key_id=credentials["aws_access_key_id"],
-                aws_secret_access_key=credentials["aws_secret_access_key"],
-                region_name=credentials["aws_region_name"],
-                **config,
-            )
-        case _:
-            raise ValueError(f"Got unknown reranker provider: {provider}")
-
-
-# FIXME: Reranker top_n should be config in the retrival config.
-def get_default_reranker_model(
-    session: Session, top_n: int = None
-) -> Optional[BaseNodePostprocessor]:
-    db_reranker = reranker_model_repo.get_default(session)
-    if not db_reranker:
-        return None
-    top_n = db_reranker.top_n if top_n is None else top_n
-    return get_reranker_model(
-        db_reranker.provider,
-        db_reranker.model,
-        top_n,
-        db_reranker.config,
-        db_reranker.credentials,
-    )
-
-
-def must_get_default_reranker_model(session: Session) -> BaseNodePostprocessor:
-    db_reranker = reranker_model_repo.must_get_default(session)
-    return get_reranker_model(
-        db_reranker.provider,
-        db_reranker.model,
-        db_reranker.top_n,
-        db_reranker.config,
-        db_reranker.credentials,
-    )
-
-
-# Metadata post filter
-
-
-def get_metadata_post_filter(
-    filters: Optional[MetadataFilters] = None,
-) -> BaseNodePostprocessor:
-    return MetadataPostFilter(filters)

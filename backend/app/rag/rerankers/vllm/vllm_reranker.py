@@ -83,7 +83,9 @@ class VLLMRerank(BaseNodePostprocessor):
                 raise RuntimeError(f"Got error from reranker: {resp_json}")
 
             results = zip(range(len(nodes)), resp_json["data"])
-            results = sorted(results, key=lambda x: x[1]["score"], reverse=True)[: self.top_n]
+            results = sorted(results, key=lambda x: x[1]["score"], reverse=True)[
+                : self.top_n
+            ]
 
             new_nodes = []
             for result in results:

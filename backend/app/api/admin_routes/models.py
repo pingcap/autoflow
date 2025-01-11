@@ -44,4 +44,4 @@ class ChatEngineBasedRetrieveRequest(BaseModel):
     top_k: Optional[int] = 5
     similarity_top_k: Optional[int] = None
     oversampling_factor: Optional[int] = 5
-    enable_kg_enchance_query_refine: Optional[bool] = True
+    enable_kg_enhance_query_refine: Optional[bool] = False

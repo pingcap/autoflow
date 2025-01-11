@@ -23,7 +23,7 @@ class ChunkRepo(BaseRepo):
         )
 
     def get_documents_by_chunk_ids(
-        self, session: Session, chunk_ids: list[int]
+        self, session: Session, chunk_ids: list[str]
     ) -> list[DBDocument]:
         stmt = select(DBDocument).where(
             DBDocument.id.in_(

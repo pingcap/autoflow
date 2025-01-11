@@ -16,7 +16,7 @@ dependencies = [
     "asyncmy>=0.2.9",
     "tidb-vector>=0.0.14",
     "alembic>=1.14.0",
-    "pydantic>=2.10.4",
+    "pydantic>=2.10.5",
     # Update Check: https://github.com/pydantic/pydantic/issues/8061
     "pydantic-settings>=2.3.3",
     "redis>=5.0.5",

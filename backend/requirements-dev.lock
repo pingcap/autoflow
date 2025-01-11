@@ -361,7 +361,7 @@ llama-index-llms-anthropic==0.6.3
 llama-index-llms-bedrock==0.3.3
 llama-index-llms-gemini==0.4.2
 llama-index-llms-ollama==0.4.2
-llama-index-llms-openai==0.3.12
+llama-index-llms-openai==0.3.13
     # via llama-index
     # via llama-index-agent-openai
     # via llama-index-cli
@@ -532,7 +532,7 @@ pyasn1-modules==0.4.0
     # via google-auth
 pycparser==2.22
     # via cffi
-pydantic==2.8.2
+pydantic==2.10.5
     # via anthropic
     # via cohere
     # via deepeval
@@ -551,7 +551,7 @@ pydantic==2.8.2
     # via pydantic-settings
     # via ragas
     # via sqlmodel
-pydantic-core==2.20.1
+pydantic-core==2.27.2
     # via pydantic
 pydantic-settings==2.6.1
     # via langchain-community

@@ -12,9 +12,9 @@ dependencies = [
     "celery>=5.4.0",
     "dspy-ai>=2.4.9",
     "langfuse>=2.48.0",
-    "llama-index>=0.11.10",
+    "llama-index==0.12.10",
     "alembic>=1.13.1",
-    "pydantic>=2.8.2",
+    "pydantic==2.10.5",
     # Update Check: https://github.com/pydantic/pydantic/issues/8061
     "pydantic-settings>=2.3.3",
     "sentry-sdk>=2.5.1",
@@ -23,7 +23,8 @@ dependencies = [
     "tenacity~=8.4.0",
     "redis>=5.0.5",
     "flower>=2.0.1",
-    "llama-index-llms-gemini>=0.1.11",
+    # Notice: Ensure bug issue https://github.com/run-llama/llama_index/issues/17475 be fixed before upgrade to 0.4.3
+    "llama-index-llms-gemini==0.4.2",
     "tidb-vector>=0.0.14",
     "deepdiff>=7.0.1",
     "python-dotenv>=1.0.1",

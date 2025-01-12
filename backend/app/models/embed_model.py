@@ -3,7 +3,7 @@ from typing import Optional, Any
 from sqlmodel import Field, Column, JSON, String
 
 from .base import UpdatableBaseModel, AESEncryptedColumn
-from app.types import EmbeddingProvider
+from app.rag.embeddings.provider import EmbeddingProvider
 
 
 DEFAULT_VECTOR_DIMENSION = 1536

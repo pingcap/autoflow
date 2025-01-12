@@ -10,11 +10,11 @@ from app.api.deps import CurrentSuperuserDep, SessionDep
 from app.exceptions import InternalServerError, LLMNotFound
 from app.models import AdminLLM, LLM, ChatEngine, KnowledgeBase
 from app.repositories.llm import llm_repo
-from app.rag.llms import (
-    get_llm,
+from app.rag.llms.provider import (
     LLMProviderOption,
     llm_provider_options,
 )
+from app.rag.llms.resolver import get_llm
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

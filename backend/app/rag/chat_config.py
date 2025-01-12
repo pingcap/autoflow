@@ -9,8 +9,8 @@ from llama_index.core.postprocessor.types import BaseNodePostprocessor
 from llama_index.core.llms.llm import LLM
 
 from app.utils.dspy import get_dspy_lm_by_llama_llm
-from app.rag.llms import get_default_llm, get_llm
-from app.rag.rerankers import get_default_reranker_model, get_reranker_model
+from app.rag.llms.resolver import get_default_llm, get_llm
+from app.rag.rerankers.resolver import get_default_reranker_model, get_reranker_model
 from app.rag.postprocessors import get_metadata_post_filter, MetadataFilters
 
 

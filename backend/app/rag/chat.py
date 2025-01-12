@@ -66,8 +66,10 @@ from app.rag.utils import parse_goal_response_format
 from app.rag.knowledge_graph import KnowledgeGraphIndex
 from app.rag.chat_config import (
     ChatEngineConfig,
-    get_default_embed_model,
     KnowledgeGraphOption,
+)
+from app.rag.embeddings.resolver import (
+    get_default_embed_model,
     must_get_default_embed_model,
 )
 from app.rag.types import (

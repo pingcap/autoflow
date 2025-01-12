@@ -14,11 +14,11 @@ from app.api.admin_routes.embedding_model.models import (
 from app.api.deps import CurrentSuperuserDep, SessionDep
 from app.exceptions import EmbeddingModelNotFound, InternalServerError
 from app.repositories.embedding_model import embed_model_repo
-from app.rag.embeddings import (
-    get_embed_model,
+from app.rag.embeddings.provider import (
     EmbeddingProviderOption,
     embedding_provider_options,
 )
+from app.rag.embeddings.resolver import get_embed_model
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

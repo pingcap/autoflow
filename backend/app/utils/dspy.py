@@ -12,7 +12,7 @@ from llama_index.llms.openai_like import OpenAILike
 from llama_index.llms.gemini import Gemini
 from llama_index.llms.bedrock import Bedrock
 from llama_index.llms.ollama import Ollama
-from app.rag.llms.anthropic_vertex import AnthropicVertex
+from llama_index.llms.vertex import Vertex
 
 
 def get_dspy_lm_by_llama_llm(llama_llm: BaseLLM) -> dspy.LM:
@@ -72,8 +72,8 @@ def get_dspy_lm_by_llama_llm(llama_llm: BaseLLM) -> dspy.LM:
             raise ValueError(
                 "Bedrock model " + llama_llm.model + " is not supported by dspy."
             )
-    elif type(llama_llm) is AnthropicVertex:
-        raise ValueError("AnthropicVertex is not supported by dspy.")
+    elif type(llama_llm) is Vertex:
+        raise ValueError("Vertex is not supported by dspy.")
     elif type(llama_llm) is Ollama:
         return DspyOllamaLocal(
             model=llama_llm.model,

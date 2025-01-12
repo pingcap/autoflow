@@ -3,7 +3,7 @@ from typing import Optional, Any
 from sqlmodel import Field, Column, JSON, String
 
 from .base import UpdatableBaseModel, AESEncryptedColumn
-from app.types import RerankerProvider
+from app.rag.rerankers.provider import RerankerProvider
 
 
 class BaseRerankerModel(UpdatableBaseModel):

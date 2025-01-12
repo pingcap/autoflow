@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 from app.api.admin_routes.embedding_model.models import EmbeddingModelItem
-from app.types import LLMProvider
+from app.rag.llms.provider import LLMProvider
 
 
 class LLMDescriptor(BaseModel):

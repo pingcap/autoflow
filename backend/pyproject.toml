@@ -11,7 +11,7 @@ dependencies = [
     "fastapi-users>=13.0.0",
     "fastapi-pagination>=0.12.25",
     "fastapi-users-db-sqlmodel>=0.3.0",
-    "sqlmodel==0.0.22",
+    "sqlmodel==0.0.19",
     "pymysql>=1.1.1",
     "asyncmy>=0.2.9",
     "tidb-vector>=0.0.14",

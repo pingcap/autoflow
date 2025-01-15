@@ -18,7 +18,7 @@ from app.rag.embeddings.provider import (
     EmbeddingProviderOption,
     embedding_provider_options,
 )
-from app.rag.embeddings.resolver import get_embed_model
+from app.rag.embeddings.resolver import resolve_embed_model
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -57,7 +57,7 @@ def test_embedding_model(
     create: EmbeddingModelCreate,
 ) -> EmbeddingModelTestResult:
     try:
-        embed_model = get_embed_model(
+        embed_model = resolve_embed_model(
             provider=create.provider,
             model=create.model,
             config=create.config,

@@ -15,7 +15,7 @@ from app.repositories.embedding_model import embed_model_repo
 from app.rag.embeddings.provider import EmbeddingProvider
 
 
-def get_embed_model(
+def resolve_embed_model(
     provider: EmbeddingProvider,
     model: str,
     config: dict,
@@ -79,7 +79,7 @@ def get_default_embed_model(session: Session) -> Optional[BaseEmbedding]:
     db_embed_model = embed_model_repo.get_default(session)
     if not db_embed_model:
         return None
-    return get_embed_model(
+    return resolve_embed_model(
         db_embed_model.provider,
         db_embed_model.model,
         db_embed_model.config,
@@ -89,7 +89,7 @@ def get_default_embed_model(session: Session) -> Optional[BaseEmbedding]:
 
 def must_get_default_embed_model(session: Session) -> BaseEmbedding:
     db_embed_model = embed_model_repo.must_get_default(session)
-    return get_embed_model(
+    return resolve_embed_model(
         db_embed_model.provider,
         db_embed_model.model,
         db_embed_model.config,

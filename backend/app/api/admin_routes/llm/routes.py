@@ -14,7 +14,7 @@ from app.rag.llms.provider import (
     LLMProviderOption,
     llm_provider_options,
 )
-from app.rag.llms.resolver import get_llm
+from app.rag.llms.resolver import resolve_llm
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ def test_llm(
     user: CurrentSuperuserDep,
 ) -> LLMTestResult:
     try:
-        llm = get_llm(
+        llm = resolve_llm(
             provider=db_llm.provider,
             model=db_llm.model,
             config=db_llm.config,

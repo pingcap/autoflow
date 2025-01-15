@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Type
 
 import tidb_vector
 from llama_index.core.schema import BaseNode, MetadataMode, TextNode
@@ -45,7 +45,6 @@ def node_to_relation_dict(node: BaseNode) -> dict:
 class TiDBVectorStore(BasePydanticVectorStore):
     _session: Session = PrivateAttr()
     _owns_session: bool = PrivateAttr()
-    _chunk_db_model: SQLModel = PrivateAttr()
     _table_name: str = PrivateAttr()
     _vector_dimension: int = PrivateAttr()
 
@@ -55,7 +54,7 @@ class TiDBVectorStore(BasePydanticVectorStore):
     def __init__(
         self,
         session: Optional[Session] = None,
-        chunk_db_model: SQLModel = Chunk,
+        chunk_db_model: Type[SQLModel] = Chunk,
         oversampling_factor: int = 1,
         **kwargs: Any,
     ) -> None:

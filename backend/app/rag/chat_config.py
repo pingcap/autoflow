@@ -9,10 +9,10 @@ from llama_index.core.postprocessor.types import BaseNodePostprocessor
 from llama_index.core.llms.llm import LLM
 
 from app.utils.dspy import get_dspy_lm_by_llama_llm
-from app.rag.llms.resolver import get_default_llm, get_llm
-from app.rag.rerankers.resolver import get_default_reranker_model, get_reranker_model
+from app.rag.llms.resolver import get_default_llm, resolve_llm
+from app.rag.rerankers.resolver import get_default_reranker_model, resolve_reranker
 from app.rag.postprocessors import get_metadata_post_filter, MetadataFilters
-
+from app.repositories import knowledge_base_repo
 
 from app.models import (
     ChatEngine as DBChatEngine,
@@ -128,7 +128,7 @@ class ChatEngineConfig(BaseModel):
     def get_llama_llm(self, session: Session) -> LLM:
         if not self._db_llm:
             return get_default_llm(session)
-        return get_llm(
+        return resolve_llm(
             self._db_llm.provider,
             self._db_llm.model,
             self._db_llm.config,
@@ -142,7 +142,7 @@ class ChatEngineConfig(BaseModel):
     def get_fast_llama_llm(self, session: Session) -> LLM:
         if not self._db_fast_llm:
             return get_default_llm(session)
-        return get_llm(
+        return resolve_llm(
             self._db_fast_llm.provider,
             self._db_fast_llm.model,
             self._db_fast_llm.config,
@@ -161,7 +161,7 @@ class ChatEngineConfig(BaseModel):
             return get_default_reranker_model(session, top_n)
 
         top_n = self._db_reranker.top_n if top_n is None else top_n
-        return get_reranker_model(
+        return resolve_reranker(
             self._db_reranker.provider,
             self._db_reranker.model,
             top_n,

@@ -15,7 +15,20 @@ from app.rag.rerankers.provider import RerankerProvider
 from app.repositories.reranker_model import reranker_model_repo
 
 
-def get_reranker_model(
+def resolve_reranker_by_id(
+    session: Session, reranker_model_id: int, top_n: int
+) -> BaseNodePostprocessor:
+    db_reranker_model = reranker_model_repo.must_get(session, reranker_model_id)
+    return resolve_reranker(
+        db_reranker_model.provider,
+        db_reranker_model.model,
+        top_n or db_reranker_model.top_n,
+        db_reranker_model.config,
+        db_reranker_model.credentials,
+    )
+
+
+def resolve_reranker(
     provider: RerankerProvider,
     model: str,
     top_n: int,
@@ -83,7 +96,7 @@ def get_default_reranker_model(
     if not db_reranker:
         return None
     top_n = db_reranker.top_n if top_n is None else top_n
-    return get_reranker_model(
+    return resolve_reranker(
         db_reranker.provider,
         db_reranker.model,
         top_n,
@@ -94,7 +107,7 @@ def get_default_reranker_model(
 
 def must_get_default_reranker_model(session: Session) -> BaseNodePostprocessor:
     db_reranker = reranker_model_repo.must_get_default(session)
-    return get_reranker_model(
+    return resolve_reranker(
         db_reranker.provider,
         db_reranker.model,
         db_reranker.top_n,

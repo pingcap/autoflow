@@ -1,4 +1,3 @@
-from app.models import Chunk
 from typing import List
 from pydantic import BaseModel
 
@@ -19,8 +18,19 @@ class RetrieveRequest(BaseModel):
     retrieval_config: RetrievalConfig = RetrievalConfig()
 
 
+class RetrievedChunkReferenceDocument(BaseModel):
+    id: str
+    name: str
+    source_uri: str
+
+
 class RetrievedChunk(BaseModel):
-    chunk: Chunk
+    id: str
+    text: str
+    meta: dict
+    document: RetrievedChunkReferenceDocument
+    kb_id: str
+    vector_similarity: float
     score: float
 
 

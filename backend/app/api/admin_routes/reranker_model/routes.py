@@ -13,7 +13,7 @@ from app.exceptions import RerankerModelNotFound, InternalServerError
 from app.models import RerankerModel, AdminRerankerModel, ChatEngine
 from app.repositories.reranker_model import reranker_model_repo
 from app.rag.rerankers.provider import RerankerProviderOption, reranker_provider_options
-from app.rag.rerankers.resolver import get_reranker_model
+from app.rag.rerankers.resolver import resolve_reranker
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ def test_reranker_model(
     db_reranker_model: RerankerModel, user: CurrentSuperuserDep
 ) -> LLMTestResult:
     try:
-        reranker = get_reranker_model(
+        reranker = resolve_reranker(
             provider=db_reranker_model.provider,
             model=db_reranker_model.model,
             # for testing purpose, we only rerank 2 nodes

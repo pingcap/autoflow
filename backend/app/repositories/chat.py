@@ -10,6 +10,7 @@ from fastapi_pagination.ext.sqlmodel import paginate
 
 from app.models import Chat, User, ChatMessage, ChatUpdate
 from app.repositories.base_repo import BaseRepo
+from app.exceptions import ChatNotFound
 
 
 class ChatRepo(BaseRepo):
@@ -41,6 +42,16 @@ class ChatRepo(BaseRepo):
         return session.exec(
             select(Chat).where(Chat.id == chat_id, Chat.deleted_at == None)
         ).first()
+
+    def must_get(
+        self,
+        session: Session,
+        chat_id: UUID,
+    ) -> Chat:
+        chat = self.get(session, chat_id)
+        if not chat:
+            raise ChatNotFound(chat_id)
+        return chat
 
     def update(
         self,

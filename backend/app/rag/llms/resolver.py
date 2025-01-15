@@ -16,7 +16,7 @@ from app.repositories.llm import llm_repo
 from app.rag.llms.provider import LLMProvider
 
 
-def get_llm(
+def resolve_llm(
     provider: LLMProvider,
     model: str,
     config: dict,
@@ -94,7 +94,7 @@ def get_default_llm(session: Session) -> Optional[LLM]:
     db_llm = llm_repo.get_default(session)
     if not db_llm:
         return None
-    return get_llm(
+    return resolve_llm(
         db_llm.provider,
         db_llm.model,
         db_llm.config,
@@ -104,7 +104,7 @@ def get_default_llm(session: Session) -> Optional[LLM]:
 
 def must_get_default_llm(session: Session) -> LLM:
     db_llm = llm_repo.must_get_default(session)
-    return get_llm(
+    return resolve_llm(
         db_llm.provider,
         db_llm.model,
         db_llm.config,

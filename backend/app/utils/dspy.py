@@ -3,6 +3,8 @@ import datetime
 import hashlib
 from typing import Any, Literal
 
+from llama_index.llms.azure_openai import AzureOpenAI
+
 import dspy
 import requests
 from dsp.modules.lm import LM
@@ -82,6 +84,15 @@ def get_dspy_lm_by_llama_llm(llama_llm: BaseLLM) -> dspy.LM:
             temperature=llama_llm.temperature,
             max_tokens=llama_llm.context_window,
             num_ctx=llama_llm.context_window,
+        )
+    elif type(llama_llm) is AzureOpenAI:
+        return dspy.AzureOpenAI(
+            model=llama_llm.model,
+            max_tokens=llama_llm.max_tokens or 4096,
+            api_key=llama_llm.api_key,
+            api_base=enforce_trailing_slash(llama_llm.azure_endpoint),
+            api_version=llama_llm.api_version,
+            deployment_id=llama_llm.engine,
         )
     else:
         raise ValueError(f"Got unknown LLM provider: {llama_llm.__class__.__name__}")

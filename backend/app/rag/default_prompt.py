@@ -301,45 +301,6 @@ Instructions:
 Now, generate 3–5 follow-up questions below:
 """
 
-DEFAULT_CONDENSE_ANSWER_PROMPT = """\
-Refine the agent-provided answer into the language used by the user (if different) and make stylistic adjustments for better readability.
-Do not alter any content; all claims and facts must remain based on the agent-provided answer.
-
-#### Variables:
-
-Chat history:
-
-- Previous chat history:
-
-{{ chat_history }}
-
-- User's followup question:
-
-{{ question }}
-
----------------------
-
-Agent's answer:
-
-{{ agent_answer }}
-
----------------------
-
-Now perform your task as follows:
-
-#### Requirements:
-1. **Language Detection**:
-    - Identify the language used in the user's communication.
-    - If it differs from the agent answer's language, translate accordingly.
-2. **Stylistic Enhancement**:
-    - Improve sentence flow and readability without changing the original meaning.
-3. **Content Integrity**:
-    - Maintain all original claims and facts from the agent answer.
-    - Do not add new information or opinions.
-
-Output the final answer for the user directly.
-"""
-
 DEFAULT_GENERATE_GOAL_PROMPT = """\
 Given the conversation history between the User and Assistant, along with the latest follow-up question from the User, perform the following tasks:
 

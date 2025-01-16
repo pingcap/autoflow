@@ -126,5 +126,31 @@ Default config:
     "api_base": "http://localhost:9997/v1/"
 }
 ```
-
 To learn more about Xinference, please visit [Xinference](https://inference.readthedocs.io/en/latest/).
+
+
+#### Azure OpenAI
+
+To learn more about Azure OpenAI, please visit:
+
+- [Azure OpenAI documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/reference)
+- [Create and deploy an Azure OpenAI Service resource](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource?pivots=web-portal)
+
+After creating the Azure OpenAI Service resource, you can configure the API base URL in the **Advanced Settings**:
+
+```json
+{
+  "azure_endpoint": "https://<your-resource-name>.openai.azure.com/",
+  "api_version": "<your-api-version>",
+  "engine": "<your-deployment-name>"
+}
+```
+
+You can find those parameters in the [Deployment Tab](https://ai.azure.com/resource/deployments) of your Azure OpenAI Service resource.
+
+<Callout>
+Do not mix `Model version` and `API version` up, they are different.
+</Callout>
+
+![Azure OpenAI Service Deployment Tab - LLM](https://github.com/user-attachments/assets/158f845c-5f38-40d7-b66a-8528d7df178e)
+

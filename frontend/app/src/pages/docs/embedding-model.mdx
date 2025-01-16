@@ -172,6 +172,35 @@ Gitee AI is a third-party model provider that offers ready-to-use cutting-edge m
 
 For more information, see the [Gitee AI embedding models documentation](https://ai.gitee.com/docs/openapi/v1#tag/%E7%89%B9%E5%BE%81%E6%8A%BD%E5%8F%96/POST/embeddings).
 
+### Azure OpenAI
+
+Azure OpenAI is a cloud-based AI service that provides a OpenAI-like API on Azure.
+
+**Supported Models**:
+
+| Embedding Model          | Vector Dimensions | Max Tokens |
+| ------------------------ | ----------------- | ---------- |
+| `text-embedding-3-small` | 1536              | 8191       |
+
+For more information, see:
+
+- [Azure OpenAI documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/reference)
+- [Create and deploy an Azure OpenAI Service resource](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource?pivots=web-portal)
+
+After creating the Azure OpenAI Service resource, you can configure the API base URL in the **Advanced Settings**:
+
+```json
+{
+  "azure_endpoint": "https://<your-resource-name>.openai.azure.com/",
+  "api_version": "<your-api-version>"
+}
+```
+
+You can find those parameters in the [Deployment Tab](https://ai.azure.com/resource/deployments) of your Azure OpenAI Service resource.
+
+![Azure OpenAI Service Deployment Tab - Embedding](https://github.com/user-attachments/assets/af8ab2b7-0f2f-40ef-86ee-124bad2d9598)
+
+
 ### Local Embedding Server
 
 Autoflow's local embedding server is a self-hosted embedding service built upon [sentence-transformers](https://www.sentence-transformers.org/) and deployed on your own infrastructure.

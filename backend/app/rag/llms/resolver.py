@@ -76,6 +76,22 @@ def resolve_llm(
                 credentials=google_creds,
                 **config,
             )
+        case LLMProvider.VERTEX:
+            google_creds: service_account.Credentials = (
+                service_account.Credentials.from_service_account_info(
+                    credentials,
+                    scopes=["https://www.googleapis.com/auth/cloud-platform"],
+                )
+            )
+            google_creds.refresh(request=Request())
+            if "max_tokens" not in config:
+                config.update(max_tokens=4096)
+            return Vertex(
+                model=model,
+                project=credentials["project_id"],
+                credentials=google_creds,
+                **config,
+            )
         case LLMProvider.OLLAMA:
             config.setdefault("request_timeout", 60 * 10)
             config.setdefault("context_window", 4096)

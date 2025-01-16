@@ -314,6 +314,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
             entity.description,
             self._embed_model,
         )
+        hint = text(f"/*+ read_from_storage(tikv[{self._entity_model.__tablename__}]) */")
         result = (
             self._session.query(
                 self._entity_model,
@@ -325,6 +326,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
                 self._entity_model.name == entity.name
                 and self._entity_model.entity_type == entity_type
             )
+            .prefix_with(hint)
             .order_by(asc("distance"))
             .first()
         )

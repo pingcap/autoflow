@@ -6,7 +6,7 @@ import type { AppChatStreamState, StackVMState } from '@/components/chat/chat-st
 import { useGtagFn } from '@/components/gtag-provider';
 import { useBootstrapStatus } from '@/components/system/BootstrapStatusProvider';
 import { useLatestRef } from '@/components/use-latest-ref';
-import { createContext, type ReactNode, useContext, useEffect, useState } from 'react';
+import { createContext, type ReactNode, type Ref, useContext, useEffect, useImperativeHandle, useState } from 'react';
 
 export interface ChatsProviderValues {
   chats: Map<string, ChatController>;
@@ -30,7 +30,7 @@ const ChatsContext = createContext<ChatsProviderValues>({
 
 const ChatControllerContext = createContext<ChatController | null>(null);
 
-export function ChatsProvider ({ children }: { children: ReactNode }) {
+export function ChatsProvider ({ newChatRef, children }: { newChatRef?: Ref<ChatsProviderValues['newChat'] | undefined>, children: ReactNode }) {
   const bootstrapStatusRef = useLatestRef(useBootstrapStatus());
   const [chats, setChats] = useState(() => new Map<string, ChatController>);
 
@@ -54,6 +54,8 @@ export function ChatsProvider ({ children }: { children: ReactNode }) {
       return chats;
     });
   };
+
+  useImperativeHandle(newChatRef, () => newChat);
 
   return (
     <ChatsContext.Provider value={{

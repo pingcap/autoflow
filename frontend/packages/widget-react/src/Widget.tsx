@@ -1,7 +1,7 @@
 import type { BootstrapStatus } from '@/api/system';
 import { ManualScrollVoter } from '@/components/auto-scroll';
 import { AutoScroll } from '@/components/auto-scroll/auto-scroll';
-import { ChatsProvider } from '@/components/chat/chat-hooks';
+import { ChatsProvider, type ChatsProviderValues } from '@/components/chat/chat-hooks';
 import { Conversation } from '@/components/chat/conversation';
 import { useGtagFn } from '@/components/gtag-provider';
 import { PortalProvider } from '@/components/portal-provider';
@@ -108,6 +108,8 @@ export const Widget = forwardRef<WidgetInstance, WidgetProps>(({ container, trig
     }
   }, [trigger]);
 
+  const newChatRef = useRef<ChatsProviderValues['newChat'] | undefined>(undefined);
+
   useImperativeHandle(ref, () => ({
     get open () {
       return openRef.current;
@@ -125,13 +127,19 @@ export const Widget = forwardRef<WidgetInstance, WidgetProps>(({ container, trig
       setDark(d);
     },
     get initialized (): true { return true; },
+    newChat (content: string) {
+      newChatRef.current?.(undefined, [], {
+        content,
+        chat_engine: chatEngine,
+      });
+    },
   }), []);
 
   return (
     <PortalProvider container={container}>
       <BootstrapStatusProvider bootstrapStatus={bootstrapStatus}>
         <ExperimentalFeaturesProvider features={experimentalFeatures}>
-          <ChatsProvider>
+          <ChatsProvider newChatRef={newChatRef}>
             <Dialog open={open} onOpenChange={(open) => {
               setOpen(open);
               if (!open) {
@@ -165,9 +173,7 @@ export const Widget = forwardRef<WidgetInstance, WidgetProps>(({ container, trig
                         Ask AI
                       </span>
                     </DialogTitle>
-                    <DialogDescription className="sr-only">
-                      .
-                    </DialogDescription>
+                    <DialogDescription className="sr-only" />
                   </DialogHeader>
                   <AutoScroll target={scrollTarget} edgePixels={12}>
                     <ManualScrollVoter />

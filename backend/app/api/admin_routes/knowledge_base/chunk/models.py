@@ -1,9 +1,8 @@
 from pydantic import BaseModel
+from app.rag.indexes.vector_search.config import VectorSearchConfig
 
 
 class RetrieveChunkRequest(BaseModel):
     query: str
-    top_k: int = 10
-    similarity_top_k: int = None
-    oversampling_factor: int = 5
-    enable_kg_enhance_query_refine: bool = True
+    vector_search_config: VectorSearchConfig
+    # TODO: add fulltext and knowledge graph search config

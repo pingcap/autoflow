@@ -574,8 +574,10 @@ pysbd==0.3.4
     # via ragas
 pytest==8.2.2
     # via deepeval
+    # via pytest-asyncio
     # via pytest-repeat
     # via pytest-xdist
+pytest-asyncio==0.25.2
 pytest-repeat==0.9.3
     # via deepeval
 pytest-xdist==3.6.1
@@ -669,7 +671,7 @@ sqlalchemy==2.0.30
     # via llama-index-core
     # via optuna
     # via sqlmodel
-sqlmodel==0.0.22
+sqlmodel==0.0.19
     # via fastapi-users-db-sqlmodel
 starlette==0.41.2
     # via fastapi

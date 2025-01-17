@@ -5,7 +5,7 @@ from llama_index.core.question_gen.types import BaseQuestionGenerator, SubQuesti
 from llama_index.core.tools.types import ToolMetadata
 
 from app.models.chat_message import ChatMessage
-from app.rag.knowledge_graph.intent import IntentAnalyzer
+from app.rag.indexes.knowledge_graph import IntentAnalyzer
 from app.utils import dspy
 from app.core.config import settings
 

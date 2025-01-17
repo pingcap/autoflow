@@ -54,16 +54,14 @@ from app.rag.chat_stream_protocol import (
     ChatEvent,
 )
 from app.models.relationship import get_kb_relationship_model
+from app.rag.indexes.knowledge_graph.graph_store.tidb_graph_editor import (
+    TiDBGraphEditor,
+)
 from app.rag.knowledge_base.config import get_kb_embed_model
 from app.rag.knowledge_base.index_store import get_kb_tidb_graph_editor
-from app.rag.knowledge_graph.graph_store import TiDBGraphStore
-from app.rag.vector_store.tidb_vector_store import TiDBVectorStore
-from app.rag.knowledge_graph.graph_store.tidb_graph_editor import (
-    TiDBGraphEditor,
-    legacy_tidb_graph_editor,
-)
+from app.rag.indexes.knowledge_graph.graph_store import TiDBGraphStore
 from app.rag.utils import parse_goal_response_format
-from app.rag.knowledge_graph import KnowledgeGraphIndex
+from app.rag.indexes.knowledge_graph import KnowledgeGraphIndex
 from app.rag.chat_config import (
     ChatEngineConfig,
     KnowledgeGraphOption,

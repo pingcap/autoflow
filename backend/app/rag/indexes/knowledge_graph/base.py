@@ -16,9 +16,9 @@ from llama_index.core.storage.storage_context import StorageContext
 from llama_index.core.schema import BaseNode, TransformComponent
 import llama_index.core.instrumentation as instrument
 
-from app.rag.knowledge_graph.extractor import SimpleGraphExtractor
-from app.rag.knowledge_graph.intent import IntentAnalyzer
-from app.rag.knowledge_graph.prerequisite import PrerequisiteAnalyzer
+from app.rag.indexes.knowledge_graph.extractor import SimpleGraphExtractor
+from app.rag.indexes.knowledge_graph.intent import IntentAnalyzer
+from app.rag.indexes.knowledge_graph.prerequisite import PrerequisiteAnalyzer
 from app.rag.types import MyCBEventType
 from app.core.config import settings
 from app.core.db import Scoped_Session
@@ -151,6 +151,7 @@ class KnowledgeGraphIndex(BaseIndex[IndexLPG]):
             "Retriever not implemented for KnowledgeGraphIndex, use `retrieve_with_weight` instead."
         )
 
+    # TODO: move to KnowledgeGraphRetriever
     def retrieve_with_weight(
         self,
         query: str,

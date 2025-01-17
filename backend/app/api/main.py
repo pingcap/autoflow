@@ -21,6 +21,9 @@ from app.api.admin_routes.knowledge_base.data_source.routes import (
 from app.api.admin_routes.knowledge_base.document.routes import (
     router as admin_kb_document_router,
 )
+from app.api.admin_routes.knowledge_base.chunk.routes import (
+    router as admin_kb_chunk_router,
+)
 from app.api.admin_routes.document.routes import router as admin_document_router
 from app.api.admin_routes.llm.routes import router as admin_llm_router
 from app.api.admin_routes.embedding_model.routes import (
@@ -68,6 +71,7 @@ api_router.include_router(
 api_router.include_router(
     admin_kb_document_router, tags=["admin/knowledge_base/document"]
 )
+api_router.include_router(admin_kb_chunk_router, tags=["admin/knowledge_base/chunk"])
 api_router.include_router(admin_llm_router, tags=["admin/llm"])
 api_router.include_router(admin_embedding_model_router, tags=["admin/embedding_model"])
 api_router.include_router(admin_reranker_model_router, tags=["admin/reranker_model"])

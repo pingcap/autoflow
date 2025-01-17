@@ -13,7 +13,6 @@ from app.repositories.chunk import ChunkRepo
 from app.repositories.knowledge_base import knowledge_base_repo
 from app.models.chunk import get_kb_chunk_model
 from app.rag.chat_config import ChatEngineConfig
-from backend.app.api.admin_routes.retrieve.models import RetrievalConfig
 
 
 logger = logging.getLogger(__name__)
@@ -71,14 +70,6 @@ class ChatEngineBasedRetrieveService:
             enable_kg_enhance_query_refine=enable_kg_enhance_query_refine,
         )
         return retriever.retrieve(question)
-
-    def retrieve_chunks(
-        self,
-        db_session: Session,
-        query: str,
-        retrieval_config: RetrievalConfig,
-    ) -> List[NodeWithScore]:
-        pass
 
 
 retrieve_service = ChatEngineBasedRetrieveService()

@@ -1,31 +1,35 @@
 import logging
+from typing import List
 
 from fastapi import APIRouter
 from app.api.deps import SessionDep, CurrentSuperuserDep
-from app.rag.retrieve import retrieve_service
+from app.rag.indexes.vector_search.config import VectorSearchConfig
+from app.rag.indexes.vector_search.retriever import (
+    RetrievedChunk,
+    VectorSearchRetriever,
+)
 
 from app.exceptions import InternalServerError, KBNotFound
-from .models import RetrieveRequest, RetrieveResponse
+from .models import RetrieveChunkRequest
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@router.get("/admin/retrieve/chunks")
+@router.get("/admin/knowledge_base/{kb_id}/chunks")
 def retrieve_chunks(
     session: SessionDep,
     user: CurrentSuperuserDep,
-    request: RetrieveRequest,
-) -> RetrieveResponse:
+    kb_id: int,
+    request: RetrieveChunkRequest,
+) -> List[RetrievedChunk]:
     try:
-        return retrieve_service.chat_engine_retrieve_chunks(
-            session,
-            request.query,
-            top_k=request.top_k,
-            similarity_top_k=request.similarity_top_k,
-            oversampling_factor=request.oversampling_factor,
-            enable_kg_enhance_query_refine=request.enable_kg_enhance_query_refine,
+        retriever = VectorSearchRetriever(
+            db_session=session,
+            knowledge_base_id=kb_id,
+            config=VectorSearchConfig(**request.vector_search_config.model_dump()),
         )
+        return retriever.retrieve_chunks(request.query, session)
     except KBNotFound as e:
         raise e
     except Exception as e:

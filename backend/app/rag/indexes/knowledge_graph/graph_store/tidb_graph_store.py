@@ -16,15 +16,15 @@ from tidb_vector.sqlalchemy import VectorAdaptor
 from sqlalchemy import or_, desc
 
 from app.core.db import engine
-from app.rag.knowledge_graph.base import KnowledgeGraphStore
-from app.rag.knowledge_graph.schema import Entity, Relationship, SynopsisEntity
+from app.rag.indexes.knowledge_graph.base import KnowledgeGraphStore
+from app.rag.indexes.knowledge_graph.schema import Entity, Relationship, SynopsisEntity
 from app.models import (
     Entity as DBEntity,
     Relationship as DBRelationship,
     Chunk as DBChunk,
 )
 from app.models import EntityType
-from app.rag.knowledge_graph.graph_store.helpers import (
+from app.rag.indexes.knowledge_graph.graph_store.helpers import (
     calculate_relationship_score,
     DEFAULT_WEIGHT_COEFFICIENT_CONFIG,
     DEFAULT_RANGE_SEARCH_CONFIG,

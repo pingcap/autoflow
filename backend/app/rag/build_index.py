@@ -12,7 +12,7 @@ from app.rag.knowledge_base.index_store import (
     get_kb_tidb_vector_store,
     get_kb_tidb_graph_store,
 )
-from app.rag.knowledge_graph import KnowledgeGraphIndex
+from app.rag.indexes.knowledge_graph import KnowledgeGraphIndex
 from app.core.config import settings
 from app.models import (
     Document as DBDocument,

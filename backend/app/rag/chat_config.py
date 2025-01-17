@@ -15,7 +15,6 @@ from app.rag.postprocessors import get_metadata_post_filter, MetadataFilters
 from app.repositories import knowledge_base_repo
 
 from app.models import (
-    ChatEngine as DBChatEngine,
     LLM as DBLLM,
     RerankerModel as DBRerankerModel,
     KnowledgeBase,

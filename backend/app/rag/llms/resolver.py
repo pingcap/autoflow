@@ -61,22 +61,7 @@ def resolve_llm(
             llm.aws_secret_access_key = secret_access_key
             llm.region_name = region_name
             return llm
-        case LLMProvider.ANTHROPIC_VERTEX:
-            google_creds: service_account.Credentials = (
-                service_account.Credentials.from_service_account_info(
-                    credentials,
-                    scopes=["https://www.googleapis.com/auth/cloud-platform"],
-                )
-            )
-            google_creds.refresh(request=Request())
-            if "max_tokens" not in config:
-                config.update(max_tokens=4096)
-            return Vertex(
-                model=model,
-                credentials=google_creds,
-                **config,
-            )
-        case LLMProvider.VERTEX:
+        case LLMProvider.VERTEX | LLMProvider.ANTHROPIC_VERTEX:
             google_creds: service_account.Credentials = (
                 service_account.Credentials.from_service_account_info(
                     credentials,

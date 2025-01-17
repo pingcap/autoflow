@@ -119,7 +119,7 @@ llm_provider_options: List[LLMProviderOption] = [
     ),
     LLMProviderOption(
         provider=LLMProvider.ANTHROPIC_VERTEX,
-        provider_display_name="Anthropic Vertex AI",
+        provider_display_name="Anthropic Vertex AI (Deprecated)",
         provider_description="Anthropic's Claude models are now generally available through Vertex AI.",
         provider_url="https://docs.anthropic.com/en/api/claude-on-vertex-ai",
         default_llm_model="claude-3-5-sonnet@20241022",

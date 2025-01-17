@@ -74,7 +74,10 @@ def get_dspy_lm_by_llama_llm(llama_llm: BaseLLM) -> dspy.LM:
                 "Bedrock model " + llama_llm.model + " is not supported by dspy."
             )
     elif type(llama_llm) is Vertex:
-        raise ValueError("Vertex is not supported by dspy.")
+        return dspy.GoogleVertexAI(
+            model=llama_llm.model,
+            max_output_tokens=llama_llm.max_tokens or 8192,
+        )
     elif type(llama_llm) is Ollama:
         return DspyOllamaLocal(
             model=llama_llm.model,

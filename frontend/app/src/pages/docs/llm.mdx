@@ -119,6 +119,8 @@ To learn more about vLLM, please visit [vLLM](https://docs.vllm.ai/en/stable/).
 
 #### Xinference
 
+If you assigned a diffrent model uid for your model, you need to input your **model uid** instead of model name in the box `model`.
+
 Default config:
 
 ```json
@@ -126,6 +128,7 @@ Default config:
     "api_base": "http://localhost:9997/v1/"
 }
 ```
+
 To learn more about Xinference, please visit [Xinference](https://inference.readthedocs.io/en/latest/).
 
 
@@ -154,3 +157,29 @@ Do not mix `Model version` and `API version` up, they are different.
 
 ![Azure OpenAI Service Deployment Tab - LLM](https://github.com/user-attachments/assets/158f845c-5f38-40d7-b66a-8528d7df178e)
 
+#### Novita AI
+
+Default config:
+
+```json
+{
+    "api_base": "https://api.novita.ai/v3/openai"
+}
+```
+
+To learn more about Novita AI, please visit [Novita AI](https://novita.ai/).
+
+#### DeepSeek
+
+DeepSeek provides chat model `deepseek-chat`.
+
+Default config:
+
+```json
+{
+    "api_base": "https://api.deepseek.com/v1",
+    "is_chat_model": true
+}
+```
+
+To learn more about DeepSeek, please visit [DeepSeek](https://www.deepseek.com/).

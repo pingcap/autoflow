@@ -19,7 +19,7 @@ class BaseApiKey(UpdatableBaseModel):
 class ApiKey(BaseApiKey, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     hashed_secret: str = Field(max_length=255, unique=True)
-    user: "User" = SQLRelationship(
+    user: "User" = SQLRelationship(  # noqa:F821
         sa_relationship_kwargs={
             "lazy": "joined",
             "primaryjoin": "ApiKey.user_id == User.id",

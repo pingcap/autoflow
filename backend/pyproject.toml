@@ -78,4 +78,4 @@ dev-dependencies = [
 ]
 
 [tool.ruff.lint]
-ignore = ["E711", "E712", "F811", "F821", "F841"]
+ignore = ["E711", "E712", "F811",  "F841"]

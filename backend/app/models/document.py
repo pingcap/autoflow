@@ -48,7 +48,7 @@ class Document(UpdatableBaseModel, table=True):
     # TODO: add kg_index_status, kg_index_result column, unify the index status.
 
     data_source_id: int = Field(foreign_key="data_sources.id", nullable=True)
-    data_source: "DataSource" = SQLRelationship(
+    data_source: "DataSource" = SQLRelationship(  # noqa:F821
         sa_relationship_kwargs={
             "lazy": "joined",
             "primaryjoin": "Document.data_source_id == DataSource.id",
@@ -56,7 +56,7 @@ class Document(UpdatableBaseModel, table=True):
     )
 
     knowledge_base_id: int = Field(foreign_key="knowledge_bases.id", nullable=True)
-    knowledge_base: "KnowledgeBase" = SQLRelationship(
+    knowledge_base: "KnowledgeBase" = SQLRelationship(  # noqa:F821
         sa_relationship_kwargs={
             "lazy": "joined",
             "primaryjoin": "Document.knowledge_base_id == KnowledgeBase.id",

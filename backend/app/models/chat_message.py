@@ -32,14 +32,14 @@ class ChatMessage(UpdatableBaseModel, table=True):
     )
     finished_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime))
     chat_id: UUID = Field(foreign_key="chats.id")
-    chat: "Chat" = SQLRelationship(
+    chat: "Chat" = SQLRelationship(  # noqa:F821
         sa_relationship_kwargs={
             "lazy": "joined",
             "primaryjoin": "ChatMessage.chat_id == Chat.id",
         },
     )
     user_id: UUID = Field(foreign_key="users.id", nullable=True)
-    user: "User" = SQLRelationship(
+    user: "User" = SQLRelationship(  # noqa:F821
         sa_relationship_kwargs={
             "lazy": "joined",
             "primaryjoin": "ChatMessage.user_id == User.id",

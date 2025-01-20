@@ -20,7 +20,7 @@ from app.models import (
     RerankerModel as DBRerankerModel,
     KnowledgeBase,
 )
-from app.repositories import chat_engine_repo
+from app.repositories import chat_engine_repo, knowledge_base_repo
 from app.rag.default_prompt import (
     DEFAULT_INTENT_GRAPH_KNOWLEDGE,
     DEFAULT_NORMAL_GRAPH_KNOWLEDGE,

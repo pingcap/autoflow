@@ -18,6 +18,7 @@ from app.models import (
     LLM as DBLLM,
     RerankerModel as DBRerankerModel,
     KnowledgeBase,
+    ChatEngine as DBChatEngine,
 )
 from app.repositories import chat_engine_repo
 from app.rag.default_prompt import (

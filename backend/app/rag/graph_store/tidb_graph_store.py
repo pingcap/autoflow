@@ -16,24 +16,30 @@ from tidb_vector.sqlalchemy import VectorAdaptor
 from sqlalchemy import or_, desc
 
 from app.core.db import engine
-from app.rag.indexes.knowledge_graph.base import KnowledgeGraphStore
-from app.rag.indexes.knowledge_graph.schema import Entity, Relationship, SynopsisEntity
+from app.rag.graph_store.helpers import (
+    get_entity_description_embedding,
+    get_relationship_description_embedding,
+    calculate_relationship_score,
+    get_entity_metadata_embedding,
+    get_query_embedding,
+    DEFAULT_RANGE_SEARCH_CONFIG,
+    DEFAULT_WEIGHT_COEFFICIENT_CONFIG,
+    DEFAULT_DEGREE_COEFFICIENT,
+)
+from app.rag.graph_store.schema import KnowledgeGraphStore
+from app.rag.indices.knowledge_graph.schema import (
+    Entity,
+    Relationship,
+    RetrievedEntity,
+    RetrievedRelationship,
+    SynopsisEntity,
+)
 from app.models import (
     Entity as DBEntity,
     Relationship as DBRelationship,
     Chunk as DBChunk,
 )
 from app.models import EntityType
-from app.rag.indexes.knowledge_graph.graph_store.helpers import (
-    calculate_relationship_score,
-    DEFAULT_WEIGHT_COEFFICIENT_CONFIG,
-    DEFAULT_RANGE_SEARCH_CONFIG,
-    DEFAULT_DEGREE_COEFFICIENT,
-    get_query_embedding,
-    get_entity_description_embedding,
-    get_entity_metadata_embedding,
-    get_relationship_description_embedding,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -341,6 +347,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
             ):
                 return db_obj
             elif entity_type == EntityType.original:
+                # TODO: move to TiDBKnowledgeGraphIndex
                 # use LLM to merge the most similar entities
                 merged_entity = self._try_merge_entities(
                     [
@@ -419,7 +426,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
         # experimental feature to filter relationships based on meta, can be removed in the future
         relationship_meta_filters: dict = {},
         session: Optional[Session] = None,
-    ) -> Tuple[list, list, list]:
+    ) -> Tuple[List[RetrievedEntity], List[RetrievedRelationship]]:
         if not embedding:
             assert query, "Either query or embedding must be provided"
             embedding = get_query_embedding(query, self._embed_model)
@@ -478,7 +485,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
                 visited_entities.update(e.id for e in new_entities)
                 visited_relationships.update(r.id for r in new_relationships)
                 actual_number += len(new_relationships)
-                # seach ratio == 1 won't count the progress
+                # search_ratio == 1 won't count the progress
                 if search_ratio != 1:
                     progress += search_ratio
 
@@ -494,45 +501,45 @@ class TiDBGraphStore(KnowledgeGraphStore):
             related_doc_ids.add(r.meta["doc_id"])
 
         entities = [
-            {
-                "id": e.id,
-                "name": e.name,
-                "description": e.description,
-                "meta": e.meta if include_meta else None,
-                "entity_type": e.entity_type,
-            }
+            RetrievedEntity(
+                id=e.id,
+                name=e.name,
+                description=e.description,
+                meta=e.meta if include_meta else None,
+                entity_type=e.entity_type,
+            )
             for e in all_entities
         ]
         relationships = [
-            {
-                "id": r.id,
-                "source_entity_id": r.source_entity_id,
-                "target_entity_id": r.target_entity_id,
-                "description": r.description,
-                "rag_description": f"{r.source_entity.name} -> {r.description} -> {r.target_entity.name}",
-                "meta": r.meta,
-                "weight": r.weight,
-                "last_modified_at": r.last_modified_at,
-            }
+            RetrievedRelationship(
+                id=r.id,
+                source_entity_id=r.source_entity_id,
+                target_entity_id=r.target_entity_id,
+                description=r.description,
+                rag_description=f"{r.source_entity.name} -> {r.description} -> {r.target_entity.name}",
+                meta=r.meta,
+                weight=r.weight,
+                last_modified_at=r.last_modified_at,
+            )
             for r in all_relationships
         ]
 
-        chunks = []
-        session = session or self._session
-        if with_chunks:
-            chunks = [
-                # TODO: add last_modified_at
-                {"text": c[0], "link": c[1], "meta": c[2]}
-                for c in session.exec(
-                    select(
-                        self._chunk_model.text,
-                        self._chunk_model.document_id,
-                        self._chunk_model.meta,
-                    ).where(self._chunk_model.id.in_(related_doc_ids))
-                ).all()
-            ]
+        # chunks = []
+        # session = session or self._session
+        # if with_chunks:
+        #     chunks = [
+        #         # TODO: add last_modified_at
+        #         {"text": c[0], "link": c[1], "meta": c[2]}
+        #         for c in session.exec(
+        #             select(
+        #                 self._chunk_model.text,
+        #                 self._chunk_model.document_id,
+        #                 self._chunk_model.meta,
+        #             ).where(self._chunk_model.id.in_(related_doc_ids))
+        #         ).all()
+        #     ]
 
-        return entities, relationships, chunks
+        return entities, relationships
 
     # Function to fetch degrees for entities
     def fetch_entity_degrees(
@@ -592,7 +599,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
         with_degree: bool = False,
         relationship_meta_filters: Dict = {},
         session: Optional[Session] = None,
-    ) -> List[SQLModel]:
+    ) -> Tuple[List[SQLModel], List[SQLModel]]:
         # select the relationships to rank
         subquery = (
             select(
@@ -701,7 +708,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
             entity_set.add(r.source_entity)
             entity_set.add(r.target_entity)
 
-        return relationship_set, entity_set
+        return list(relationship_set), list(entity_set)
 
     def fetch_similar_entities_by_post_filter(
         self,

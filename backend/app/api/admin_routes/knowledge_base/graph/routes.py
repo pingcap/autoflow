@@ -2,15 +2,16 @@ import logging
 from typing import List
 
 from fastapi import APIRouter, HTTPException, status
+from llama_index.core import QueryBundle
 
 from app.api.admin_routes.knowledge_base.graph.models import (
     SynopsisEntityCreate,
     EntityUpdate,
     RelationshipUpdate,
-    GraphSearchRequest,
     KnowledgeRequest,
     KnowledgeNeighborRequest,
     KnowledgeChunkRequest,
+    KBRetrieveKnowledgeGraphRequest,
 )
 from app.api.deps import SessionDep
 from app.exceptions import KBNotFound, InternalServerError
@@ -18,6 +19,13 @@ from app.models import (
     EntityPublic,
     RelationshipPublic,
 )
+from app.rag.indices.knowledge_graph.retriever.base_retriever import (
+    KnowledgeGraphRetriever,
+)
+from app.rag.indices.knowledge_graph.retriever.config import (
+    KnowledgeGraphRetrieverConfig,
+)
+from app.rag.indices.knowledge_graph.schema import RetrievedKnowledgeGraph
 from app.rag.knowledge_base.index_store import (
     get_kb_tidb_graph_editor,
     get_kb_tidb_graph_store,
@@ -195,24 +203,26 @@ def update_relationship(
         raise e
 
 
+# TODO：rename the path to /retrieve
 @router.post("/admin/knowledge_bases/{kb_id}/graph/search")
-def search_graph(session: SessionDep, kb_id: int, request: GraphSearchRequest):
+def search_graph(
+    db_session: SessionDep, kb_id: int, request: KBRetrieveKnowledgeGraphRequest
+) -> RetrievedKnowledgeGraph:
     try:
-        kb = knowledge_base_repo.must_get(session, kb_id)
-        graph_store = get_kb_tidb_graph_store(session, kb)
-        entities, relations, _ = graph_store.retrieve_with_weight(
-            request.query,
-            [],
-            request.depth,
-            request.include_meta,
-            request.with_degree,
-            False,
-            request.relationship_meta_filters,
+        retriever = KnowledgeGraphRetriever(
+            db_session=db_session,
+            knowledge_base_id=kb_id,
+            config=KnowledgeGraphRetrieverConfig(
+                **request.retrival_config.model_dump()
+            ),
         )
-        return {
-            "entities": entities,
-            "relationships": relations,
-        }
+        entities, relationships = retriever.retrieve_knowledge_graph(
+            QueryBundle(request.query)
+        )
+        return RetrievedKnowledgeGraph(
+            entities=entities,
+            relationships=relationships,
+        )
     except KBNotFound as e:
         raise e
     except Exception as e:

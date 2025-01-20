@@ -6,7 +6,7 @@ from dspy.functional import TypedPredictor
 from typing import Mapping, Optional, List
 from llama_index.core.schema import BaseNode
 
-from app.rag.indexes.knowledge_graph.schema import (
+from app.rag.indices.knowledge_graph.schema import (
     Entity,
     Relationship,
     KnowledgeGraph,

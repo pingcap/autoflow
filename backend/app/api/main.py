@@ -32,12 +32,15 @@ from app.api.admin_routes.embedding_model.routes import (
 from app.api.admin_routes.reranker_model.routes import (
     router as admin_reranker_model_router,
 )
+from app.api.admin_routes.retrieve.routes import (
+    router as admin_retrieve_router,
+)
 from app.api.admin_routes import (
     chat_engine as admin_chat_engine,
     feedback as admin_feedback,
     site_setting as admin_site_settings,
     upload as admin_upload,
-    retrieve as admin_retrieve,
+    retrieve_old as admin_retrieve_old,
     stats as admin_stats,
     semantic_cache as admin_semantic_cache,
     langfuse as admin_langfuse,
@@ -76,7 +79,8 @@ api_router.include_router(admin_llm_router, tags=["admin/llm"])
 api_router.include_router(admin_embedding_model_router, tags=["admin/embedding_model"])
 api_router.include_router(admin_reranker_model_router, tags=["admin/reranker_model"])
 api_router.include_router(admin_langfuse.router, tags=["admin/langfuse"])
-api_router.include_router(admin_retrieve.router, tags=["admin/retrieve"])
+api_router.include_router(admin_retrieve_router, tags=["admin/retrieve"])
+api_router.include_router(admin_retrieve_old.router, tags=["admin/retrieve_old"])
 api_router.include_router(admin_stats.router, tags=["admin/stats"])
 api_router.include_router(admin_semantic_cache.router, tags=["admin/semantic_cache"])
 api_router.include_router(admin_evaluation_task.router, tags=["admin/evaluation/task"])

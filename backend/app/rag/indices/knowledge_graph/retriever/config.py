@@ -4,7 +4,6 @@ from pydantic import BaseModel
 
 
 class KnowledgeGraphRetrieverConfig(BaseModel):
-    knowledge_base_id: int
     depth: int = 2
     include_meta: bool = False
     with_chunks: bool = False

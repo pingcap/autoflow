@@ -1,12 +1,25 @@
-from typing import Optional
+from typing import Mapping, Any
 from llama_index.core.postprocessor.types import BaseNodePostprocessor
 from .metadata_post_filter import (
     MetadataFilters,
     MetadataPostFilter,
+    MetadataFilter,
 )
 
 
 def get_metadata_post_filter(
-    filters: Optional[MetadataFilters] = None,
+    filters: Mapping[str, Any] = None,
 ) -> BaseNodePostprocessor:
-    return MetadataPostFilter(filters)
+    simple_filters = []
+    for key, value in filters.items():
+        simple_filters.append(
+            MetadataFilter(
+                key=key,
+                value=value,
+            )
+        )
+    return MetadataPostFilter(
+        MetadataFilters(
+            filters=simple_filters,
+        )
+    )

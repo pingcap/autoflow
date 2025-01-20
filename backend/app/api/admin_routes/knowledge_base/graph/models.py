@@ -1,6 +1,10 @@
 from typing import List, Optional
 from pydantic import BaseModel, model_validator
 
+from app.rag.indices.knowledge_graph.retriever.config import (
+    KnowledgeGraphRetrieverConfig,
+)
+
 
 class SynopsisEntityCreate(BaseModel):
     name: str
@@ -28,12 +32,20 @@ class RelationshipUpdate(BaseModel):
     weight: Optional[int] = None
 
 
-class GraphSearchRequest(BaseModel):
+# Knowledge Graph Retrieval
+
+
+class KBKnowledgeGraphRetrievalConfig(BaseModel):
+    knowledge_graph: KnowledgeGraphRetrieverConfig
+
+
+class KBRetrieveKnowledgeGraphRequest(BaseModel):
     query: str
-    include_meta: bool = True
-    depth: int = 2
-    with_degree: bool = True
-    relationship_meta_filters: dict = {}
+    llm_id: int
+    retrival_config: KBKnowledgeGraphRetrievalConfig
+
+
+### Experimental
 
 
 class KnowledgeRequest(BaseModel):

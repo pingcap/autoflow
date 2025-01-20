@@ -12,7 +12,7 @@ from app.rag.knowledge_base.index_store import (
     get_kb_tidb_vector_store,
     get_kb_tidb_graph_store,
 )
-from app.rag.indexes.knowledge_graph import KnowledgeGraphIndex
+from app.rag.indices.knowledge_graph import KnowledgeGraphIndex
 from app.core.config import settings
 from app.models import (
     Document as DBDocument,
@@ -39,6 +39,7 @@ class IndexService:
         self._embed_model = embed_model
         self._knowledge_base = knowledge_base
 
+    # TODO: move to ./indices/vector_search
     def build_vector_index_for_document(
         self, session: Session, db_document: Type[DBDocument]
     ):
@@ -80,6 +81,7 @@ class IndexService:
 
         return
 
+    # TODO: move to ./indices/knowledge_graph
     def build_kg_index_for_chunk(self, session: Session, db_chunk: Type[DBChunk]):
         """Build knowledge graph index from chunk.
 

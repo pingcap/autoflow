@@ -21,10 +21,13 @@ from llama_index.core.embeddings import BaseEmbedding
 from sqlmodel import Session, select, SQLModel
 
 from app.models.chunk import get_kb_chunk_model
-from app.rag.chat import get_prompt_by_jinja2_template
+from app.rag.indices.knowledge_graph.retriever.base_retriever import (
+    KnowledgeGraphRetriever,
+)
+from app.rag.indices.vector_search.schema import VectorSearchRetrieverConfig
+from app.utils.jinja2 import get_prompt_by_jinja2_template
 from app.rag.chat_config import ChatEngineConfig
 from app.models import Document as DBDocument, KnowledgeBase
-from app.rag.indexes.knowledge_graph.retriever import KnowledgeGraphRetriever
 from app.rag.types import MyCBEventType
 from app.rag.workflows.chat_app.events import (
     SearchKnowledgeGraphEvent,
@@ -39,8 +42,7 @@ from app.site_settings import SiteSetting
 from langfuse import Langfuse
 from app.repositories import knowledge_base_repo
 from app.rag.knowledge_base.config import get_kb_embed_model
-from app.rag.indexes.vector_search.retriever import VectorSearchRetriever
-from app.rag.indexes.vector_search.config import VectorSearchConfig
+from app.rag.indices.vector_search.base_retriever import VectorSearchRetriever
 from app.utils import dspy
 
 logger = logging.getLogger(__name__)
@@ -135,24 +137,19 @@ class AppChatFlow(Workflow):
                     dspy_lm=sc.dspy_fast_lm,
                     callback_manager=sc.callback_manager,
                 )
-                entities, relationships, chunks = (
-                    knowledge_graph_retriever.retrieve_graph(
+                entities, relationships = (
+                    knowledge_graph_retriever.retrieve_knowledge_graph(
                         query_bundle=QueryBundle(
                             query_str=user_question,
                         )
                     )
                 )
                 event.on_end(
-                    payload={
-                        "entities": entities,
-                        "relationships": relationships,
-                        "chunks": chunks,
-                    }
+                    payload={"entities": entities, "relationships": relationships}
                 )
 
         await ctx.set("knowledge_graph.entities", entities)
         await ctx.set("knowledge_graph.relationships", relationships)
-        await ctx.set("knowledge_graph.chunks", chunks)
 
         return RefineQuestionEvent(user_question=user_question)
 
@@ -290,7 +287,7 @@ class AppChatFlow(Workflow):
                 chunk_model = get_kb_chunk_model(kb)
                 retriever = VectorSearchRetriever(
                     knowledge_base_id=kb.id,
-                    config=VectorSearchConfig(
+                    config=VectorSearchRetrieverConfig(
                         similarity_top_k=10,
                         oversampling_factor=5,
                         top_k=5,

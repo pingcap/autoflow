@@ -90,6 +90,28 @@ def resolve_llm(
             raise ValueError(f"Got unknown LLM provider: {provider}")
 
 
+def get_llm(session: Session, llm_id: int) -> Optional[LLM]:
+    db_llm = llm_repo.get(session, llm_id)
+    if not db_llm:
+        return None
+    return resolve_llm(
+        db_llm.provider,
+        db_llm.model,
+        db_llm.config,
+        db_llm.credentials,
+    )
+
+
+def must_get_llm(session: Session, llm_id: int) -> LLM:
+    db_llm = llm_repo.must_get(session, llm_id)
+    return resolve_llm(
+        db_llm.provider,
+        db_llm.model,
+        db_llm.config,
+        db_llm.credentials,
+    )
+
+
 def get_default_llm(session: Session) -> Optional[LLM]:
     db_llm = llm_repo.get_default(session)
     if not db_llm:

@@ -11,9 +11,9 @@ from app.models.relationship import get_kb_relationship_model
 from app.rag.chat import get_prompt_by_jinja2_template
 from app.rag.chat_config import ChatEngineConfig
 from app.rag.knowledge_base.config import get_kb_embed_model
-from app.rag.indexes.knowledge_graph import KnowledgeGraphIndex
-from app.rag.indexes.vector_search.vector_store.tidb_vector_store import TiDBVectorStore
-from app.rag.indexes.knowledge_graph.graph_store import TiDBGraphStore
+from app.rag.indices.knowledge_graph import KnowledgeGraphIndex
+from app.rag.vector_store.tidb_vector_store import TiDBVectorStore
+from app.rag.graph_store.tidb_graph_store import TiDBGraphStore
 from app.repositories.knowledge_base import knowledge_base_repo
 
 

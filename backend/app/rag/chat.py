@@ -10,7 +10,6 @@ from datetime import datetime, UTC
 from urllib.parse import urljoin
 
 import requests
-import jinja2
 from llama_index.core.base.embeddings.base import BaseEmbedding
 from llama_index.core.llms import LLM
 from pydantic import BaseModel
@@ -18,7 +17,6 @@ from sqlalchemy import text, delete
 from sqlmodel import Session, select, func, SQLModel
 from llama_index.core import VectorStoreIndex
 from llama_index.core.base.llms.base import ChatMessage
-from llama_index.core.prompts.base import PromptTemplate
 from llama_index.core.base.response.schema import StreamingResponse
 from llama_index.core.callbacks.schema import EventPayload
 from llama_index.core.callbacks import CallbackManager
@@ -54,14 +52,16 @@ from app.rag.chat_stream_protocol import (
     ChatEvent,
 )
 from app.models.relationship import get_kb_relationship_model
-from app.rag.indexes.knowledge_graph.graph_store.tidb_graph_editor import (
-    TiDBGraphEditor,
-)
+from app.rag.graph_store import TiDBGraphStore
+
 from app.rag.knowledge_base.config import get_kb_embed_model
 from app.rag.knowledge_base.index_store import get_kb_tidb_graph_editor
-from app.rag.indexes.knowledge_graph.graph_store import TiDBGraphStore
+from app.rag.graph_store.tidb_graph_editor import (
+    legacy_tidb_graph_editor,
+    TiDBGraphEditor,
+)
 from app.rag.utils import parse_goal_response_format
-from app.rag.indexes.knowledge_graph import KnowledgeGraphIndex
+from app.rag.indices.knowledge_graph import KnowledgeGraphIndex
 from app.rag.chat_config import (
     ChatEngineConfig,
     KnowledgeGraphOption,
@@ -76,11 +76,13 @@ from app.rag.types import (
     ChatEventType,
     MessageRole,
 )
+from app.rag.vector_store.tidb_vector_store import TiDBVectorStore
 from app.repositories import chat_repo, knowledge_base_repo, chat_engine_repo
 from app.repositories.embedding_model import embed_model_repo
 from app.repositories.llm import llm_repo
 from app.site_settings import SiteSetting
 from app.exceptions import ChatNotFound
+from app.utils.jinja2 import get_prompt_by_jinja2_template
 
 logger = logging.getLogger(__name__)
 
@@ -1030,30 +1032,6 @@ class ChatService:
             logger.exception("Failed to post verification")
 
 
-def get_prompt_by_jinja2_template(template_string: str, **kwargs) -> PromptTemplate:
-    # use jinja2's template because it support complex render logic
-    # for example:
-    #       {% for e in entities %}
-    #           {{ e.name }}
-    #       {% endfor %}
-    template = (
-        jinja2.Template(template_string)
-        .render(**kwargs)
-        # llama-index will use f-string to format the template
-        # so we need to escape the curly braces even if we do not use it
-        .replace("{", "{{")
-        .replace("}", "}}")
-        # This is a workaround to bypass above escape,
-        # llama-index will use f-string to format following variables,
-        # maybe we can use regex to replace the variable name to make this more robust
-        .replace("<<query_str>>", "{query_str}")
-        .replace("<<context_str>>", "{context_str}")
-        .replace("<<existing_answer>>", "{existing_answer}")
-        .replace("<<context_msg>>", "{context_msg}")
-    )
-    return PromptTemplate(template=template)
-
-
 def user_can_view_chat(chat: DBChat, user: Optional[User]) -> bool:
     # Anonymous or pulic chat can be accessed by anyone
     # Non-anonymous chat can be accessed by owner or superuser
@@ -1213,7 +1191,7 @@ def get_chat_message_subgraph(
         relationship_db_model=relationship_db_model,
     )
     kg_config = chat_engine_config.knowledge_graph
-    entities, relations, _ = graph_store.retrieve_with_weight(
+    entities, relations = graph_store.retrieve_knowledge_graph(
         chat_message.content,
         [],
         depth=kg_config.depth,

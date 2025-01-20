@@ -3,7 +3,6 @@ import dspy
 from dspy.functional import TypedPredictor
 from typing import List, Optional
 from pydantic import BaseModel, Field
-from llama_index.core.tools import FunctionTool
 
 logger = logging.getLogger(__name__)
 
@@ -69,31 +68,11 @@ class DecomposeQueryModule(dspy.Module):
             return self.prog(query=query)
 
 
-class IntentAnalyzer:
+class QueryDecomposer:
     def __init__(self, dspy_lm: dspy.LM, complied_program_path: Optional[str] = None):
-        self.intent_anlysis_prog = DecomposeQueryModule(dspy_lm=dspy_lm)
+        self.decompose_query_prog = DecomposeQueryModule(dspy_lm=dspy_lm)
         if complied_program_path is not None:
-            self.intent_anlysis_prog.load(complied_program_path)
+            self.decompose_query_prog.load(complied_program_path)
 
-    def analyze(self, query: str) -> SubQuestions:
-        return self.intent_anlysis_prog(query=query).subquestions
-
-    def as_tool_call(self):
-        def breakDownQuery(query: str) -> list[str]:
-            """
-            Break down the complex user query into sub-questions and solve them step-by-step.
-
-            If the query is complex, this function decomposes it into smaller sub-questions
-            and solves them individually. For simple and straightforward queries,
-            avoid calling this function.
-
-            Args:
-            query (str): The user's input query.
-
-            Returns:
-            str: The final result after solving all sub-questions.
-            """
-
-            return [query]
-
-        return FunctionTool.from_defaults(fn=breakDownQuery)
+    def decompose(self, query: str) -> SubQuestions:
+        return self.decompose_query_prog(query=query).subquestions

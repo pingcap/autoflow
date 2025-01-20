@@ -1,7 +1,6 @@
 import logging
 
 from typing import Dict, List, Optional, Type
-from pydantic import BaseModel
 from sqlmodel import Session, select
 from llama_index.core import VectorStoreIndex
 from llama_index.core.retrievers import BaseRetriever
@@ -13,26 +12,16 @@ from app.models.document import Document
 from app.models.patch.sql_model import SQLModel
 from app.rag.knowledge_base.config import get_kb_embed_model
 from app.rag.rerankers.resolver import resolve_reranker_by_id
-from app.rag.indexes.vector_search.config import VectorSearchConfig
-from app.rag.indexes.vector_search.vector_store.tidb_vector_store import TiDBVectorStore
+from app.rag.indices.vector_search.schema import (
+    VectorSearchRetrieverConfig,
+    RetrievedChunkDocument,
+    RetrievedChunk,
+)
+from app.rag.vector_store.tidb_vector_store import TiDBVectorStore
 from app.rag.postprocessors.resolver import get_metadata_post_filter
 from app.repositories import knowledge_base_repo
 
 logger = logging.getLogger(__name__)
-
-
-class RetrievedChunkDocument(BaseModel):
-    id: int
-    name: str
-    source_uri: str
-
-
-class RetrievedChunk(BaseModel):
-    id: str
-    text: str
-    metadata: dict
-    document: RetrievedChunkDocument
-    score: float
 
 
 class VectorSearchRetriever(BaseRetriever):
@@ -41,7 +30,7 @@ class VectorSearchRetriever(BaseRetriever):
     def __init__(
         self,
         knowledge_base_id: int,
-        config: VectorSearchConfig,
+        config: VectorSearchRetrieverConfig,
         db_session: Optional[Session] = None,
     ):
         super().__init__()
@@ -49,6 +38,7 @@ class VectorSearchRetriever(BaseRetriever):
             raise ValueError("Knowledge base id is required")
 
         with db_session or Session(engine) as session:
+            self._config = config
             self._kb = knowledge_base_repo.must_get(session, knowledge_base_id)
             self._chunk_db_model = get_kb_chunk_model(self._kb)
             self._embed_model = get_kb_embed_model(session, self._kb)
@@ -89,7 +79,8 @@ class VectorSearchRetriever(BaseRetriever):
             )
 
     def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
-        return self._retrieve_engine.retrieve(query_bundle)
+        nodes = self._retrieve_engine.retrieve(query_bundle)
+        return nodes[: self._config.top_k]
 
     def retrieve_chunks(
         self, query_bundle: QueryBundle, db_session: Optional[Session] = None

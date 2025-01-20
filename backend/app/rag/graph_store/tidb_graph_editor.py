@@ -6,20 +6,19 @@ from llama_index.embeddings.openai import OpenAIEmbedding, OpenAIEmbeddingModelT
 from sqlmodel import Session, select, SQLModel
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.attributes import flag_modified
-
 from app.models import Relationship, Entity, EntityType
-from app.rag.indexes.knowledge_graph.graph_store.helpers import (
+from app.rag.indices.knowledge_graph.schema import Relationship as RelationshipAIModel
+from app.rag.graph_store import TiDBGraphStore
+from app.rag.graph_store.helpers import (
     get_entity_description_embedding,
-    get_entity_metadata_embedding,
     get_relationship_description_embedding,
+    get_entity_metadata_embedding,
     get_query_embedding,
 )
-
-from app.rag.indexes.knowledge_graph.graph_store.tidb_graph_store import TiDBGraphStore
-from app.rag.indexes.knowledge_graph.schema import Relationship as RelationshipAIModel
 from app.staff_action import create_staff_action_log
 
 
+# TODO: CRUD operations should move to TiDBGraphStore
 class TiDBGraphEditor:
     _entity_db_model: Type[SQLModel]
     _relationship_db_model: Type[SQLModel]

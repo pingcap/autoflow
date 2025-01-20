@@ -22,13 +22,13 @@ env:
 jobs:
   build_backend:
     name: Build Backend Image
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         platform:
           - linux/amd64
           - linux/arm64
+    runs-on: "${{ matrix.platform == 'linux/amd64' && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}"
     steps:
       - name: Checkout
         uses: actions/checkout@v4

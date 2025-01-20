@@ -1,8 +1,7 @@
-import logging
 import dspy
 
-from sqlmodel import Session
 from typing import List, Optional, Dict, Tuple
+
 from llama_index.core import QueryBundle
 from llama_index.core.async_utils import run_async_tasks
 from llama_index.core.base.base_retriever import BaseRetriever
@@ -11,66 +10,57 @@ from llama_index.core.llms import LLM
 from llama_index.core.schema import NodeWithScore
 from llama_index.core.selectors import LLMSingleSelector
 from llama_index.core.tools import ToolMetadata
+from sqlmodel import Session
 
 from app.core.config import Settings
 from app.core.db import engine
+from app.rag.indices.vector_search.retriever.base_retriever import VectorSearchRetriever
+from app.rag.indices.vector_search.schema import (
+    VectorSearchRetrieverConfig,
+    RetrievedChunk,
+)
 from app.rag.question_gen.query_decomposer import QueryDecomposer
-from app.rag.indices.knowledge_graph.retriever.base_retriever import (
-    KnowledgeGraphRetriever,
-)
-from app.rag.indices.knowledge_graph.retriever.config import (
-    KnowledgeGraphRetrieverConfig,
-)
-from app.rag.indices.knowledge_graph.schema import (
-    KnowledgeGraphNode,
-    Entity,
-    Relationship,
-    RetrievedRelationship,
-    RetrievedEntity,
-)
 from app.rag.types import MyCBEventType
 from app.repositories import knowledge_base_repo
 
 
-logger = logging.getLogger(__name__)
-
-
-class KnowledgeGraphFusionRetriever(BaseRetriever):
-    _query_decomposer: QueryDecomposer
-    _retrievers: List[KnowledgeGraphRetriever]
-
+class VectorSearchFusionRetriever(BaseRetriever):
     def __init__(
         self,
         knowledge_base_ids: List[int],
-        config: KnowledgeGraphRetrieverConfig,
+        config: VectorSearchRetrieverConfig,
         llm: LLM,
         dspy_lm: dspy.LM,
         callback_manager: Optional[CallbackManager] = CallbackManager([]),
-        use_query_decompose: bool = False,
         use_async: bool = True,
+        use_query_decompose: bool = True,
+        use_query_router: bool = True,
         **kwargs,
     ):
         super().__init__(callback_manager, **kwargs)
+        self._config = config
+        self._callback_manager = callback_manager
+
         with Session(engine) as session:
+            self._retrievers = []
+            self._retrievers_metadata = []
             self.use_async = use_async
             self.use_query_decompose = use_query_decompose
-            self._callback_manager = callback_manager
             self._query_decomposer = QueryDecomposer(
                 dspy_lm=dspy_lm,
                 # TODO: move to arguments of the constructor
                 complied_program_path=Settings.COMPLIED_INTENT_ANALYSIS_PROGRAM_PATH,
             )
+            self.use_query_router = use_query_router
             self.selector = LLMSingleSelector.from_defaults(llm=llm)
-            self._retrievers = []
-            self._retrievers_metadata = []
+
             for knowledge_base_id in knowledge_base_ids:
                 kb = knowledge_base_repo.get(session, knowledge_base_id)
                 self._retrievers.append(
-                    KnowledgeGraphRetriever(
-                        dspy_lm=dspy_lm,
+                    VectorSearchRetriever(
                         knowledge_base_id=knowledge_base_id,
                         config=config,
-                        callback_manager=callback_manager,
+                        callback_manager=self._callback_manager,
                     )
                 )
                 self._retrievers_metadata.append(
@@ -81,20 +71,6 @@ class KnowledgeGraphFusionRetriever(BaseRetriever):
                 )
 
     def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
-        entities, relationships = self.retrieve_knowledge_graph(query_bundle)
-        return [
-            NodeWithScore(
-                node=KnowledgeGraphNode(
-                    entities=entities,
-                    relationships=relationships,
-                ),
-                score=1,
-            )
-        ]
-
-    def retrieve_knowledge_graph(
-        self, query_bundle: QueryBundle
-    ) -> Tuple[List[Entity], List[Relationship]]:
         if self.use_query_decompose:
             queries = self._gen_sub_queries(query_bundle)
         else:
@@ -105,6 +81,29 @@ class KnowledgeGraphFusionRetriever(BaseRetriever):
         else:
             results = self._run_sync_queries(queries)
         return self._simple_fusion(results)
+
+    def retrieve_chunks(
+        self, query_bundle: QueryBundle, db_session: Session
+    ) -> List[RetrievedChunk]:
+        nodes_with_score = self._retrieve(query_bundle)
+        return self.map_nodes_to_chunks(nodes_with_score, db_session)
+
+    def map_nodes_to_chunks(
+        self, nodes_with_score, db_session: Optional[Session] = None
+    ):
+        chunk_ids = [ns.node.node_id for ns in nodes_with_score]
+        chunk_to_document_map = self._get_chunk_to_document_map(chunk_ids, db_session)
+
+        return [
+            RetrievedChunk(
+                id=ns.node.node_id,
+                text=ns.node.text,
+                metadata=ns.node.metadata,
+                document=chunk_to_document_map[ns.node.node_id],
+                score=ns.score,
+            )
+            for ns in nodes_with_score
+        ]
 
     def _gen_sub_queries(self, query_bundle: QueryBundle) -> List[QueryBundle]:
         """
@@ -121,7 +120,7 @@ class KnowledgeGraphFusionRetriever(BaseRetriever):
 
     def _run_async_queries(
         self, queries: List[QueryBundle]
-    ) -> Dict[Tuple[str, int], List[KnowledgeGraphNode]]:
+    ) -> Dict[Tuple[str, int], List[NodeWithScore]]:
         tasks, task_queries = [], []
         for query in queries:
             query_str = query.query_str
@@ -139,7 +138,7 @@ class KnowledgeGraphFusionRetriever(BaseRetriever):
 
     def _run_sync_queries(
         self, queries: List[QueryBundle]
-    ) -> Dict[Tuple[str, int], List[KnowledgeGraphNode]]:
+    ) -> Dict[Tuple[str, int], List[NodeWithScore]]:
         results = {}
         for query in queries:
             query_str = query.query_str
@@ -171,32 +170,20 @@ class KnowledgeGraphFusionRetriever(BaseRetriever):
         return self._retrievers[i], i
 
     def _simple_fusion(
-        self, results: Dict[Tuple[str, int], List[KnowledgeGraphNode]]
-    ) -> Tuple[List[RetrievedEntity], List[RetrievedRelationship]]:
-        merged_entities = {}
-        merged_relationships = {}
+        self, results: Dict[Tuple[str, int], List[NodeWithScore]]
+    ) -> List[NodeWithScore]:
+        """Apply simple fusion."""
+        # Use a dict to de-duplicate nodes
+        all_nodes: Dict[str, NodeWithScore] = {}
         for nodes_with_scores in results.values():
-            if len(nodes_with_scores) == 0:
-                continue
-            node = nodes_with_scores[0]
-            for e in node.entities:
-                if merged_entities[e.id] is None:
-                    merged_entities[e.id] = e
-
-            for r in node.relationships:
-                key = (r.source_entity_id, r.target_entity_id, r.description)
-                if merged_relationships[key] is None:
-                    merged_relationships[key] = RetrievedRelationship(
-                        id=r.id,
-                        source_entity_id=r.source_entity_id,
-                        target_entity_id=r.target_entity_id,
-                        description=r.description,
-                        rag_description=r.rag_description,
-                        weight=0,
-                        meta=r.meta,
-                        last_modified_at=r.last_modified_at,
+            for node_with_score in nodes_with_scores:
+                hash = node_with_score.node.hash
+                if hash in all_nodes:
+                    max_score = max(
+                        node_with_score.score or 0.0, all_nodes[hash].score or 0.0
                     )
+                    all_nodes[hash].score = max_score
                 else:
-                    merged_relationships[key].weight += r.weight
+                    all_nodes[hash] = node_with_score
 
-        return list(merged_entities.values()), list(merged_relationships.values())
+        return sorted(all_nodes.values(), key=lambda x: x.score or 0.0, reverse=True)

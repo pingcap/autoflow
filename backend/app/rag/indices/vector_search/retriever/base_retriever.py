@@ -1,6 +1,8 @@
 import logging
 
 from typing import Dict, List, Optional, Type
+
+from llama_index.core.callbacks import CallbackManager
 from sqlmodel import Session, select
 from llama_index.core import VectorStoreIndex
 from llama_index.core.retrievers import BaseRetriever
@@ -32,6 +34,7 @@ class VectorSearchRetriever(BaseRetriever):
         knowledge_base_id: int,
         config: VectorSearchRetrieverConfig,
         db_session: Optional[Session] = None,
+        callback_manager: CallbackManager = CallbackManager([]),
     ):
         super().__init__()
         if not knowledge_base_id:

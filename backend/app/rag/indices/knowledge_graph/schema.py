@@ -189,10 +189,10 @@ class KnowledgeGraphNode(BaseNode):
 
     query: str = Field(description="Query of the knowledge graph")
     queries: Optional[list[str]] = Field(description="Queries of the knowledge graph")
-    entities: List[Entity] = Field(
+    entities: List[RetrievedEntity] = Field(
         default_factory=list, description="The list of entities in the knowledge graph"
     )
-    relationships: List[Relationship] = Field(
+    relationships: List[RetrievedRelationship] = Field(
         default_factory=list,
         description="The list of relationships in the knowledge graph",
     )

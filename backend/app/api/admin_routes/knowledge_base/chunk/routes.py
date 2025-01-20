@@ -4,7 +4,7 @@ from typing import List
 from fastapi import APIRouter
 from llama_index.core import QueryBundle
 from app.api.deps import SessionDep, CurrentSuperuserDep
-from app.rag.indices.vector_search.base_retriever import (
+from app.rag.indices.vector_search.retriever.base_retriever import (
     VectorSearchRetriever,
 )
 from app.rag.indices.vector_search.schema import RetrievedChunk

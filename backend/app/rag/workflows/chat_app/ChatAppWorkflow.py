@@ -42,7 +42,7 @@ from app.site_settings import SiteSetting
 from langfuse import Langfuse
 from app.repositories import knowledge_base_repo
 from app.rag.knowledge_base.config import get_kb_embed_model
-from app.rag.indices.vector_search.base_retriever import VectorSearchRetriever
+from app.rag.indices.vector_search.retriever.base_retriever import VectorSearchRetriever
 from app.utils import dspy
 
 logger = logging.getLogger(__name__)

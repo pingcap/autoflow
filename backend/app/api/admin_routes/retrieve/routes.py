@@ -8,13 +8,14 @@ from app.rag.indices.knowledge_graph.retriever.fusion_retriever import (
     KnowledgeGraphFusionRetriever,
 )
 from app.rag.indices.knowledge_graph.schema import RetrievedKnowledgeGraph
-from app.rag.indices.vector_search.base_retriever import VectorSearchRetriever
+from app.rag.indices.vector_search.retriever.fusion_retriever import (
+    VectorSearchFusionRetriever,
+)
 from app.rag.indices.vector_search.schema import RetrievedChunk
 from app.exceptions import KBNotFound
 from app.rag.llms.resolver import must_get_llm
 from app.utils.dspy import get_dspy_lm_by_llama_llm
-from .models import RetrieveChunksRequest
-from ..knowledge_base.graph.models import KBRetrieveKnowledgeGraphRequest
+from .models import RetrieveChunksRequest, RetrieveKnowledgeGraphRequest
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -28,7 +29,7 @@ def retrieve_chunks(
 ) -> List[RetrievedChunk]:
     try:
         vector_search_config = request.retrieval_config.vector_search
-        retriever = VectorSearchRetriever(
+        retriever = VectorSearchFusionRetriever(
             db_session=db_session,
             knowledge_base_id=request.knowledge_base_ids[0],
             config=vector_search_config,
@@ -45,7 +46,7 @@ def retrieve_chunks(
 def retrieve_knowledge_graph(
     db_session: SessionDep,
     user: CurrentSuperuserDep,
-    request: KBRetrieveKnowledgeGraphRequest,
+    request: RetrieveKnowledgeGraphRequest,
 ) -> RetrievedKnowledgeGraph:
     try:
         llm = must_get_llm(db_session, request.knowledge_base_id)

@@ -91,5 +91,5 @@ jobs:
       - name: Create Manifest List and Push
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-             '${{ env.DOCKERHUB_REPO }}@sha256:${{ needs.build_backend.outputs.output_linux_amd64 }}' \
-             '${{ env.DOCKERHUB_REPO }}@sha256:${{ needs.build_backend.outputs.output_linux_arm64 }}'
+             '${{ env.DOCKERHUB_REPO }}@${{ needs.build_backend.outputs.output_linux_amd64 }}' \
+             '${{ env.DOCKERHUB_REPO }}@${{ needs.build_backend.outputs.output_linux_arm64 }}'

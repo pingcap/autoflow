@@ -24,7 +24,7 @@ class ChatVisibility(int, enum.Enum):
 class Chat(UUIDBaseModel, UpdatableBaseModel, table=True):
     title: str = Field(max_length=256)
     engine_id: int = Field(foreign_key="chat_engines.id", nullable=True)
-    engine: "ChatEngine" = SQLRelationship(
+    engine: "ChatEngine" = SQLRelationship(  # noqa:F821
         sa_relationship_kwargs={
             "lazy": "joined",
             "primaryjoin": "Chat.engine_id == ChatEngine.id",
@@ -34,7 +34,7 @@ class Chat(UUIDBaseModel, UpdatableBaseModel, table=True):
     engine_options: Dict | str = Field(default={}, sa_column=Column(JSON))
     deleted_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime))
     user_id: UUID = Field(foreign_key="users.id", nullable=True)
-    user: "User" = SQLRelationship(
+    user: "User" = SQLRelationship(  # noqa:F821
         sa_relationship_kwargs={
             "lazy": "joined",
             "primaryjoin": "Chat.user_id == User.id",

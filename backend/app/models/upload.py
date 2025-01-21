@@ -19,7 +19,7 @@ class Upload(UpdatableBaseModel, table=True):
     path: str = Field(max_length=255)
     mime_type: MimeTypes = Field(sa_column=Column(String(128), nullable=False))
     user_id: UUID = Field(foreign_key="users.id", nullable=True)
-    user: "User" = SQLRelationship(
+    user: "User" = SQLRelationship(  # noqa:F821
         sa_relationship_kwargs={
             "lazy": "joined",
             "primaryjoin": "Upload.user_id == User.id",

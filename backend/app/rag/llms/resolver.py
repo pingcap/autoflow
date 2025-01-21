@@ -1,6 +1,7 @@
 import os
 from typing import Optional
 from llama_index.core.llms.llm import LLM
+from llama_index.llms.azure_openai import AzureOpenAI
 from llama_index.llms.openai import OpenAI
 from llama_index.llms.openai_like import OpenAILike
 from llama_index.llms.gemini import Gemini
@@ -83,6 +84,12 @@ def resolve_llm(
             return OpenAILike(
                 model=model,
                 api_base="https://ai.gitee.com/v1",
+                api_key=credentials,
+                **config,
+            )
+        case LLMProvider.AZURE_OPENAI:
+            return AzureOpenAI(
+                model=model,
                 api_key=credentials,
                 **config,
             )

@@ -61,6 +61,9 @@ dependencies = [
     "llama-index-postprocessor-xinference-rerank>=0.2.0",
     "llama-index-postprocessor-bedrock-rerank>=0.3.0",
     "llama-index-llms-vertex>=0.4.2",
+    "socksio>=1.0.0",
+    "llama-index-llms-azure-openai>=0.3.0",
+    "llama-index-embeddings-azure-openai>=0.3.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
@@ -76,4 +79,4 @@ dev-dependencies = [
 ]
 
 [tool.ruff.lint]
-ignore = ["E711", "E712", "F811", "F821", "F841"]
+ignore = ["E711", "E712", "F811",  "F841"]

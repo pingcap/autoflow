@@ -1,4 +1,6 @@
 from typing import Optional
+
+from llama_index.embeddings.azure_openai import AzureOpenAIEmbedding
 from sqlmodel import Session
 
 from llama_index.core.base.embeddings.base import BaseEmbedding
@@ -62,6 +64,12 @@ def resolve_embed_model(
             return OpenAILikeEmbedding(
                 model=model,
                 api_base="https://ai.gitee.com/v1",
+                api_key=credentials,
+                **config,
+            )
+        case EmbeddingProvider.AZURE_OPENAI:
+            return AzureOpenAIEmbedding(
+                model=model,
                 api_key=credentials,
                 **config,
             )

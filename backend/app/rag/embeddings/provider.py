@@ -13,6 +13,7 @@ class EmbeddingProvider(str, enum.Enum):
     GITEEAI = "giteeai"
     LOCAL = "local"
     OPENAI_LIKE = "openai_like"
+    AZURE_OPENAI = "azure_openai"
 
 
 class EmbeddingProviderOption(BaseModel):
@@ -120,6 +121,22 @@ embedding_provider_options: List[EmbeddingProviderOption] = [
         embedding_model_description="Find more information about Gitee AI Embeddings at https://ai.gitee.com/docs/openapi/v1#tag/%E7%89%B9%E5%BE%81%E6%8A%BD%E5%8F%96/POST/embeddings",
         credentials_display_name="Gitee AI API Key",
         credentials_description="The API key of Gitee AI, you can find it in https://ai.gitee.com/dashboard/settings/tokens",
+        credentials_type="str",
+        default_credentials="****",
+    ),
+    EmbeddingProviderOption(
+        provider=EmbeddingProvider.AZURE_OPENAI,
+        provider_display_name="Azure OpenAI",
+        provider_description="Azure OpenAI is a cloud-based AI service that provides a suite of AI models and tools for developers to build intelligent applications.",
+        provider_url="https://azure.microsoft.com/en-us/products/ai-services/openai-service",
+        default_embedding_model="text-embedding-3-small",
+        embedding_model_description="Before using this option, you need to deploy an Azure OpenAI API and model, see https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource.",
+        default_config={
+            "azure_endpoint": "https://<your-resource-name>.openai.azure.com/",
+            "api_version": "<your-api-version>"
+        },
+        credentials_display_name="Azure OpenAI API Key",
+        credentials_description="The API key of Azure OpenAI",
         credentials_type="str",
         default_credentials="****",
     ),

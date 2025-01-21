@@ -42,7 +42,7 @@ def retrieve_documents(
         raise InternalServerError()
 
 
-@router.get("/admin/embedding_retrieve")
+@router.get("/admin/embedding_retrieve", deprecated=True)
 def embedding_retrieve(
     session: SessionDep,
     user: CurrentSuperuserDep,

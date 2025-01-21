@@ -61,6 +61,13 @@ class KnowledgeBaseRepo(BaseRepo):
             raise KBNotFound(knowledge_base_id)
         return kb
 
+    def get_by_ids(
+        self, session: Session, knowledge_base_ids: List[int]
+    ) -> List[KnowledgeBase]:
+        return session.exec(
+            select(KnowledgeBase).where(KnowledgeBase.id.in_(knowledge_base_ids))
+        ).all()
+
     def update(
         self,
         session: Session,

@@ -30,9 +30,11 @@ from app.rag.graph_store.schema import KnowledgeGraphStore
 from app.rag.indices.knowledge_graph.schema import (
     Entity,
     Relationship,
+    SynopsisEntity,
+)
+from app.rag.indices.knowledge_graph.retriever.schema import (
     RetrievedEntity,
     RetrievedRelationship,
-    SynopsisEntity,
 )
 from app.models import (
     Entity as DBEntity,

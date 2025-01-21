@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from app.rag.indices.vector_search.schema import VectorSearchRetrieverConfig
+from app.rag.indices.vector_search.retriever.schema import VectorSearchRetrieverConfig
 
 
 class KBChunkRetrievalConfig(BaseModel):

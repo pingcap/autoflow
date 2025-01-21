@@ -24,7 +24,7 @@ from app.models.chunk import get_kb_chunk_model
 from app.rag.indices.knowledge_graph.retriever.base_retriever import (
     KnowledgeGraphRetriever,
 )
-from app.rag.indices.vector_search.schema import VectorSearchRetrieverConfig
+from app.rag.indices.vector_search.retriever.schema import VectorSearchRetrieverConfig
 from app.utils.jinja2 import get_prompt_by_jinja2_template
 from app.rag.chat_config import ChatEngineConfig
 from app.models import Document as DBDocument, KnowledgeBase
@@ -48,7 +48,7 @@ from app.utils import dspy
 logger = logging.getLogger(__name__)
 
 
-class ServiceContext:
+class ChatServiceContext:
     db_session: Session
     embed_model: BaseEmbedding
     llm: LLM
@@ -104,7 +104,7 @@ class AppChatFlow(Workflow):
         embed_model = get_kb_embed_model(db_session, knowledge_base)
         await ctx.set(
             "service_context",
-            ServiceContext(
+            ChatServiceContext(
                 db_session=db_session,
                 embed_model=embed_model,
                 llm=llm,
@@ -124,7 +124,7 @@ class AppChatFlow(Workflow):
         self, ctx: Context, ev: SearchKnowledgeGraphEvent
     ) -> RefineQuestionEvent:
         user_question: str = await ctx.get("user_question")
-        sc: ServiceContext = await ctx.get("service_context")
+        sc: ChatServiceContext = await ctx.get("service_context")
 
         with sc.callback_manager.as_trace("search_knowledge_graph"):
             with sc.callback_manager.event(
@@ -160,7 +160,7 @@ class AppChatFlow(Workflow):
         entities = ctx.get("knowledge_graph.entities")
         relationships = ctx.get("knowledge_graph.relationships")
         chunks = ctx.get("knowledge_graph.chunks")
-        sc: ServiceContext = await ctx.get("service_context")
+        sc: ChatServiceContext = await ctx.get("service_context")
 
         with sc.callback_manager.as_trace("aggregate_knowledge_graph_search_result"):
             with sc.callback_manager.event(
@@ -200,7 +200,7 @@ class AppChatFlow(Workflow):
         user_question = ctx.get("user_question")
         chat_history = ctx.get("chat_history", [])
         knowledge_graph_context = ctx.get("graph_knowledges_context")
-        sc: ServiceContext = await ctx.get("service_context")
+        sc: ChatServiceContext = await ctx.get("service_context")
 
         with sc.callback_manager.as_trace("refine_question"):
             with sc.callback_manager.event(
@@ -235,7 +235,7 @@ class AppChatFlow(Workflow):
         refined_question = ctx.get("refined_question")
         chat_history = ctx.get("chat_history")
         graph_knowledges_context = ctx.get("graph_knowledges_context")
-        sc: ServiceContext = await ctx.get("service_context")
+        sc: ChatServiceContext = await ctx.get("service_context")
 
         with sc.callback_manager.as_trace("clarify_question"):
             with sc.callback_manager.event(
@@ -277,7 +277,7 @@ class AppChatFlow(Workflow):
     ) -> GenerateAnswerEvent:
         refined_question = await ctx.get("refined_question")
         kb: KnowledgeBase = await ctx.get("knowledge_base")
-        sc: ServiceContext = await ctx.get("service_context")
+        sc: ChatServiceContext = await ctx.get("service_context")
 
         with sc.callback_manager.as_trace("retrieve_relevant_chunks"):
             with sc.callback_manager.event(
@@ -355,7 +355,7 @@ class AppChatFlow(Workflow):
         user_question = await ctx.get("user_question")
         nodes_with_score = await ctx.get("nodes_with_score")
         knowledge_graph_context = await ctx.get("knowledge_graph_context")
-        sc: ServiceContext = await ctx.get("service_context")
+        sc: ChatServiceContext = await ctx.get("service_context")
 
         with sc.callback_manager.as_trace("generate_answer"):
             with sc.callback_manager.event(

@@ -19,6 +19,14 @@ class VectorSearchRetrieverConfig(BaseModel):
     metadata_filter: Optional[MetadataFilterConfig] = None
 
 
+class KBChunkRetrievalConfig(BaseModel):
+    knowledge_base_ids: list[int] = None
+
+
+class ChunkRetrievalConfig(BaseModel):
+    knowledge_base_ids: list[int] = None
+
+
 class RetrievedChunkDocument(BaseModel):
     id: int
     name: str
@@ -29,5 +37,5 @@ class RetrievedChunk(BaseModel):
     id: str
     text: str
     metadata: dict
-    document: RetrievedChunkDocument
+    document: Optional[RetrievedChunkDocument] = None
     score: float

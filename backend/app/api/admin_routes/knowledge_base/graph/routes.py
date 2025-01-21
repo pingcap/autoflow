@@ -22,10 +22,10 @@ from app.models import (
 from app.rag.indices.knowledge_graph.retriever.base_retriever import (
     KnowledgeGraphRetriever,
 )
-from app.rag.indices.knowledge_graph.retriever.config import (
+from app.rag.indices.knowledge_graph.retriever.schema import (
     KnowledgeGraphRetrieverConfig,
+    RetrievedKnowledgeGraph,
 )
-from app.rag.indices.knowledge_graph.schema import RetrievedKnowledgeGraph
 from app.rag.knowledge_base.index_store import (
     get_kb_tidb_graph_editor,
     get_kb_tidb_graph_store,

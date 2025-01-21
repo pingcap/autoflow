@@ -1,191 +1,131 @@
 import logging
-import dspy
 
 from sqlmodel import Session
 from typing import List, Optional, Dict, Tuple
 from llama_index.core import QueryBundle
-from llama_index.core.async_utils import run_async_tasks
-from llama_index.core.base.base_retriever import BaseRetriever
-from llama_index.core.callbacks import CallbackManager, EventPayload
+from llama_index.core.callbacks import CallbackManager
 from llama_index.core.llms import LLM
 from llama_index.core.schema import NodeWithScore
-from llama_index.core.selectors import LLMSingleSelector
 from llama_index.core.tools import ToolMetadata
 
-from app.core.config import Settings
-from app.core.db import engine
-from app.rag.question_gen.query_decomposer import QueryDecomposer
+from app.rag.knowledge_base.multi_kb_retriever import MultiKBFusionRetriever
+from app.rag.knowledge_base.selector import KBSelectMode
 from app.rag.indices.knowledge_graph.retriever.base_retriever import (
     KnowledgeGraphRetriever,
 )
-from app.rag.indices.knowledge_graph.retriever.config import (
+from app.rag.indices.knowledge_graph.retriever.schema import (
     KnowledgeGraphRetrieverConfig,
-)
-from app.rag.indices.knowledge_graph.schema import (
-    KnowledgeGraphNode,
-    Entity,
-    Relationship,
     RetrievedRelationship,
-    RetrievedEntity,
+    RetrievedKnowledgeGraph,
+    KnowledgeGraphNode,
 )
-from app.rag.types import MyCBEventType
 from app.repositories import knowledge_base_repo
 
 
 logger = logging.getLogger(__name__)
 
 
-class KnowledgeGraphFusionRetriever(BaseRetriever):
-    _query_decomposer: QueryDecomposer
-    _retrievers: List[KnowledgeGraphRetriever]
-
+class KnowledgeGraphFusionRetriever(MultiKBFusionRetriever):
     def __init__(
         self,
+        db_session: Session,
         knowledge_base_ids: List[int],
-        config: KnowledgeGraphRetrieverConfig,
         llm: LLM,
-        dspy_lm: dspy.LM,
-        callback_manager: Optional[CallbackManager] = CallbackManager([]),
         use_query_decompose: bool = False,
+        select_mode: KBSelectMode = KBSelectMode.ALL,
         use_async: bool = True,
+        config: KnowledgeGraphRetrieverConfig = KnowledgeGraphRetrieverConfig(),
+        callback_manager: Optional[CallbackManager] = CallbackManager([]),
         **kwargs,
     ):
-        super().__init__(callback_manager, **kwargs)
-        with Session(engine) as session:
-            self.use_async = use_async
-            self.use_query_decompose = use_query_decompose
-            self._callback_manager = callback_manager
-            self._query_decomposer = QueryDecomposer(
-                dspy_lm=dspy_lm,
-                # TODO: move to arguments of the constructor
-                complied_program_path=Settings.COMPLIED_INTENT_ANALYSIS_PROGRAM_PATH,
+        # Prepare knowledge graph retrievers for knowledge bases.
+        retrievers = []
+        retriever_choices = []
+        knowledge_bases = knowledge_base_repo.get_by_ids(db_session, knowledge_base_ids)
+        for kb in knowledge_bases:
+            retrievers.append(
+                KnowledgeGraphRetriever(
+                    db_session=db_session,
+                    knowledge_base_id=kb.id,
+                    config=config,
+                    callback_manager=callback_manager,
+                )
             )
-            self.selector = LLMSingleSelector.from_defaults(llm=llm)
-            self._retrievers = []
-            self._retrievers_metadata = []
-            for knowledge_base_id in knowledge_base_ids:
-                kb = knowledge_base_repo.get(session, knowledge_base_id)
-                self._retrievers.append(
-                    KnowledgeGraphRetriever(
-                        dspy_lm=dspy_lm,
-                        knowledge_base_id=knowledge_base_id,
-                        config=config,
-                        callback_manager=callback_manager,
-                    )
+            retriever_choices.append(
+                ToolMetadata(
+                    name=kb.name,
+                    description=kb.description,
                 )
-                self._retrievers_metadata.append(
-                    ToolMetadata(
-                        name=kb.name,
-                        description=kb.description,
-                    )
-                )
+            )
 
-    def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
-        entities, relationships = self.retrieve_knowledge_graph(query_bundle)
-        return [
-            NodeWithScore(
-                node=KnowledgeGraphNode(
-                    entities=entities,
-                    relationships=relationships,
-                ),
-                score=1,
-            )
-        ]
+        super().__init__(
+            db_session=db_session,
+            retrievers=retrievers,
+            retriever_choices=retriever_choices,
+            llm=llm,
+            use_query_decompose=use_query_decompose,
+            select_mode=select_mode,
+            use_async=use_async,
+            callback_manager=callback_manager,
+            **kwargs,
+        )
 
     def retrieve_knowledge_graph(
         self, query_bundle: QueryBundle
-    ) -> Tuple[List[Entity], List[Relationship]]:
-        if self.use_query_decompose:
-            queries = self._gen_sub_queries(query_bundle)
-        else:
-            queries = [query_bundle]
+    ) -> RetrievedKnowledgeGraph:
+        nodes_with_score = self._retrieve(query_bundle)
+        if len(nodes_with_score) == 0:
+            return RetrievedKnowledgeGraph()
+        node: KnowledgeGraphNode = nodes_with_score[0].node  # type:ignore
+        subqueries = [
+            RetrievedKnowledgeGraph(
+                query=subgraph.query,
+                entities=subgraph.entities,
+                relationships=subgraph.relationships,
+            )
+            for subgraph in node.subqueries.values()
+        ]
 
-        if self.use_async:
-            results = self._run_async_queries(queries)
-        else:
-            results = self._run_sync_queries(queries)
-        return self._simple_fusion(results)
+        return RetrievedKnowledgeGraph(
+            query=node.query,
+            entities=node.entities,
+            relationships=node.relationships,
+            subqueries=[
+                RetrievedKnowledgeGraph(
+                    query=sub.query,
+                    entities=sub.entities,
+                    relationships=node.relationships,
+                )
+                for sub in subqueries
+            ],
+        )
 
-    def _gen_sub_queries(self, query_bundle: QueryBundle) -> List[QueryBundle]:
-        """
-        Decompose the query into subqueries.
-        """
-        with self._callback_manager.event(
-            MyCBEventType.INTENT_DECOMPOSITION,
-            payload={EventPayload.QUERY_STR: query_bundle.query_str},
-        ) as event:
-            queries = self._query_decomposer.decompose(query_bundle.query_str)
-            subqueries = [QueryBundle(r.question) for r in queries.questions]
-            event.on_end(payload={"queries": queries})
-        return subqueries
+    def _fusion(
+        self, results: Dict[Tuple[str, int], List[NodeWithScore]]
+    ) -> List[NodeWithScore]:
+        return self._knowledge_graph_fusion(results)
 
-    def _run_async_queries(
-        self, queries: List[QueryBundle]
-    ) -> Dict[Tuple[str, int], List[KnowledgeGraphNode]]:
-        tasks, task_queries = [], []
-        for query in queries:
-            query_str = query.query_str
-            retriever, i = self._select_retriever(query_str)
-            tasks.append(retriever.aretrieve(query))
-            task_queries.append((query_str, i))
-
-        task_results = run_async_tasks(tasks)
-
-        results = {}
-        for query_tuple, query_result in zip(task_queries, task_results):
-            results[query_tuple] = query_result
-
-        return results
-
-    def _run_sync_queries(
-        self, queries: List[QueryBundle]
-    ) -> Dict[Tuple[str, int], List[KnowledgeGraphNode]]:
-        results = {}
-        for query in queries:
-            query_str = query.query_str
-            retriever, i = self._select_retriever(query_str)
-            results[(query_str, i)] = retriever.retrieve(query)
-
-        return results
-
-    def _select_retriever(self, query_str: str) -> Tuple[BaseRetriever, int]:
-        """
-        Using the LLM to select the appropriate retriever based on the query string.
-
-        Args:
-            query_str: the query string
-
-        Returns:
-            retriever: the retriever to use
-            i: the index of the retriever
-
-        """
-        if len(self._retrievers) == 0:
-            raise ValueError("No retriever selected")
-        if len(self._retrievers) == 1:
-            return self._retrievers[0], 0
-        result = self.selector.select(self._retrievers_metadata, query_str)
-        if len(result.selections) == 0:
-            raise ValueError("No selection selected")
-        i = result.selections[0].index
-        return self._retrievers[i], i
-
-    def _simple_fusion(
-        self, results: Dict[Tuple[str, int], List[KnowledgeGraphNode]]
-    ) -> Tuple[List[RetrievedEntity], List[RetrievedRelationship]]:
+    def _knowledge_graph_fusion(
+        self, results: Dict[Tuple[str, int], List[NodeWithScore]]
+    ) -> List[NodeWithScore]:
+        merged_queries = {}
         merged_entities = {}
         merged_relationships = {}
         for nodes_with_scores in results.values():
             if len(nodes_with_scores) == 0:
                 continue
-            node = nodes_with_scores[0]
+            node: KnowledgeGraphNode = nodes_with_scores[0].node  # type:ignore
+            merged_queries[node.query] = node
+
+            # Merge entities.
             for e in node.entities:
-                if merged_entities[e.id] is None:
+                if e.id not in merged_entities:
                     merged_entities[e.id] = e
 
+            # Merge relationships.
             for r in node.relationships:
                 key = (r.source_entity_id, r.target_entity_id, r.description)
-                if merged_relationships[key] is None:
+                if key not in merged_relationships:
                     merged_relationships[key] = RetrievedRelationship(
                         id=r.id,
                         source_entity_id=r.source_entity_id,
@@ -199,4 +139,14 @@ class KnowledgeGraphFusionRetriever(BaseRetriever):
                 else:
                     merged_relationships[key].weight += r.weight
 
-        return list(merged_entities.values()), list(merged_relationships.values())
+        return [
+            NodeWithScore(
+                node=KnowledgeGraphNode(
+                    query=None,
+                    entities=list(merged_entities.values()),
+                    relationships=list(merged_relationships.values()),
+                    subqueries=merged_queries,
+                ),
+                score=1,
+            )
+        ]

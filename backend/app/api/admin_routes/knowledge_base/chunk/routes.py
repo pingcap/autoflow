@@ -7,7 +7,7 @@ from app.api.deps import SessionDep, CurrentSuperuserDep
 from app.rag.indices.vector_search.retriever.base_retriever import (
     VectorSearchRetriever,
 )
-from app.rag.indices.vector_search.schema import RetrievedChunk
+from app.rag.indices.vector_search.retriever.schema import RetrievedChunk
 
 from app.exceptions import InternalServerError, KBNotFound
 from .models import KBRetrieveChunksRequest

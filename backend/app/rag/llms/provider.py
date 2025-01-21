@@ -12,6 +12,7 @@ class LLMProvider(str, enum.Enum):
     BEDROCK = "bedrock"
     OLLAMA = "ollama"
     GITEEAI = "giteeai"
+    AZURE_OPENAI = "azure_openai"
 
 
 class LLMProviderOption(BaseModel):
@@ -146,5 +147,23 @@ llm_provider_options: List[LLMProviderOption] = [
             "aws_secret_access_key": "****",
             "aws_region_name": "us-west-2",
         },
+    ),
+    LLMProviderOption(
+        provider=LLMProvider.AZURE_OPENAI,
+        provider_display_name="Azure OpenAI",
+        provider_description="Azure OpenAI is a cloud-based AI service that provides access to OpenAI's advanced language models.",
+        provider_url="https://azure.microsoft.com/en-us/products/ai-services/openai-service",
+        default_llm_model="gpt-4o",
+        llm_model_description="",
+        config_description="Refer to this document https://learn.microsoft.com/en-us/azure/ai-services/openai/quickstart to have more information about the Azure OpenAI API.",
+        default_config={
+            "azure_endpoint": "https://<your-resource-name>.openai.azure.com/",
+            "api_version": "<your-api-version>",
+            "engine": "<your-deployment-name>",
+        },
+        credentials_display_name="Azure OpenAI API Key",
+        credentials_description="The API key of Azure OpenAI",
+        credentials_type="str",
+        default_credentials="****",
     ),
 ]

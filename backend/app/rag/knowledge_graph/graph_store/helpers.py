@@ -93,7 +93,7 @@ def get_entity_description_embedding(
 def get_entity_metadata_embedding(
     metadata: Mapping[str, Any], embed_model: BaseEmbedding = None
 ) -> Embedding:
-    combined_text = json.dumps(metadata)
+    combined_text = json.dumps(metadata, ensure_ascii=False)
     return get_text_embedding(combined_text, embed_model)
 
 

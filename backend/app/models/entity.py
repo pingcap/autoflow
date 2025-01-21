@@ -81,6 +81,7 @@ def get_kb_entity_model(kb: KnowledgeBase) -> Type[SQLModel]:
         __tablename__ = entities_table_name
         __table_args__ = (
             Index("idx_entity_type", "entity_type"),
+            Index("idx_entity_name", "name"),
             {"extend_existing": True},
         )
 

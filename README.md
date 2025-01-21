@@ -40,6 +40,7 @@ AutoFlow is an open source graph rag (graphrag: knowledge graph rag) based knowl
 - [LlamaIndex](https://www.llamaindex.ai/) - RAG framework
 - [DSPy](https://github.com/stanfordnlp/dspy) - The framework for programming—not prompting—foundation models
 - [Next.js](https://nextjs.org/) – Framework
+- [Tailwind CSS](https://tailwindcss.com/) – CSS framework
 - [shadcn/ui](https://ui.shadcn.com/) - Design
 
 ## Contributing
@@ -56,8 +57,8 @@ We welcome contributions from the community. If you are interested in contributi
 
 ## License
 
-AutoFlow is open-source under the Apache License, Version 2.0. You can [find it here](/LICENSE.txt).
+AutoFlow is open-source under the Apache License, Version 2.0. You can [find it here](https://github.com/pingcap/autoflow/blob/main/LICENSE.txt).
 
 ## Contact
 
-You can reach out to us on [@TiDB_Developer](https://twitter.com/TiDB_Developer) on Twitter.
+You can reach out to us on [Discord](https://discord.gg/XzSW23Jg9p).

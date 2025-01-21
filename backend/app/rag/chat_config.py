@@ -20,7 +20,7 @@ from app.models import (
     RerankerModel as DBRerankerModel,
     KnowledgeBase,
 )
-from app.repositories import chat_engine_repo
+from app.repositories import chat_engine_repo, knowledge_base_repo
 from app.rag.default_prompt import (
     DEFAULT_INTENT_GRAPH_KNOWLEDGE,
     DEFAULT_NORMAL_GRAPH_KNOWLEDGE,
@@ -28,7 +28,6 @@ from app.rag.default_prompt import (
     DEFAULT_TEXT_QA_PROMPT,
     DEFAULT_REFINE_PROMPT,
     DEFAULT_FURTHER_QUESTIONS_PROMPT,
-    DEFAULT_CONDENSE_ANSWER_PROMPT,
     DEFAULT_GENERATE_GOAL_PROMPT,
     DEFAULT_CLARIFYING_QUESTION_PROMPT,
 )
@@ -45,7 +44,6 @@ class LLMOption(BaseModel):
     text_qa_prompt: str = DEFAULT_TEXT_QA_PROMPT
     refine_prompt: str = DEFAULT_REFINE_PROMPT
     further_questions_prompt: str = DEFAULT_FURTHER_QUESTIONS_PROMPT
-    condense_answer_prompt: str = DEFAULT_CONDENSE_ANSWER_PROMPT
     generate_goal_prompt: str = DEFAULT_GENERATE_GOAL_PROMPT
 
 

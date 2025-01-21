@@ -32,21 +32,21 @@ class BaseFeedback(UpdatableBaseModel):
 class Feedback(BaseFeedback, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     chat_id: UUID = Field(foreign_key="chats.id")
-    chat: "Chat" = SQLRelationship(
+    chat: "Chat" = SQLRelationship(  # noqa:F821
         sa_relationship_kwargs={
             "lazy": "joined",
             "primaryjoin": "Feedback.chat_id == Chat.id",
         },
     )
     chat_message_id: int = Field(foreign_key="chat_messages.id")
-    chat_message: "ChatMessage" = SQLRelationship(
+    chat_message: "ChatMessage" = SQLRelationship(  # noqa:F821
         sa_relationship_kwargs={
             "lazy": "joined",
             "primaryjoin": "Feedback.chat_message_id == ChatMessage.id",
         },
     )
     user_id: UUID = Field(foreign_key="users.id", nullable=True)
-    user: "User" = SQLRelationship(
+    user: "User" = SQLRelationship(  # noqa:F821
         sa_relationship_kwargs={
             "lazy": "joined",
             "primaryjoin": "Feedback.user_id == User.id",

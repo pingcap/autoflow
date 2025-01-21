@@ -17,7 +17,7 @@ class EvaluationDataset(UpdatableBaseModel, table=True):
     name: str = Field(max_length=255)
 
     user_id: UUID = Field(foreign_key="users.id", nullable=True)
-    user: "User" = SQLRelationship(
+    user: "User" = SQLRelationship(  # noqa:F821
         sa_relationship_kwargs={
             "lazy": "joined",
             "primaryjoin": "EvaluationDataset.user_id == User.id",

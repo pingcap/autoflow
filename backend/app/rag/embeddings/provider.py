@@ -133,7 +133,7 @@ embedding_provider_options: List[EmbeddingProviderOption] = [
         embedding_model_description="Before using this option, you need to deploy an Azure OpenAI API and model, see https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource.",
         default_config={
             "azure_endpoint": "https://<your-resource-name>.openai.azure.com/",
-            "api_version": "<your-api-version>"
+            "api_version": "<your-api-version>",
         },
         credentials_display_name="Azure OpenAI API Key",
         credentials_description="The API key of Azure OpenAI",

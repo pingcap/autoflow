@@ -1,3 +1,4 @@
+import logging
 from enum import Enum
 from typing import List, Optional, Tuple
 
@@ -8,7 +9,7 @@ from llama_index.core.base.base_selector import BaseSelector
 from llama_index.core.tools import ToolMetadata
 from llama_index.core.selectors import LLMSingleSelector, LLMMultiSelector
 
-from app.api.routes.chat import logger
+logger = logging.getLogger(__name__)
 
 
 class KBSelectMode(str, Enum):

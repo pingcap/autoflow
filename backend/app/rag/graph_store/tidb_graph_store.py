@@ -322,7 +322,9 @@ class TiDBGraphStore(KnowledgeGraphStore):
             entity.description,
             self._embed_model,
         )
-        hint = text(f"/*+ read_from_storage(tikv[{self._entity_model.__tablename__}]) */")
+        hint = text(
+            f"/*+ read_from_storage(tikv[{self._entity_model.__tablename__}]) */"
+        )
         result = (
             self._session.query(
                 self._entity_model,

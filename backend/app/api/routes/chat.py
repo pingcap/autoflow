@@ -15,7 +15,7 @@ from app.api.deps import SessionDep, OptionalUserDep, CurrentUserDep
 from app.repositories import chat_repo
 from app.models import Chat, ChatUpdate
 from app.rag.chat import (
-    ChatService,
+    ChatFlow,
     ChatEvent,
     user_can_view_chat,
     user_can_edit_chat,
@@ -77,7 +77,7 @@ def chats(
     browser_id = request.state.browser_id
 
     try:
-        chat_svc = ChatService(
+        chat_svc = ChatFlow(
             db_session=session,
             user=user,
             browser_id=browser_id,

@@ -23,7 +23,7 @@ from app.models import (
 )
 from dotenv import load_dotenv
 
-from app.rag.chat import ChatService
+from app.rag.chat import ChatFlow
 from app.rag.chat_stream_protocol import ChatEvent
 from app.rag.types import ChatEventType, ChatMessageSate
 
@@ -185,7 +185,7 @@ def generate_answer_by_autoflow(
     messages: list[ChatMessage], chat_engine: str
 ) -> (str, list):
     with Session(engine, expire_on_commit=False) as session:
-        chat_svc = ChatService(
+        chat_svc = ChatFlow(
             db_session=session,
             user=None,
             browser_id="",

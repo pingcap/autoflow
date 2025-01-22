@@ -2,20 +2,18 @@ import json
 import time
 import logging
 
-import dspy
 
 from uuid import UUID
-from typing import List, Generator, Optional, Tuple, Callable, Type
+from typing import List, Generator, Optional, Tuple
 from datetime import datetime, UTC
 from urllib.parse import urljoin
 
 import requests
-from llama_index.core.base.embeddings.base import BaseEmbedding
-from llama_index.core.llms import LLM
+from llama_index.core.schema import NodeWithScore
 from pydantic import BaseModel
 from sqlalchemy import text, delete
-from sqlmodel import Session, select, func, SQLModel
-from llama_index.core import VectorStoreIndex
+from sqlmodel import Session, select, func
+from llama_index.core import QueryBundle
 from llama_index.core.base.llms.base import ChatMessage
 from llama_index.core.base.response.schema import StreamingResponse
 from llama_index.core.callbacks.schema import EventPayload
@@ -37,13 +35,11 @@ from app.models import (
     ChatMessage as DBChatMessage,
     KnowledgeBase as DBKnowledgeBase,
     RerankerModel as DBRerankerModel,
-    Chunk as DBChunk,
     Entity as DBEntity,
     Relationship as DBRelationship,
     ChatEngine,
 )
 from app.core.config import settings
-from app.models.chunk import get_kb_chunk_model
 from app.models.entity import get_kb_entity_model
 from app.models.recommend_question import RecommendQuestion
 from app.rag.chat_stream_protocol import (
@@ -53,6 +49,18 @@ from app.rag.chat_stream_protocol import (
 )
 from app.models.relationship import get_kb_relationship_model
 from app.rag.graph_store import TiDBGraphStore
+from app.rag.indices.knowledge_graph.retriever.fusion_retriever import (
+    KnowledgeGraphFusionRetriever,
+)
+from app.rag.indices.knowledge_graph.retriever.schema import (
+    RetrievedEntity,
+    RetrievedRelationship,
+    KnowledgeGraphRetrieverConfig,
+)
+from app.rag.indices.vector_search.retriever.fusion_retriever import (
+    VectorSearchFusionRetriever,
+)
+from app.rag.indices.vector_search.retriever.schema import VectorSearchRetrieverConfig
 
 from app.rag.knowledge_base.config import get_kb_embed_model
 from app.rag.knowledge_base.index_store import get_kb_tidb_graph_editor
@@ -60,14 +68,14 @@ from app.rag.graph_store.tidb_graph_editor import (
     legacy_tidb_graph_editor,
     TiDBGraphEditor,
 )
+from app.rag.knowledge_base.selector import KBSelectMode
 from app.rag.utils import parse_goal_response_format
-from app.rag.indices.knowledge_graph import KnowledgeGraphIndex
 from app.rag.chat_config import (
     ChatEngineConfig,
     KnowledgeGraphOption,
+    KnowledgeBaseOption,
 )
 from app.rag.embeddings.resolver import (
-    get_default_embed_model,
     must_get_default_embed_model,
 )
 from app.rag.types import (
@@ -76,7 +84,6 @@ from app.rag.types import (
     ChatEventType,
     MessageRole,
 )
-from app.rag.vector_store.tidb_vector_store import TiDBVectorStore
 from app.repositories import chat_repo, knowledge_base_repo, chat_engine_repo
 from app.repositories.embedding_model import embed_model_repo
 from app.repositories.llm import llm_repo
@@ -87,11 +94,12 @@ from app.utils.jinja2 import get_prompt_by_jinja2_template
 logger = logging.getLogger(__name__)
 
 
-class ChatService:
-    _chunk_db_model: Type[SQLModel] = DBChunk
-    _entity_db_model: Type[SQLModel] = DBEntity
-    _relationship_db_model: Type[SQLModel] = DBRelationship
+class ClarityResult(BaseModel):
+    clarity_needed: bool
+    clarifying_question: str
 
+
+class ChatFlow:
     def __init__(
         self,
         *,
@@ -108,6 +116,7 @@ class ChatService:
         self.browser_id = browser_id
         self.engine_name = engine_name
 
+        # Chat instance.
         self.user_question, self.chat_history = self._parse_chat_messages(chat_messages)
         if chat_id:
             # FIXME:
@@ -170,37 +179,68 @@ class ChatService:
                     ),
                 )
 
-        self._reranker = self.chat_engine_config.get_reranker(db_session)
-        self._metadata_filter = self.chat_engine_config.get_metadata_filter()
-        if self._reranker:
-            self._node_postprocessors = [self._metadata_filter, self._reranker]
-            # Set initial similarity_top_k to a large number,
-            # reranker will filter out irrelevant nodes after the retrieval
-            self._similarity_top_k = 60
-        else:
-            self._node_postprocessors = [self._metadata_filter]
-            self._similarity_top_k = 10
-
         # Langfuse
-        self.langfuse_host = SiteSetting.langfuse_host
-        self.langfuse_secret_key = SiteSetting.langfuse_secret_key
-        self.langfuse_public_key = SiteSetting.langfuse_public_key
-        self.enable_langfuse = (
-            self.langfuse_host and self.langfuse_secret_key and self.langfuse_public_key
+        enable_langfuse = (
+            SiteSetting.langfuse_secret_key and SiteSetting.langfuse_public_key
+        )
+        if enable_langfuse:
+            # Move to global scope.
+            langfuse = Langfuse(
+                host=SiteSetting.langfuse_host,
+                secret_key=SiteSetting.langfuse_secret_key,
+                public_key=SiteSetting.langfuse_public_key,
+            )
+            # Why we don't use high-level decorator `observe()` as \
+            #   `https://langfuse.com/docs/integrations/llama-index/get-started` suggested?
+            # track:
+            #   - https://github.com/langfuse/langfuse/issues/2015
+            #   - https://langfuse.com/blog/2024-04-python-decorator
+            root_observation = self._create_root_observation(langfuse)
+            langfuse_handler = LlamaIndexCallbackHandler()
+            langfuse_handler.set_root(root_observation)
+            self.callback_manager = CallbackManager([langfuse_handler])
+            self.trace_id = root_observation.trace_id
+            self.trace_url = root_observation.get_trace_url()
+        else:
+            self.callback_manager = CallbackManager([])
+
+        # LLM
+        self._llm = self.chat_engine_config.get_llama_llm(self.db_session)
+        self._llm.callback_manager = self.callback_manager
+        self._fast_llm = self.chat_engine_config.get_fast_llama_llm(self.db_session)
+        self._fast_llm.callback_manager = self.callback_manager
+        self._fast_dspy_lm = self.chat_engine_config.get_fast_dspy_lm(self.db_session)
+
+        # Knowledge bases.
+        kb_config: KnowledgeBaseOption = self.chat_engine_config.knowledge_base
+        linked_knowledge_base_ids = []
+        if len(kb_config.linked_knowledge_bases) == 0:
+            linked_knowledge_base_ids.append(
+                self.chat_engine_config.knowledge_base.linked_knowledge_base.id
+            )
+        else:
+            linked_knowledge_base_ids.extend(
+                [kb.id for kb in kb_config.linked_knowledge_bases]
+            )
+        self.knowledge_base_ids = linked_knowledge_base_ids
+        self.knowledge_bases = knowledge_base_repo.get_by_ids(
+            self.db_session, knowledge_base_ids=linked_knowledge_base_ids
         )
 
-        # TODO: Support multiple knowledge base retrieve.
-        if self.chat_engine_config.knowledge_base:
-            linked_knowledge_base = (
-                self.chat_engine_config.knowledge_base.linked_knowledge_base
-            )
-            kb = knowledge_base_repo.must_get(db_session, linked_knowledge_base.id)
-            self._embed_model = get_kb_embed_model(db_session, kb)
-            self._chunk_db_model = get_kb_chunk_model(kb)
-            self._entity_db_model = get_kb_entity_model(kb)
-            self._relationship_db_model = get_kb_relationship_model(kb)
-        else:
-            self._embed_model = get_default_embed_model(db_session)
+    def _create_root_observation(self, langfuse: Langfuse):
+        return langfuse.trace(
+            name="chat",
+            user_id=self.user.email if self.user else f"anonymous-{self.browser_id}",
+            metadata={
+                "chat_engine_config": self.chat_engine_config.screenshot(),
+            },
+            tags=[f"chat_engine:{self.engine_name}"],
+            release=settings.ENVIRONMENT,
+            input={
+                "user_question": self.user_question,
+                "chat_history": self.chat_history,
+            },
+        )
 
     def chat(self) -> Generator[ChatEvent | str, None, None]:
         try:
@@ -211,7 +251,7 @@ class ChatService:
                 for event in self._external_chat():
                     yield event
             else:
-                for event in self._chat():
+                for event in self._builtin_chat():
                     yield event
         except Exception as e:
             logger.exception(e)
@@ -220,422 +260,8 @@ class ChatService:
                 payload="Encountered an error while processing the chat. Please try again later.",
             )
 
-    def _search_kg(
-        self,
-        kg_config: KnowledgeGraphOption,
-        fast_dspy_lm: dspy.LM,
-        embed_model: BaseEmbedding,
-        get_llamaindex_callback_manager: Callable[[], Optional[CallbackManager]],
-        trace_url: str,
-        annotation_silent: bool = False,
-    ) -> Generator[
-        ChatEvent | str, None, Tuple[List[dict], List[dict], List[dict], dict, str]
-    ]:
-        """
-        Search the knowledge graph for relevant entities, relationships, and chunks.
-        Args:
-            kg_config: KnowledgeGraphOption
-            fast_dspy_lm: dspy.LM
-            embed_model: BaseEmbedding
-            get_llamaindex_callback_manager: Callable[[], CallbackManager]
-            trace_url: str
-            annotation_silent: bool, if True, do not send annotation events
-
-        Returns:
-            List[dict]: entities
-            List[dict]: relationships
-            List[dict]: chunks
-            dict: graph_data_source_ids
-            str: graph_knowledges_context
-        """
-
-        entities, relations, chunks = [], [], []
-        graph_data_source_ids = {}
-        graph_knowledges_context = ""
-
-        if kg_config.enabled:
-            graph_store = TiDBGraphStore(
-                dspy_lm=fast_dspy_lm,
-                session=self.db_session,
-                embed_model=embed_model,
-                entity_db_model=self._entity_db_model,
-                relationship_db_model=self._relationship_db_model,
-            )
-            graph_index: KnowledgeGraphIndex = KnowledgeGraphIndex.from_existing(
-                dspy_lm=fast_dspy_lm,
-                kg_store=graph_store,
-                callback_manager=get_llamaindex_callback_manager(),
-            )
-
-            if kg_config.using_intent_search:
-                if not annotation_silent:
-                    yield ChatEvent(
-                        event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
-                        payload=ChatStreamMessagePayload(
-                            state=ChatMessageSate.KG_RETRIEVAL,
-                            display="Identifying Your Question's Core Intents",
-                        ),
-                    )
-                graph_index._callback_manager = get_llamaindex_callback_manager()
-                sub_queries = graph_index.intent_analyze(
-                    self.user_question,
-                    self.chat_history,
-                )
-                if not annotation_silent:
-                    yield ChatEvent(
-                        event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
-                        payload=ChatStreamMessagePayload(
-                            state=ChatMessageSate.TRACE,
-                            display="Searching the Knowledge Graph for Relevant Context",
-                            context={"langfuse_url": trace_url},
-                        ),
-                    )
-                graph_index._callback_manager = get_llamaindex_callback_manager()
-                result = graph_index.graph_semantic_search(
-                    sub_queries,
-                    include_meta=True,
-                    relationship_meta_filters=kg_config.relationship_meta_filters,
-                )
-
-                entities = result["graph"]["entities"]
-                relations = result["graph"]["relationships"]
-                graph_data_source_ids = {
-                    "entities": [e["id"] for e in entities],
-                    "relationships": [r["id"] for r in relations],
-                }
-
-                graph_knowledges = get_prompt_by_jinja2_template(
-                    self.chat_engine_config.llm.intent_graph_knowledge,
-                    sub_queries=result["queries"],
-                )
-                graph_knowledges_context = graph_knowledges.template
-            else:
-                if not annotation_silent:
-                    yield ChatEvent(
-                        event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
-                        payload=ChatStreamMessagePayload(
-                            state=ChatMessageSate.TRACE,
-                            display="Searching the Knowledge Graph for Relevant Context",
-                            context={"langfuse_url": trace_url},
-                        ),
-                    )
-                graph_index._callback_manager = get_llamaindex_callback_manager()
-                entities, relations, chunks = graph_index.retrieve_with_weight(
-                    self.user_question,
-                    [],
-                    depth=kg_config.depth,
-                    include_meta=kg_config.include_meta,
-                    with_degree=kg_config.with_degree,
-                    relationship_meta_filters=kg_config.relationship_meta_filters,
-                    with_chunks=False,
-                )
-                graph_data_source_ids = {
-                    "entities": [e["id"] for e in entities],
-                    "relationships": [r["id"] for r in relations],
-                }
-                graph_knowledges = get_prompt_by_jinja2_template(
-                    self.chat_engine_config.llm.normal_graph_knowledge,
-                    entities=entities,
-                    relationships=relations,
-                )
-                graph_knowledges_context = graph_knowledges.template
-
-        return (
-            entities,
-            relations,
-            chunks,
-            graph_data_source_ids,
-            graph_knowledges_context,
-        )
-
-    def _get_llamaindex_callback_manager(
-        self,
-        langfuse: Optional[Langfuse] = None,
-        trace_id: Optional[str] = None,
-        llm: Optional[LLM] = None,
-        fast_llm: Optional[LLM] = None,
-        embed_model: Optional[BaseEmbedding] = None,
-    ) -> CallbackManager:
-        # Why we don't use high-level decorator `observe()` as \
-        #   `https://langfuse.com/docs/integrations/llama-index/get-started` suggested?
-        # track:
-        #   - https://github.com/langfuse/langfuse/issues/2015
-        #   - https://langfuse.com/blog/2024-04-python-decorator
-        if self.enable_langfuse and langfuse and trace_id:
-            observation = langfuse.trace(id=trace_id)
-            langfuse_handler = LlamaIndexCallbackHandler()
-            langfuse_handler.set_root(observation)
-            callback_manager = CallbackManager([langfuse_handler])
-        else:
-            callback_manager = CallbackManager([])
-
-        if llm:
-            llm.callback_manager = callback_manager
-        if fast_llm:
-            fast_llm.callback_manager = callback_manager
-        if embed_model:
-            embed_model.callback_manager = callback_manager
-
-        return callback_manager
-
-    def _get_langfuse_config(self):
-        langfuse = None
-        trace_id = ""
-        trace_url = ""
-
-        if self.enable_langfuse:
-            langfuse = Langfuse(
-                host=self.langfuse_host,
-                secret_key=self.langfuse_secret_key,
-                public_key=self.langfuse_public_key,
-            )
-            observation = langfuse.trace(
-                name="chat",
-                user_id=self.user.email
-                if self.user
-                else f"anonymous-{self.browser_id}",
-                metadata={
-                    "chat_engine_config": self.chat_engine_config.screenshot(),
-                },
-                tags=[f"chat_engine:{self.engine_name}"],
-                release=settings.ENVIRONMENT,
-                input={
-                    "user_question": self.user_question,
-                    "chat_history": self.chat_history,
-                },
-            )
-            trace_id = observation.trace_id
-            trace_url = observation.get_trace_url()
-
-        return langfuse, trace_id, trace_url
-
-    class ClarityResult(BaseModel):
-        clarity_needed: bool
-        clarifying_question: str
-
-    def _refine_or_early_stop(
-        self,
-        get_llamaindex_callback_manager: Callable[[], Optional[CallbackManager]],
-        fast_llm: LLM,
-        graph_knowledges_context: str,
-        refined_question_prompt: Optional[str] = None,
-        annotation_silent: bool = False,
-    ) -> Generator[ChatEvent | str, None, Tuple[bool, str, str]]:
-        """
-        Determine whether to refine the user question or early stop the conversation with a clarifying question.
-
-        Args:
-            get_llamaindex_callback_manager: Callable[[], CallbackManager]
-            fast_llm: LLM
-            graph_knowledges_context: str
-            refined_question_prompt: Optional[str], if it's None, use the default condense_question_prompt
-            annotation_silent: bool, if True, do not send annotation events
-
-        Returns:
-            bool: whether to early stop the conversation
-            str: clarifying question
-            str: refined question
-        """
-        if refined_question_prompt is None:
-            refined_question_prompt = (
-                self.chat_engine_config.llm.condense_question_prompt
-            )
-
-        if not annotation_silent:
-            yield ChatEvent(
-                event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
-                payload=ChatStreamMessagePayload(
-                    state=ChatMessageSate.REFINE_QUESTION,
-                    display="Query Rewriting for Enhanced Information Retrieval",
-                ),
-            )
-        callback_manager = get_llamaindex_callback_manager()
-
-        # 1. Refine the question
-        with callback_manager.as_trace("condense_question"):
-            with callback_manager.event(
-                MyCBEventType.CONDENSE_QUESTION,
-                payload={EventPayload.QUERY_STR: self.user_question},
-            ) as event:
-                refined_question = fast_llm.predict(
-                    get_prompt_by_jinja2_template(
-                        refined_question_prompt,
-                        graph_knowledges=graph_knowledges_context,
-                        chat_history=self.chat_history,
-                        question=self.user_question,
-                        current_date=datetime.now().strftime("%Y-%m-%d"),
-                    ),
-                )
-                event.on_end(payload={EventPayload.COMPLETION: refined_question})
-        if not annotation_silent:
-            yield ChatEvent(
-                event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
-                payload=ChatStreamMessagePayload(
-                    state=ChatMessageSate.REFINE_QUESTION,
-                    message=refined_question,
-                ),
-            )
-
-        # 2. Check if we have enough information to answer the user question or not
-        if self.chat_engine_config.clarify_question:
-            with callback_manager.as_trace("check_question"):
-                with callback_manager.event(
-                    MyCBEventType.CLARIFYING_QUESTION,
-                    payload={EventPayload.QUERY_STR: refined_question},
-                ) as event:
-                    clarity_result = (
-                        fast_llm.predict(
-                            prompt=get_prompt_by_jinja2_template(
-                                self.chat_engine_config.llm.clarifying_question_prompt,
-                                graph_knowledges=graph_knowledges_context,
-                                chat_history=self.chat_history,
-                                question=refined_question,
-                            ),
-                        )
-                        .strip()
-                        .strip(".\"'!")
-                    )
-
-                    clarity_needed = clarity_result.lower() != "false"
-
-                    event.on_end(
-                        payload={
-                            EventPayload.COMPLETION: f"Need Clarification: {clarity_needed}, "
-                            f"Clarifying Question: {clarity_result}"
-                        }
-                    )
-
-                    if clarity_needed:
-                        if not annotation_silent:
-                            yield ChatEvent(
-                                event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
-                                payload=ChatStreamMessagePayload(
-                                    state=ChatMessageSate.GENERATE_ANSWER,
-                                    display="Need to Ask a Clarifying Question",
-                                ),
-                            )
-
-                        yield ChatEvent(
-                            event_type=ChatEventType.TEXT_PART,
-                            payload=clarity_result,
-                        )
-
-                        return True, clarity_result, ""
-
-        return False, "", refined_question
-
-    def _gen_answer_via_llama_index(
-        self,
-        get_llamaindex_callback_manager: Callable[[], Optional[CallbackManager]],
-        refined_question: str,
-        graph_knowledges_context: str,
-        llm: LLM,
-        embed_model: BaseEmbedding,
-        annotation_silent: bool = False,
-    ) -> Generator[ChatEvent | str, None, Tuple[StreamingResponse, List[dict]]]:
-        if not annotation_silent:
-            yield ChatEvent(
-                event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
-                payload=ChatStreamMessagePayload(
-                    state=ChatMessageSate.SEARCH_RELATED_DOCUMENTS,
-                    display="Retrieving and Reranking the Best-Matching Data"
-                    if self._reranker
-                    else "Retrieving the Most Relevant Data",
-                ),
-            )
-        callback_manager = get_llamaindex_callback_manager()
-        text_qa_template = get_prompt_by_jinja2_template(
-            self.chat_engine_config.llm.text_qa_prompt,
-            current_date=datetime.now().strftime("%Y-%m-%d"),
-            graph_knowledges=graph_knowledges_context,
-            original_question=self.user_question,
-        )
-        refine_template = get_prompt_by_jinja2_template(
-            self.chat_engine_config.llm.refine_prompt,
-            graph_knowledges=graph_knowledges_context,
-            original_question=self.user_question,
-        )
-        vector_store = TiDBVectorStore(
-            session=self.db_session, chunk_db_model=self._chunk_db_model
-        )
-        vector_index = VectorStoreIndex.from_vector_store(
-            vector_store,
-            embed_model=embed_model,
-            callback_manager=callback_manager,
-        )
-        response_synthesizer = get_response_synthesizer(
-            llm=llm,
-            text_qa_template=text_qa_template,
-            refine_template=refine_template,
-            streaming=True,
-            callback_manager=callback_manager,
-        )
-        query_engine = vector_index.as_query_engine(
-            llm=llm,
-            response_synthesizer=response_synthesizer,
-            node_postprocessors=self._node_postprocessors,
-            similarity_top_k=self._similarity_top_k,
-        )
-        query_engine.callback_manager = callback_manager
-        for _np in self._node_postprocessors:
-            _np.callback_manager = callback_manager
-        response: StreamingResponse = query_engine.query(refined_question)
-        source_documents = self._get_source_documents(response)
-
-        if not annotation_silent:
-            yield ChatEvent(
-                event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
-                payload=ChatStreamMessagePayload(
-                    state=ChatMessageSate.SOURCE_NODES,
-                    context=source_documents,
-                ),
-            )
-            yield ChatEvent(
-                event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
-                payload=ChatStreamMessagePayload(
-                    state=ChatMessageSate.GENERATE_ANSWER,
-                    display="Generating a Precise Answer with AI",
-                ),
-            )
-
-        return response, source_documents
-
-    def _chat_finish(
-        self,
-        db_assistant_message: ChatMessage,
-        db_user_message: ChatMessage,
-        response_text: str,
-        source_documents: List[dict],
-        graph_data_source_ids: dict,
-        annotation_silent: bool = False,
-    ):
-        if not annotation_silent:
-            yield ChatEvent(
-                event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
-                payload=ChatStreamMessagePayload(
-                    state=ChatMessageSate.FINISHED,
-                ),
-            )
-
-        post_verification_result_url = self._post_verification(
-            self.user_question,
-            response_text,
-            self.db_chat_obj.id,
-            db_assistant_message.id,
-        )
-
-        db_assistant_message.sources = source_documents
-        db_assistant_message.graph_data = graph_data_source_ids
-        db_assistant_message.content = response_text
-        db_assistant_message.post_verification_result_url = post_verification_result_url
-        db_assistant_message.updated_at = datetime.now(UTC)
-        db_assistant_message.finished_at = datetime.now(UTC)
-        self.db_session.add(db_assistant_message)
-        db_user_message.graph_data = graph_data_source_ids
-        db_user_message.updated_at = datetime.now(UTC)
-        db_user_message.finished_at = datetime.now(UTC)
-        self.db_session.add(db_user_message)
-        self.db_session.commit()
+    def _builtin_chat(self) -> Generator[ChatEvent | str, None, None]:
+        db_user_message, db_assistant_message = self._chat_start()
 
         yield ChatEvent(
             event_type=ChatEventType.DATA_PART,
@@ -646,104 +272,67 @@ class ChatService:
             ),
         )
 
-    def _chat(self) -> Generator[ChatEvent | str, None, None]:
-        langfuse, trace_id, trace_url = self._get_langfuse_config()
-
-        db_user_message = chat_repo.create_message(
-            session=self.db_session,
-            chat=self.db_chat_obj,
-            chat_message=DBChatMessage(
-                role=MessageRole.USER.value,
-                trace_url=trace_url,
-                content=self.user_question,
-            ),
-        )
-        db_assistant_message = chat_repo.create_message(
-            session=self.db_session,
-            chat=self.db_chat_obj,
-            chat_message=DBChatMessage(
-                role=MessageRole.ASSISTANT.value,
-                trace_url=trace_url,
-                content="",
-            ),
-        )
-
-        # TODO: remove to __init__?
-        _llm = self.chat_engine_config.get_llama_llm(self.db_session)
-        _fast_llm = self.chat_engine_config.get_fast_llama_llm(self.db_session)
-        _fast_dspy_lm = self.chat_engine_config.get_fast_dspy_lm(self.db_session)
-
-        yield ChatEvent(
-            event_type=ChatEventType.DATA_PART,
-            payload=ChatStreamDataPayload(
-                chat=self.db_chat_obj,
-                user_message=db_user_message,
-                assistant_message=db_assistant_message,
-            ),
-        )
-
-        def _get_llamaindex_callback_manager_in_chat() -> CallbackManager:
-            return self._get_llamaindex_callback_manager(
-                langfuse=langfuse,
-                trace_id=trace_id,
-                llm=_llm,
-                fast_llm=_fast_llm,
-                embed_model=self._embed_model,
-            )
-
-        # 1. Retrieve entities, relations, and chunks from the knowledge graph
+        # 1. Retrieve Knowledge graph related to the user question.
         kg_config = self.chat_engine_config.knowledge_graph
-        (
-            entities,
-            relations,
-            chunks,
-            graph_data_source_ids,
-            graph_knowledges_context,
-        ) = yield from self._search_kg(
-            kg_config=kg_config,
-            fast_dspy_lm=_fast_dspy_lm,
-            embed_model=self._embed_model,
-            trace_url=trace_url,
-            get_llamaindex_callback_manager=_get_llamaindex_callback_manager_in_chat,
+        knowledge_graph_context = ""
+        graph_data_source_ids = []
+        if kg_config is not None and kg_config.enabled:
+            (
+                entities,
+                relationships,
+                graph_data_source_ids,
+                knowledge_graph_context,
+            ) = yield from self._search_knowledge_graph(kg_config=kg_config)
+
+        # 2. Refine the user question using knowledge graph and chat history.
+        refined_question = yield from self._refine_user_question(
+            knowledge_graph_context=knowledge_graph_context,
+            refined_question_prompt=self.chat_engine_config.llm.condense_question_prompt,
+            annotation_silent=False,
         )
 
-        # 2. Refine the user question using graph information and chat history
-        # 2.1 Early stop if the user question does not have enough information, we need to ask a clarifying question
-        (
-            early_stop,
-            clarifying_question,
-            refined_question,
-        ) = yield from self._refine_or_early_stop(
-            get_llamaindex_callback_manager=_get_llamaindex_callback_manager_in_chat,
-            fast_llm=_fast_llm,
-            graph_knowledges_context=graph_knowledges_context,
-        )
-        if early_stop:
-            # the clarifying question is the final response
-            response_text = clarifying_question
-            source_documents = []
-        else:
-            # 3. Retrieve the related chunks from the vector store
-            # 4. Rerank after the retrieval
-            # 5. Generate a response using the refined question and related chunks
-            response, source_documents = yield from self._gen_answer_via_llama_index(
-                get_llamaindex_callback_manager=_get_llamaindex_callback_manager_in_chat,
+        # 3. Check if the question provided enough context information or need to clarify.
+        if self.chat_engine_config.clarify_question:
+            early_stop, need_clarify_response = self._clarify_question(
                 refined_question=refined_question,
-                graph_knowledges_context=graph_knowledges_context,
-                llm=_llm,
-                embed_model=self._embed_model,
+                knowledge_graph_context=knowledge_graph_context,
             )
-
-            response_text = ""
-            for word in response.response_gen:
-                response_text += word
+            if early_stop:
                 yield ChatEvent(
                     event_type=ChatEventType.TEXT_PART,
-                    payload=word,
+                    payload=need_clarify_response,
                 )
+                yield from self._chat_finish(
+                    db_assistant_message=db_assistant_message,
+                    db_user_message=db_user_message,
+                    response_text=need_clarify_response,
+                    source_documents=[],
+                    graph_data_source_ids={},
+                )
+                return
 
-            if not response_text:
-                raise Exception("Got empty response from LLM")
+        # 4. Use refined questions to search for relevant chunks.
+        relevant_chunk_nodes = self._search_relevant_chunks(
+            refined_question=refined_question
+        )
+
+        # 5. Generate a response using the refined question and related chunks
+        response, source_documents = yield from self._generate_answer(
+            refined_question=refined_question,
+            knowledge_graph_context=knowledge_graph_context,
+            relevant_chunk_nodes=relevant_chunk_nodes,
+        )
+
+        response_text = ""
+        for word in response.response_gen:
+            response_text += word
+            yield ChatEvent(
+                event_type=ChatEventType.TEXT_PART,
+                payload=word,
+            )
+
+        if not response_text:
+            raise Exception("Got empty response from LLM")
 
         yield from self._chat_finish(
             db_assistant_message=db_assistant_message,
@@ -754,25 +343,7 @@ class ChatService:
         )
 
     def _external_chat(self) -> Generator[ChatEvent | str, None, None]:
-        # TODO: integration with langfuse.
-        db_user_message = chat_repo.create_message(
-            session=self.db_session,
-            chat=self.db_chat_obj,
-            chat_message=DBChatMessage(
-                role=MessageRole.USER.value,
-                trace_url="",
-                content=self.user_question,
-            ),
-        )
-        db_assistant_message = chat_repo.create_message(
-            session=self.db_session,
-            chat=self.db_chat_obj,
-            chat_message=DBChatMessage(
-                role=MessageRole.ASSISTANT.value,
-                trace_url="",
-                content="",
-            ),
-        )
+        db_user_message, db_assistant_message = self._chat_start()
 
         yield ChatEvent(
             event_type=ChatEventType.DATA_PART,
@@ -783,49 +354,58 @@ class ChatService:
             ),
         )
 
-        # TODO: remove to __init__?
-        _fast_dspy_lm = self.chat_engine_config.get_fast_dspy_lm(self.db_session)
-        _fast_llm = self.chat_engine_config.get_fast_llama_llm(self.db_session)
-
         # retrieve entities, relations, and chunks from the knowledge graph
         # this retrieve progress is only for the clarifying question checking
         try:
-            graph_data_source_ids = []
-            graph_knowledges_context = ""
+            # 1. Retrieve Knowledge graph related to the user question.
+            kg_config = self.chat_engine_config.knowledge_graph
+            knowledge_graph_context = ""
+            graph_data_source_ids = {}
+            if kg_config is not None and kg_config.enabled:
+                (
+                    entities,
+                    relationships,
+                    graph_data_source_ids,
+                    knowledge_graph_context,
+                ) = yield from self._search_knowledge_graph(kg_config=kg_config)
 
-            logger.info("start to _refine_or_early_stop")
-            (
-                early_stop,
-                clarifying_question,
-                goal,
-            ) = yield from self._refine_or_early_stop(
-                get_llamaindex_callback_manager=lambda: self._get_llamaindex_callback_manager(
-                    fast_llm=_fast_llm,
-                    embed_model=self._embed_model,
-                ),
-                fast_llm=_fast_llm,
-                graph_knowledges_context=graph_knowledges_context,
+            # 2. Refine the user question using knowledge graph and chat history.
+            refined_question = yield from self._refine_user_question(
+                knowledge_graph_context=knowledge_graph_context,
                 refined_question_prompt=self.chat_engine_config.llm.generate_goal_prompt,
                 annotation_silent=True,
             )
-            logger.info(f"start request stackvm with goal: {goal}")
-            goal = goal.strip()
+
+            # 3. Check if the question provided enough context information or need to clarify.
+            if self.chat_engine_config.clarify_question:
+                early_stop, need_clarify_response = self._clarify_question(
+                    refined_question=refined_question,
+                    knowledge_graph_context=knowledge_graph_context,
+                )
+                if early_stop:
+                    yield ChatEvent(
+                        event_type=ChatEventType.TEXT_PART,
+                        payload=need_clarify_response,
+                    )
+                    yield from self._chat_finish(
+                        db_assistant_message=db_assistant_message,
+                        db_user_message=db_user_message,
+                        response_text=need_clarify_response,
+                        source_documents=[],
+                        graph_data_source_ids=graph_data_source_ids,
+                        annotation_silent=True,
+                    )
+                    return
+
+            goal = refined_question.strip()
             if goal.startswith("Goal: "):
                 goal = goal[len("Goal: ") :].strip()
 
-            if early_stop:
-                # the clarifying question is the final response
-                yield from self._chat_finish(
-                    db_assistant_message=db_assistant_message,
-                    db_user_message=db_user_message,
-                    response_text=clarifying_question,
-                    source_documents=[],
-                    graph_data_source_ids=graph_data_source_ids,
-                    annotation_silent=True,
-                )
-                return
+            logger.info(
+                f"Refined question with knowledge graph and generated goal: {goal}"
+            )
         except Exception as e:
-            logger.error(f"Failed to search kg or refine question: {e}")
+            logger.error(f"Failed to refine question with related knowledge graph: {e}")
             goal = self.user_question
 
         response_format = {}
@@ -956,6 +536,297 @@ class ChatService:
             ),
         )
 
+    def _chat_start(self) -> Tuple[DBChatMessage, DBChatMessage]:
+        db_user_message = chat_repo.create_message(
+            session=self.db_session,
+            chat=self.db_chat_obj,
+            chat_message=DBChatMessage(
+                role=MessageRole.USER.value,
+                trace_url=self.trace_url,
+                content=self.user_question,
+            ),
+        )
+        db_assistant_message = chat_repo.create_message(
+            session=self.db_session,
+            chat=self.db_chat_obj,
+            chat_message=DBChatMessage(
+                role=MessageRole.ASSISTANT.value,
+                trace_url=self.trace_url,
+                content="",
+            ),
+        )
+        return db_user_message, db_assistant_message
+
+    def _search_knowledge_graph(
+        self,
+        kg_config: KnowledgeGraphOption,
+        annotation_silent: bool = False,
+    ) -> Generator[
+        ChatEvent | str,
+        None,
+        Tuple[List[RetrievedEntity], List[RetrievedRelationship], dict, str],
+    ]:
+        """
+        Search the knowledge graph for relevant entities, relationships, and chunks.
+        Args:
+            kg_config: KnowledgeGraphOption
+            annotation_silent: bool, if True, do not send annotation events
+
+        Returns:
+            List[RetrievedEntity]: entities
+            List[RetrievedRelationship]: relationships
+            List[dict]: the knowledge graph source ids
+            str: graph_knowledges_context
+        """
+
+        entities, relationships = [], []
+
+        # For parameter compatibility.
+        enable_metadata_filter = kg_config.enable_metadata_filter or (
+            kg_config.relationship_meta_filters is not None
+        )
+        metadata_filters = (
+            kg_config.metadata_filters or kg_config.relationship_meta_filters
+        )
+
+        kg_retriever = KnowledgeGraphFusionRetriever(
+            db_session=self.db_session,
+            knowledge_base_ids=self.knowledge_base_ids,
+            llm=self._llm,
+            use_query_decompose=kg_config.using_intent_search,
+            select_mode=KBSelectMode.SINGLE_SECTION,
+            config=KnowledgeGraphRetrieverConfig(
+                depth=kg_config.depth,
+                include_metadata=kg_config.include_meta,
+                with_degree=kg_config.with_degree,
+                enable_metadata_filter=enable_metadata_filter,
+                metadata_filters=metadata_filters,
+            ),
+            callback_manager=self.callback_manager,
+        )
+
+        knowledge_graph = kg_retriever.retrieve_knowledge_graph(
+            QueryBundle(self.user_question)
+        )
+
+        if kg_config.using_intent_search:
+            if not annotation_silent:
+                yield ChatEvent(
+                    event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
+                    payload=ChatStreamMessagePayload(
+                        state=ChatMessageSate.KG_RETRIEVAL,
+                        display="Identifying Your Question's Core Intents",
+                    ),
+                )
+
+            # compatibility considerations.
+            sub_queries = {}
+            for subquery in knowledge_graph.subqueries:
+                sub_queries[subquery.query] = {
+                    "entities": subquery.entities,
+                    "relationships": subquery.relationships,
+                }
+
+            graph_data_source_ids = {}
+            kg_context_template = get_prompt_by_jinja2_template(
+                self.chat_engine_config.llm.intent_graph_knowledge,
+                sub_queries=sub_queries,
+            )
+            knowledge_graph_context = kg_context_template.template
+        else:
+            if not annotation_silent:
+                yield ChatEvent(
+                    event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
+                    payload=ChatStreamMessagePayload(
+                        state=ChatMessageSate.TRACE,
+                        display="Searching the Knowledge Graph for Relevant Context",
+                        context={"langfuse_url": self.trace_url},
+                    ),
+                )
+
+            graph_data_source_ids = {}
+            kg_context_template = get_prompt_by_jinja2_template(
+                self.chat_engine_config.llm.normal_graph_knowledge,
+                entities=knowledge_graph.entities,
+                relationships=knowledge_graph.relationships,
+            )
+            knowledge_graph_context = kg_context_template.template
+
+        return (
+            entities,
+            relationships,
+            graph_data_source_ids,
+            knowledge_graph_context,
+        )
+
+    def _refine_user_question(
+        self,
+        knowledge_graph_context: str,
+        refined_question_prompt: str,
+        annotation_silent: bool = False,
+    ):
+        if not annotation_silent:
+            yield ChatEvent(
+                event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
+                payload=ChatStreamMessagePayload(
+                    state=ChatMessageSate.REFINE_QUESTION,
+                    display="Query Rewriting for Enhanced Information Retrieval",
+                ),
+            )
+
+        # 1. Refine the question
+        with self.callback_manager.as_trace("refine_question"):
+            with self.callback_manager.event(
+                MyCBEventType.CONDENSE_QUESTION,
+                payload={EventPayload.QUERY_STR: self.user_question},
+            ) as event:
+                refined_question = self._fast_llm.predict(
+                    get_prompt_by_jinja2_template(
+                        refined_question_prompt,
+                        graph_knowledges=knowledge_graph_context,
+                        chat_history=self.chat_history,
+                        question=self.user_question,
+                        current_date=datetime.now().strftime("%Y-%m-%d"),
+                    ),
+                )
+                event.on_end(payload={EventPayload.COMPLETION: refined_question})
+
+        if not annotation_silent:
+            yield ChatEvent(
+                event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
+                payload=ChatStreamMessagePayload(
+                    state=ChatMessageSate.REFINE_QUESTION,
+                    message=refined_question,
+                ),
+            )
+        return refined_question
+
+    def _clarify_question(
+        self,
+        refined_question: str,
+        knowledge_graph_context: str,
+    ) -> Tuple[bool, str]:
+        """
+        Determine whether to refine the user question or early stop the conversation with a clarifying question.
+
+        Args:
+            knowledge_graph_context: str
+
+        Returns:
+            bool: whether to early stop the conversation
+            str: clarifying question
+        """
+        with self.callback_manager.as_trace("clarify_question"):
+            with self.callback_manager.event(
+                MyCBEventType.CLARIFYING_QUESTION,
+                payload={EventPayload.QUERY_STR: refined_question},
+            ) as event:
+                clarity_result = (
+                    self._fast_llm.predict(
+                        prompt=get_prompt_by_jinja2_template(
+                            self.chat_engine_config.llm.clarifying_question_prompt,
+                            graph_knowledges=knowledge_graph_context,
+                            chat_history=self.chat_history,
+                            question=refined_question,
+                        ),
+                    )
+                    .strip()
+                    .strip(".\"'!")
+                )
+
+                clarity_needed = clarity_result.lower() != "false"
+                event.on_end(
+                    payload={
+                        "clarity_needed": clarity_needed,
+                        "clarity_result": clarity_result,
+                    }
+                )
+
+        if clarity_needed:
+            return True, clarity_result
+        else:
+            return False, ""
+
+    def _search_relevant_chunks(
+        self, refined_question: str, annotation_silent: bool = False
+    ) -> List[NodeWithScore]:
+        if not annotation_silent:
+            yield ChatEvent(
+                event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
+                payload=ChatStreamMessagePayload(
+                    state=ChatMessageSate.SEARCH_RELATED_DOCUMENTS,
+                    display="Retrieving the Most Relevant Documents",
+                ),
+            )
+
+        with self.callback_manager.as_trace("search_relevant_chunks"):
+            with self.callback_manager.event(
+                MyCBEventType.RETRIEVE,
+                payload={EventPayload.QUERY_STR: refined_question},
+            ) as event:
+                retriever = VectorSearchFusionRetriever(
+                    db_session=self.db_session,
+                    knowledge_base_ids=self.knowledge_base_ids,
+                    llm=self._llm,
+                    config=VectorSearchRetrieverConfig(
+                        similarity_top_k=60,
+                        oversampling_factor=5,
+                        top_k=10,
+                    ),
+                )
+
+                nodes_with_score = retriever.retrieve(QueryBundle(refined_question))
+
+                event.on_end(
+                    payload={
+                        "nodes_with_score": nodes_with_score,
+                    }
+                )
+
+        return nodes_with_score
+
+    def _generate_answer(
+        self,
+        refined_question: str,
+        knowledge_graph_context: str,
+        relevant_chunk_nodes: List[NodeWithScore],
+        annotation_silent: bool = False,
+    ) -> Generator[ChatEvent | str, None, Tuple[StreamingResponse, List[dict]]]:
+        text_qa_template = get_prompt_by_jinja2_template(
+            self.chat_engine_config.llm.text_qa_prompt,
+            current_date=datetime.now().strftime("%Y-%m-%d"),
+            graph_knowledges=knowledge_graph_context,
+            original_question=self.user_question,
+        )
+        response_synthesizer = get_response_synthesizer(
+            llm=self._llm,
+            text_qa_template=text_qa_template,
+            streaming=True,
+            callback_manager=self.callback_manager,
+        )
+        response = response_synthesizer.synthesize(
+            refined_question, relevant_chunk_nodes
+        )
+        source_documents = self._get_source_documents(response)
+
+        if not annotation_silent:
+            yield ChatEvent(
+                event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
+                payload=ChatStreamMessagePayload(
+                    state=ChatMessageSate.SOURCE_NODES,
+                    context=source_documents,
+                ),
+            )
+            yield ChatEvent(
+                event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
+                payload=ChatStreamMessagePayload(
+                    state=ChatMessageSate.GENERATE_ANSWER,
+                    display="Generating a Precise Answer with AI",
+                ),
+            )
+
+        return response, source_documents
+
     def _parse_chat_messages(
         self, chat_messages: List[ChatMessage]
     ) -> tuple[str, List[ChatMessage]]:
@@ -1027,6 +898,52 @@ class ChatService:
             return urljoin(f"{post_verification_url}/", str(job_id))
         except Exception:
             logger.exception("Failed to post verification")
+
+    def _chat_finish(
+        self,
+        db_assistant_message: ChatMessage,
+        db_user_message: ChatMessage,
+        response_text: str,
+        source_documents: List[dict],
+        graph_data_source_ids: dict,
+        annotation_silent: bool = False,
+    ):
+        if not annotation_silent:
+            yield ChatEvent(
+                event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
+                payload=ChatStreamMessagePayload(
+                    state=ChatMessageSate.FINISHED,
+                ),
+            )
+
+        post_verification_result_url = self._post_verification(
+            self.user_question,
+            response_text,
+            self.db_chat_obj.id,
+            db_assistant_message.id,
+        )
+
+        db_assistant_message.sources = source_documents
+        db_assistant_message.graph_data = graph_data_source_ids
+        db_assistant_message.content = response_text
+        db_assistant_message.post_verification_result_url = post_verification_result_url
+        db_assistant_message.updated_at = datetime.now(UTC)
+        db_assistant_message.finished_at = datetime.now(UTC)
+        self.db_session.add(db_assistant_message)
+        db_user_message.graph_data = graph_data_source_ids
+        db_user_message.updated_at = datetime.now(UTC)
+        db_user_message.finished_at = datetime.now(UTC)
+        self.db_session.add(db_user_message)
+        self.db_session.commit()
+
+        yield ChatEvent(
+            event_type=ChatEventType.DATA_PART,
+            payload=ChatStreamDataPayload(
+                chat=self.db_chat_obj,
+                user_message=db_user_message,
+                assistant_message=db_assistant_message,
+            ),
+        )
 
 
 def user_can_view_chat(chat: DBChat, user: Optional[User]) -> bool:

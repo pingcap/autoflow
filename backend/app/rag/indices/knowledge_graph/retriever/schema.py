@@ -2,7 +2,7 @@ import datetime
 import json
 
 from hashlib import sha256
-from typing import Dict, Optional, Mapping, Any, List
+from typing import Optional, Mapping, Any, List
 from llama_index.core.schema import BaseNode, MetadataMode
 from pydantic import BaseModel, Field
 
@@ -12,10 +12,9 @@ from pydantic import BaseModel, Field
 class KnowledgeGraphRetrieverConfig(BaseModel):
     depth: int = 2
     include_meta: bool = False
-    with_chunks: bool = False
     with_degree: bool = False
     enable_metadata_filter: bool = False
-    metadata_filter: Dict = None
+    metadata_filters: Optional[dict] = None
 
 
 # Retrieved Knowledge Graph

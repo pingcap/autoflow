@@ -1,12 +1,10 @@
 import os
 import datetime
 import hashlib
-from typing import Any, Literal
-
-from llama_index.llms.azure_openai import AzureOpenAI
-
 import dspy
 import requests
+
+from typing import Any, Literal
 from dsp.modules.lm import LM
 from llama_index.core.base.llms.base import BaseLLM
 from llama_index.llms.openai import OpenAI
@@ -15,6 +13,7 @@ from llama_index.llms.gemini import Gemini
 from llama_index.llms.bedrock import Bedrock
 from llama_index.llms.ollama import Ollama
 from llama_index.llms.vertex import Vertex
+from llama_index.llms.azure_openai import AzureOpenAI
 
 
 def get_dspy_lm_by_llama_llm(llama_llm: BaseLLM) -> dspy.LM:

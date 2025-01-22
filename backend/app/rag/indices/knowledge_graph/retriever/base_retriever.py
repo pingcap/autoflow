@@ -50,7 +50,9 @@ class KnowledgeGraphRetriever(BaseRetriever):
             depth=self.config.depth,
             include_meta=self.config.include_meta,
             with_degree=self.config.with_degree,
-            relationship_meta_filters=self.config.metadata_filter,
+            relationship_meta_filters=self.config.metadata_filters
+            if self.config.metadata_filters
+            else None,
         )
         return [
             NodeWithScore(

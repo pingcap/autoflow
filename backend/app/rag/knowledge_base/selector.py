@@ -7,7 +7,6 @@ from llama_index.core.base.base_retriever import BaseRetriever
 from llama_index.core.base.base_selector import BaseSelector
 from llama_index.core.tools import ToolMetadata
 from llama_index.core.selectors import LLMSingleSelector, LLMMultiSelector
-from llama_index.core.selectors.prompts import SingleSelectPrompt, MultiSelectPrompt
 
 from app.api.routes.chat import logger
 
@@ -26,21 +25,17 @@ class MultiKBSelector:
     def __init__(
         self,
         llm: LLM,
-        prompt: SingleSelectPrompt | MultiSelectPrompt = None,
         select_mode: KBSelectMode = KBSelectMode.ALL,
         retrievers: List[BaseRetriever] = list,
         retriever_choices: List[ToolMetadata] = list,
-        # Only for multiple selection.
-        max_outputs: Optional[int] = None,
     ):
         if select_mode == KBSelectMode.ALL:
             self._selector = None
         if select_mode == KBSelectMode.MULTIPLE_SELECTION:
-            self._selector = LLMMultiSelector(llm, prompt, max_outputs)
+            self._selector = LLMMultiSelector.from_defaults(llm=llm)
         if select_mode == KBSelectMode.SINGLE_SECTION:
-            self._selector = LLMSingleSelector(llm, prompt)
+            self._selector = LLMSingleSelector.from_defaults(llm=llm)
 
-        self._prompt = prompt
         self._retrievers = retrievers
         self._retriever_choices = retriever_choices
 

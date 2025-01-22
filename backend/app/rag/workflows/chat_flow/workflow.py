@@ -2,9 +2,10 @@ from datetime import datetime
 import logging
 
 from typing import List, Optional, Type
+
+import dspy
 from fastapi.responses import StreamingResponse
 from llama_index.core import get_response_synthesizer
-from llama_index.llms.openai import OpenAI
 from llama_index.core.callbacks import EventPayload, CallbackManager
 from llama_index.core.response_synthesizers import ResponseMode
 from llama_index.core.schema import NodeWithScore, QueryBundle
@@ -17,21 +18,24 @@ from llama_index.core.workflow import (
     StopEvent,
 )
 from llama_index.core.llms.llm import LLM
-from llama_index.core.embeddings import BaseEmbedding
 from sqlmodel import Session, select, SQLModel
-
-from app.models.chunk import get_kb_chunk_model
-from app.rag.indices.knowledge_graph.retriever.base_retriever import (
-    KnowledgeGraphRetriever,
+from app.rag.indices.knowledge_graph.retriever.fusion_retriever import (
+    KnowledgeGraphFusionRetriever,
+)
+from app.rag.indices.knowledge_graph.retriever.schema import (
+    KnowledgeGraphRetrieverConfig,
+)
+from app.rag.indices.vector_search.retriever.fusion_retriever import (
+    VectorSearchFusionRetriever,
 )
 from app.rag.indices.vector_search.retriever.schema import VectorSearchRetrieverConfig
+from app.rag.knowledge_base.selector import KBSelectMode
 from app.utils.jinja2 import get_prompt_by_jinja2_template
-from app.rag.chat_config import ChatEngineConfig
-from app.models import Document as DBDocument, KnowledgeBase
+from app.rag.chat_config import ChatEngineConfig, KnowledgeBaseOption
+from app.models import Document as DBDocument
 from app.rag.types import MyCBEventType
-from app.rag.workflows.chat_app.events import (
+from app.rag.workflows.chat_flow.events import (
     SearchKnowledgeGraphEvent,
-    AggregateKGSearchResultEvent,
     RefineQuestionEvent,
     ClarifyQuestionEvent,
     RetrieveEvent,
@@ -41,23 +45,12 @@ from app.rag.workflows.chat_app.events import (
 from app.site_settings import SiteSetting
 from langfuse import Langfuse
 from app.repositories import knowledge_base_repo
-from app.rag.knowledge_base.config import get_kb_embed_model
-from app.rag.indices.vector_search.retriever.base_retriever import VectorSearchRetriever
-from app.utils import dspy
+
 
 logger = logging.getLogger(__name__)
 
 
-class ChatServiceContext:
-    db_session: Session
-    embed_model: BaseEmbedding
-    llm: LLM
-    fast_llm: OpenAI
-    dspy_fast_lm: dspy.LM
-    callback_manager: CallbackManager
-
-
-class AppChatFlow(Workflow):
+class ChatFlow(Workflow):
     """
     AppChatFlow is a standard chatting process for document-based document robots. It includes several key steps
     such as question rewriting, knowledge retrieval, and answer generation.
@@ -67,20 +60,32 @@ class AppChatFlow(Workflow):
     # If you need to add session-specific variables, please use ctx.set() / ctx.get()
     config: ChatEngineConfig
     langfuse: Optional[Langfuse] = None
+    db_session: Session
+    llm: LLM
+    fast_llm: LLM
+    dspy_fast_lm: dspy.LM
+    callback_manager: CallbackManager = CallbackManager([])
 
     def __init__(
         self,
+        db_session: Session,
         config: ChatEngineConfig,
         langfuse: Optional[Langfuse] = None,
+        timeout: Optional[float] = 120.0,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(timeout=timeout, **kwargs)
         self.config = config
         self.langfuse = langfuse or Langfuse(
             host=SiteSetting.langfuse_host,
             secret_key=SiteSetting.langfuse_secret_key,
             public_key=SiteSetting.langfuse_public_key,
         )
+        self.db_session = db_session
+        self.llm = self.config.get_llama_llm(db_session)
+        self.fast_llm = self.config.get_fast_llama_llm(db_session)
+        self.fast_dspy_lm = self.config.get_fast_dspy_lm(db_session)
+        self.callback_manager = CallbackManager([])
 
     @step
     async def start_chat(
@@ -89,30 +94,23 @@ class AppChatFlow(Workflow):
         for key, value in ev.items():
             await ctx.set(key, value)
 
-        db_session = await ctx.get("db_session")
-
-        llm = self.config.get_llama_llm(db_session)
-        fast_llm = self.config.get_fast_llama_llm(db_session)
-        fast_dspy_lm = self.config.get_fast_dspy_lm(db_session)
-
-        # TODO: Support multiple knowledge base retrieval.
-        knowledge_base = knowledge_base_repo.must_get(
-            db_session, self.config.knowledge_base.linked_knowledge_base.id
+        # Linked knowledge bases.
+        kb_config: KnowledgeBaseOption = self.config.knowledge_base
+        linked_knowledge_base_ids = []
+        if len(kb_config.linked_knowledge_bases) == 0:
+            linked_knowledge_base_ids.append(
+                self.config.knowledge_base.linked_knowledge_base.id
+            )
+        else:
+            linked_knowledge_base_ids.extend(
+                [kb.id for kb in kb_config.linked_knowledge_bases]
+            )
+        knowledge_bases = knowledge_base_repo.get_by_ids(
+            self.db_session, knowledge_base_ids=linked_knowledge_base_ids
         )
-        await ctx.set("knowledge_base", knowledge_base)
 
-        embed_model = get_kb_embed_model(db_session, knowledge_base)
-        await ctx.set(
-            "service_context",
-            ChatServiceContext(
-                db_session=db_session,
-                embed_model=embed_model,
-                llm=llm,
-                fast_llm=fast_llm,
-                dspy_fast_lm=fast_dspy_lm,
-                callback_manager=CallbackManager([]),
-            ),
-        )
+        await ctx.set("knowledge_base_ids", linked_knowledge_base_ids)
+        await ctx.set("knowledge_bases", knowledge_bases)
 
         if self.config.knowledge_graph.enabled:
             return SearchKnowledgeGraphEvent()
@@ -124,74 +122,74 @@ class AppChatFlow(Workflow):
         self, ctx: Context, ev: SearchKnowledgeGraphEvent
     ) -> RefineQuestionEvent:
         user_question: str = await ctx.get("user_question")
-        sc: ChatServiceContext = await ctx.get("service_context")
+        knowledge_base_ids: list[int] = await ctx.get("knowledge_base_ids")
 
-        with sc.callback_manager.as_trace("search_knowledge_graph"):
-            with sc.callback_manager.event(
+        with self.callback_manager.as_trace("search_knowledge_graph"):
+            with self.callback_manager.event(
                 MyCBEventType.GRAPH_SEMANTIC_SEARCH,
                 payload={EventPayload.QUERY_STR: user_question},
             ) as event:
                 kg_config = self.config.knowledge_graph
-                knowledge_graph_retriever = KnowledgeGraphRetriever(
-                    config=kg_config,
-                    dspy_lm=sc.dspy_fast_lm,
-                    callback_manager=sc.callback_manager,
+
+                # For parameter compatibility.
+                enable_metadata_filter = kg_config.enable_metadata_filter or (
+                    kg_config.relationship_meta_filters is not None
                 )
-                entities, relationships = (
-                    knowledge_graph_retriever.retrieve_knowledge_graph(
-                        query_bundle=QueryBundle(
-                            query_str=user_question,
-                        )
+                metadata_filters = (
+                    kg_config.metadata_filters or kg_config.relationship_meta_filters
+                )
+
+                kg_retriever = KnowledgeGraphFusionRetriever(
+                    db_session=self.db_session,
+                    knowledge_base_ids=knowledge_base_ids,
+                    llm=self.llm,
+                    use_query_decompose=kg_config.using_intent_search,
+                    select_mode=KBSelectMode.SINGLE_SECTION,
+                    config=KnowledgeGraphRetrieverConfig(
+                        depth=kg_config.depth,
+                        include_metadata=kg_config.include_meta,
+                        with_degree=kg_config.with_degree,
+                        enable_metadata_filter=enable_metadata_filter,
+                        metadata_filters=metadata_filters,
+                    ),
+                )
+
+                knowledge_graph = kg_retriever.retrieve_knowledge_graph(
+                    QueryBundle(user_question)
+                )
+
+                if kg_config.using_intent_search:
+                    # compatibility considerations.
+                    sub_queries = {}
+                    for subquery in knowledge_graph.subqueries:
+                        sub_queries[subquery.query] = {
+                            "entities": subquery.entities,
+                            "relationships": subquery.relationships,
+                        }
+                    kg_context_template = get_prompt_by_jinja2_template(
+                        self.config.llm.intent_graph_knowledge,
+                        sub_queries=sub_queries,
                     )
-                )
-                event.on_end(
-                    payload={"entities": entities, "relationships": relationships}
-                )
+                    kg_context_str = kg_context_template.template
+                else:
+                    kg_context_template = get_prompt_by_jinja2_template(
+                        self.config.llm.normal_graph_knowledge,
+                        entities=knowledge_graph.entities,
+                        relationships=knowledge_graph.relationships,
+                    )
+                    kg_context_str = kg_context_template.template
 
-        await ctx.set("knowledge_graph.entities", entities)
-        await ctx.set("knowledge_graph.relationships", relationships)
-
-        return RefineQuestionEvent(user_question=user_question)
-
-    @step
-    async def aggregate_knowledge_graph_search_result(
-        self, ctx: Context, ev: AggregateKGSearchResultEvent
-    ) -> RefineQuestionEvent:
-        entities = ctx.get("knowledge_graph.entities")
-        relationships = ctx.get("knowledge_graph.relationships")
-        chunks = ctx.get("knowledge_graph.chunks")
-        sc: ChatServiceContext = await ctx.get("service_context")
-
-        with sc.callback_manager.as_trace("aggregate_knowledge_graph_search_result"):
-            with sc.callback_manager.event(
-                MyCBEventType.AGGREGATE_KNOWLEDGE_GRAPH_SEARCH_RESULT,
-                payload={
-                    "entities": entities,
-                    "relationships": relationships,
-                    "chunks": chunks,
-                },
-            ) as event:
-                graph_data_source_ids = {
-                    "entities": [e["id"] for e in entities],
-                    "relationships": [r["id"] for r in relationships],
-                }
-                graph_knowledges = get_prompt_by_jinja2_template(
-                    self.config.llm.normal_graph_knowledge,
-                    entities=entities,
-                    relationships=relationships,
-                )
-                graph_knowledges_context = graph_knowledges.template
                 event.on_end(
                     payload={
-                        "graph_data_source_ids": graph_data_source_ids,
-                        "graph_knowledges_context": graph_knowledges_context,
+                        "knowledge_graph": knowledge_graph,
+                        "knowledge_graph_context_str": kg_context_str,
                     }
                 )
 
-        await ctx.set("graph_data_source_ids", graph_data_source_ids)
-        await ctx.set("graph_knowledges_context", graph_knowledges_context)
+        await ctx.set("knowledge_graph", knowledge_graph)
+        await ctx.set("knowledge_graph_context_str", kg_context_str)
 
-        return RefineQuestionEvent()
+        return RefineQuestionEvent(user_question=user_question)
 
     @step
     async def refine_question(
@@ -199,26 +197,25 @@ class AppChatFlow(Workflow):
     ) -> ClarifyQuestionEvent | RetrieveEvent:
         user_question = ctx.get("user_question")
         chat_history = ctx.get("chat_history", [])
-        knowledge_graph_context = ctx.get("graph_knowledges_context")
-        sc: ChatServiceContext = await ctx.get("service_context")
+        knowledge_graph_context_str = ctx.get("knowledge_graph_context_str")
 
-        with sc.callback_manager.as_trace("refine_question"):
-            with sc.callback_manager.event(
+        with self.callback_manager.as_trace("refine_question"):
+            with self.callback_manager.event(
                 MyCBEventType.CONDENSE_QUESTION,
                 payload={
                     "user_question": user_question,
                     "chat_history": chat_history,
-                    "knowledge_graph_context": knowledge_graph_context,
+                    "knowledge_graph_context_str": knowledge_graph_context_str,
                 },
             ) as event:
                 condense_question_prompt = get_prompt_by_jinja2_template(
                     self.config.llm.condense_question_prompt,
                     question=user_question,
                     chat_history=chat_history,
-                    graph_knowledges=knowledge_graph_context,
+                    graph_knowledges=knowledge_graph_context_str,
                     current_date=datetime.now().strftime("%Y-%m-%d"),
                 )
-                refined_question = sc.fast_llm.predict(condense_question_prompt)
+                refined_question = self.fast_llm.predict(condense_question_prompt)
                 event.on_end(payload={"refined_question": refined_question})
 
         await ctx.set("refined_question", refined_question)
@@ -235,15 +232,14 @@ class AppChatFlow(Workflow):
         refined_question = ctx.get("refined_question")
         chat_history = ctx.get("chat_history")
         graph_knowledges_context = ctx.get("graph_knowledges_context")
-        sc: ChatServiceContext = await ctx.get("service_context")
 
-        with sc.callback_manager.as_trace("clarify_question"):
-            with sc.callback_manager.event(
+        with self.callback_manager.as_trace("clarify_question"):
+            with self.callback_manager.event(
                 MyCBEventType.CLARIFYING_QUESTION,
                 payload={EventPayload.QUERY_STR: refined_question},
             ) as event:
                 clarity_result = (
-                    sc.fast_llm.structured_predict(
+                    self.fast_llm.structured_predict(
                         prompt=get_prompt_by_jinja2_template(
                             self.config.llm.clarifying_question_prompt,
                             graph_knowledges=graph_knowledges_context,
@@ -276,17 +272,17 @@ class AppChatFlow(Workflow):
         self, ctx: Context, ev: RetrieveEvent
     ) -> GenerateAnswerEvent:
         refined_question = await ctx.get("refined_question")
-        kb: KnowledgeBase = await ctx.get("knowledge_base")
-        sc: ChatServiceContext = await ctx.get("service_context")
+        knowledge_base_ids = await ctx.get("knowledge_base_ids")
 
-        with sc.callback_manager.as_trace("retrieve_relevant_chunks"):
-            with sc.callback_manager.event(
+        with self.callback_manager.as_trace("retrieve_relevant_chunks"):
+            with self.callback_manager.event(
                 MyCBEventType.RETRIEVE,
                 payload={EventPayload.QUERY_STR: refined_question},
             ) as event:
-                chunk_model = get_kb_chunk_model(kb)
-                retriever = VectorSearchRetriever(
-                    knowledge_base_id=kb.id,
+                retriever = VectorSearchFusionRetriever(
+                    db_session=self.db_session,
+                    knowledge_base_ids=knowledge_base_ids,
+                    llm=self.llm,
                     config=VectorSearchRetrieverConfig(
                         similarity_top_k=10,
                         oversampling_factor=5,
@@ -294,20 +290,15 @@ class AppChatFlow(Workflow):
                     ),
                 )
 
-                nodes_with_score = retriever.retrieve()
-                source_documents = self._get_source_documents(
-                    sc.db_session, chunk_model, nodes_with_score
-                )
+                nodes_with_score = retriever.retrieve(QueryBundle(refined_question))
 
                 event.on_end(
                     payload={
                         "nodes_with_score": nodes_with_score,
-                        "source_documents": source_documents,
                     }
                 )
 
         await ctx.set("nodes_with_score", nodes_with_score)
-        await ctx.set("source_documents", source_documents)
 
         return GenerateAnswerEvent()
 
@@ -354,25 +345,24 @@ class AppChatFlow(Workflow):
     async def generate_answer(self, ctx: Context, ev: GenerateAnswerEvent) -> StopEvent:
         user_question = await ctx.get("user_question")
         nodes_with_score = await ctx.get("nodes_with_score")
-        knowledge_graph_context = await ctx.get("knowledge_graph_context")
-        sc: ChatServiceContext = await ctx.get("service_context")
+        knowledge_graph_context_str = await ctx.get("knowledge_graph_context_str")
 
-        with sc.callback_manager.as_trace("generate_answer"):
-            with sc.callback_manager.event(
+        with self.callback_manager.as_trace("generate_answer"):
+            with self.callback_manager.event(
                 MyCBEventType.SYNTHESIZE,
                 payload={EventPayload.QUERY_STR: user_question},
             ) as event:
                 text_qa_template = get_prompt_by_jinja2_template(
                     self.config.llm.text_qa_prompt,
                     current_date=datetime.now().strftime("%Y-%m-%d"),
-                    graph_knowledges=knowledge_graph_context,
+                    graph_knowledges=knowledge_graph_context_str,
                     original_question=user_question,
                 )
                 synthesizer = get_response_synthesizer(
-                    llm=sc.llm,
+                    llm=self.llm,
                     text_qa_template=text_qa_template,
                     response_mode=ResponseMode.COMPACT,
-                    callback_manager=sc.callback_manager,
+                    callback_manager=self.callback_manager,
                     streaming=True,
                 )
                 response: StreamingResponse = synthesizer.synthesize(

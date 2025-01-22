@@ -27,6 +27,9 @@ class ChunkRetrievalConfig(BaseModel):
     knowledge_base_ids: list[int] = None
 
 
+# Retrieved Chunks
+
+
 class RetrievedChunkDocument(BaseModel):
     id: int
     name: str

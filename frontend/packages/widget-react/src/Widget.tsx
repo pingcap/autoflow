@@ -1,7 +1,8 @@
 import type { BootstrapStatus } from '@/api/system';
 import { ManualScrollVoter } from '@/components/auto-scroll';
 import { AutoScroll } from '@/components/auto-scroll/auto-scroll';
-import { ChatsProvider, type ChatsProviderValues } from '@/components/chat/chat-hooks';
+import type { ChatController } from '@/components/chat/chat-controller';
+import { ChatsProvider } from '@/components/chat/chat-hooks';
 import { Conversation } from '@/components/chat/conversation';
 import { useGtagFn } from '@/components/gtag-provider';
 import { PortalProvider } from '@/components/portal-provider';
@@ -108,7 +109,7 @@ export const Widget = forwardRef<WidgetInstance, WidgetProps>(({ container, trig
     }
   }, [trigger]);
 
-  const newChatRef = useRef<ChatsProviderValues['newChat'] | undefined>(undefined);
+  const newChatRef = useRef<ChatController['post'] | undefined>(undefined);
 
   useImperativeHandle(ref, () => ({
     get open () {
@@ -128,7 +129,7 @@ export const Widget = forwardRef<WidgetInstance, WidgetProps>(({ container, trig
     },
     get initialized (): true { return true; },
     newChat (content: string) {
-      newChatRef.current?.(undefined, [], {
+      newChatRef.current?.({
         content,
         chat_engine: chatEngine,
       });
@@ -140,7 +141,6 @@ export const Widget = forwardRef<WidgetInstance, WidgetProps>(({ container, trig
       <BootstrapStatusProvider bootstrapStatus={bootstrapStatus}>
         <ExperimentalFeaturesProvider features={experimentalFeatures}>
           <ChatsProvider
-            newChatRef={newChatRef}
             onChatCreated={id => {
               window.dispatchEvent(new CustomEvent('tidbainewchat', {
                 detail: { id },
@@ -209,6 +209,7 @@ export const Widget = forwardRef<WidgetInstance, WidgetProps>(({ container, trig
                           )}
                           preventMutateBrowserHistory
                           preventShiftMessageInput
+                          newChatRef={newChatRef}
                         />
                       </div>
                     </ScrollArea>

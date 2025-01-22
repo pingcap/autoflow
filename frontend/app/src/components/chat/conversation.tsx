@@ -8,7 +8,7 @@ import { MessageInput } from '@/components/chat/message-input';
 import { SecuritySettingContext, withReCaptcha } from '@/components/security-setting-provider';
 import { useSize } from '@/components/use-size';
 import { cn } from '@/lib/utils';
-import { type ChangeEvent, type FormEvent, type ReactNode, useContext, useState } from 'react';
+import { type ChangeEvent, type FormEvent, type ReactNode, type Ref, useContext, useImperativeHandle, useState } from 'react';
 
 export interface ConversationProps {
   chatId?: string;
@@ -22,9 +22,10 @@ export interface ConversationProps {
   placeholder?: (controller: ChatController, postState: ReturnType<typeof useChatPostState>) => ReactNode;
   preventMutateBrowserHistory?: boolean;
   preventShiftMessageInput?: boolean;
+  newChatRef?: Ref<ChatController['post'] | undefined>;
 }
 
-export function Conversation ({ open, chat, chatId, history, placeholder, preventMutateBrowserHistory = false, preventShiftMessageInput = false, className }: ConversationProps) {
+export function Conversation ({ open, chat, chatId, history, placeholder, preventMutateBrowserHistory = false, preventShiftMessageInput = false, newChatRef, className }: ConversationProps) {
   const [inputElement, setInputElement] = useState<HTMLTextAreaElement | null>(null);
 
   const controller = useChatController(chatId, chat, history, inputElement);
@@ -60,6 +61,10 @@ export function Conversation ({ open, chat, chatId, history, placeholder, preven
 
   const disabled = !!postState.params;
   const actionDisabled = disabled || !input.trim();
+
+  useImperativeHandle(newChatRef, () => {
+    return controller.post.bind(controller);
+  }, [controller]);
 
   return (
     <ChatControllerProvider controller={controller}>

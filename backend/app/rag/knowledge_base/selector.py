@@ -3,11 +3,13 @@ from enum import Enum
 from typing import List, Optional, Tuple
 
 from llama_index.core import QueryBundle
+from llama_index.core.callbacks import CallbackManager
 from llama_index.core.llms import LLM
 from llama_index.core.base.base_retriever import BaseRetriever
 from llama_index.core.base.base_selector import BaseSelector
 from llama_index.core.tools import ToolMetadata
 from llama_index.core.selectors import LLMSingleSelector, LLMMultiSelector
+
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +31,7 @@ class MultiKBSelector:
         select_mode: KBSelectMode = KBSelectMode.ALL,
         retrievers: List[BaseRetriever] = list,
         retriever_choices: List[ToolMetadata] = list,
+        callback_manager: CallbackManager = CallbackManager([]),
     ):
         if select_mode == KBSelectMode.ALL:
             self._selector = None
@@ -39,6 +42,7 @@ class MultiKBSelector:
 
         self._retrievers = retrievers
         self._retriever_choices = retriever_choices
+        self._callback_manager = callback_manager
 
     def select(self, query: QueryBundle) -> List[Tuple[BaseRetriever, int]]:
         if len(self._retrievers) == 0:

@@ -1,5 +1,6 @@
 import datetime
 import json
+from abc import ABC
 
 from hashlib import sha256
 from typing import Optional, Mapping, Any, List
@@ -44,7 +45,7 @@ class RetrievedRelationship(BaseModel):
     )
 
 
-class RetrievedKnowledgeGraph(BaseModel):
+class KnowledgeGraphRetrievalResult(BaseModel):
     query: Optional[str] = None
     entities: List[RetrievedEntity] = Field(
         description="List of entities in the knowledge graph", default_factory=list
@@ -52,7 +53,7 @@ class RetrievedKnowledgeGraph(BaseModel):
     relationships: List[RetrievedRelationship] = Field(
         description="List of relationships in the knowledge graph", default_factory=list
     )
-    subqueries: Optional[List["RetrievedKnowledgeGraph"]] = Field(
+    subqueries: Optional[List["KnowledgeGraphRetrievalResult"]] = Field(
         description="List of subqueries in the knowledge graph", default_factory=list
     )
 
@@ -70,6 +71,11 @@ class RetrievedKnowledgeGraph(BaseModel):
             "entities": [e.id for e in self.entities],
             "relationships": [r.id for r in self.relationships],
         }
+
+
+class KnowledgeGraphRetriever(ABC):
+    def retrieve_knowledge_graph(self, query_str: str) -> KnowledgeGraphRetrievalResult:
+        raise NotImplementedError
 
 
 # KnowledgeGraphNode
@@ -181,7 +187,7 @@ class KnowledgeGraphNode(BaseNode):
             relationships_str=self._get_relationships_str(),
         )
 
-    def set_content(self, value: RetrievedKnowledgeGraph) -> None:
+    def set_content(self, value: KnowledgeGraphRetrievalResult) -> None:
         self.query = value.query
         self.entities = value.entities
         self.relationships = value.relationships

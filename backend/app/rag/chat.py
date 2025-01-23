@@ -47,11 +47,11 @@ from app.rag.chat_stream_protocol import (
 from app.models.relationship import get_kb_relationship_model
 from app.rag.graph_store import TiDBGraphStore
 from app.rag.indices.knowledge_graph.retriever.fusion_retriever import (
-    KnowledgeGraphFusionRetriever,
+    KnowledgeGraphFusionSimpleRetriever,
 )
 from app.rag.indices.knowledge_graph.retriever.schema import (
     KnowledgeGraphRetrieverConfig,
-    RetrievedKnowledgeGraph,
+    KnowledgeGraphRetrievalResult,
 )
 from app.rag.indices.vector_search.retriever.fusion_retriever import (
     VectorSearchFusionRetriever,
@@ -240,16 +240,17 @@ class ChatFlow:
 
     def chat(self) -> Generator[ChatEvent | str, None, None]:
         try:
+            self.callback_manager.start_trace(self.trace_id)
             if (
                 self.chat_engine_config.external_engine_config
                 and self.chat_engine_config.external_engine_config.stream_chat_api_url
             ):
-                for event in self._external_chat():
-                    yield event
+                yield from self._external_chat()
             else:
-                for event in self._builtin_chat():
-                    yield event
+                yield from self._builtin_chat()
+            self.callback_manager.end_trace(self.trace_id)
         except Exception as e:
+            self.callback_manager.end_trace(self.trace_id)
             logger.exception(e)
             yield ChatEvent(
                 event_type=ChatEventType.ERROR_PART,
@@ -261,7 +262,7 @@ class ChatFlow:
 
         # 1. Retrieve Knowledge graph related to the user question.
         kg_config = self.chat_engine_config.knowledge_graph
-        knowledge_graph = RetrievedKnowledgeGraph()
+        knowledge_graph = KnowledgeGraphRetrievalResult()
         knowledge_graph_context = ""
         if kg_config is not None and kg_config.enabled:
             (
@@ -527,7 +528,7 @@ class ChatFlow:
         self,
         kg_config: KnowledgeGraphOption,
         annotation_silent: bool = False,
-    ) -> Generator[ChatEvent, None, Tuple[RetrievedKnowledgeGraph, str]]:
+    ) -> Generator[ChatEvent, None, Tuple[KnowledgeGraphRetrievalResult, str]]:
         """
         Search the knowledge graph for relevant entities, relationships, and chunks.
         Args:
@@ -535,7 +536,7 @@ class ChatFlow:
             annotation_silent: bool, if True, do not send annotation events
 
         Returns:
-            RetrievedKnowledgeGraph: The retrieved knowledge graph.
+            KnowledgeGraphRetrievalResult: The retrieved knowledge graph.
             str: graph_knowledges_context
         """
         # For forward compatibility of chat engine config.
@@ -546,12 +547,13 @@ class ChatFlow:
             kg_config.metadata_filters or kg_config.relationship_meta_filters
         )
 
-        kg_retriever = KnowledgeGraphFusionRetriever(
+        kg_retriever = KnowledgeGraphFusionSimpleRetriever(
             db_session=self.db_session,
             knowledge_base_ids=self.knowledge_base_ids,
             llm=self._llm,
             use_query_decompose=kg_config.using_intent_search,
-            select_mode=KBSelectMode.SINGLE_SECTION,
+            use_async=True,
+            kb_select_mode=KBSelectMode.SINGLE_SECTION,
             config=KnowledgeGraphRetrieverConfig(
                 depth=kg_config.depth,
                 include_metadata=kg_config.include_meta,
@@ -571,13 +573,27 @@ class ChatFlow:
                         display="Identifying The Question's Intents and Perform Knowledge Graph Search",
                     ),
                 )
-            knowledge_graph = kg_retriever.retrieve_knowledge_graph(self.user_question)
-            kg_context_template = get_prompt_by_jinja2_template(
-                self.chat_engine_config.llm.intent_graph_knowledge,
-                # For forward compatibility considerations.
-                sub_queries=knowledge_graph.to_subqueries_dict(),
-            )
-            knowledge_graph_context = kg_context_template.template
+
+            with self.callback_manager.event(
+                MyCBEventType.GRAPH_SEMANTIC_SEARCH,
+                payload={EventPayload.QUERY_STR: self.user_question},
+            ) as event:
+                knowledge_graph = kg_retriever.retrieve_knowledge_graph(
+                    self.user_question
+                )
+                kg_context_template = get_prompt_by_jinja2_template(
+                    self.chat_engine_config.llm.intent_graph_knowledge,
+                    # For forward compatibility considerations.
+                    sub_queries=knowledge_graph.to_subqueries_dict(),
+                )
+                knowledge_graph_context = kg_context_template.template
+
+                event.on_end(
+                    payload={
+                        "knowledge_graph": knowledge_graph,
+                        "knowledge_graph_context": knowledge_graph_context,
+                    }
+                )
         else:
             if not annotation_silent:
                 yield ChatEvent(
@@ -587,13 +603,27 @@ class ChatFlow:
                         display="Searching the Knowledge Graph for Relevant Context",
                     ),
                 )
-            knowledge_graph = kg_retriever.retrieve_knowledge_graph(self.user_question)
-            kg_context_template = get_prompt_by_jinja2_template(
-                self.chat_engine_config.llm.normal_graph_knowledge,
-                entities=knowledge_graph.entities,
-                relationships=knowledge_graph.relationships,
-            )
-            knowledge_graph_context = kg_context_template.template
+
+            with self.callback_manager.event(
+                MyCBEventType.RETRIEVE_FROM_GRAPH,
+                payload={EventPayload.QUERY_STR: self.user_question},
+            ) as event:
+                knowledge_graph = kg_retriever.retrieve_knowledge_graph(
+                    self.user_question
+                )
+                kg_context_template = get_prompt_by_jinja2_template(
+                    self.chat_engine_config.llm.normal_graph_knowledge,
+                    entities=knowledge_graph.entities,
+                    relationships=knowledge_graph.relationships,
+                )
+                knowledge_graph_context = kg_context_template.template
+
+                event.on_end(
+                    payload={
+                        "knowledge_graph": knowledge_graph,
+                        "knowledge_graph_context": knowledge_graph_context,
+                    }
+                )
 
         return (
             knowledge_graph,
@@ -615,21 +645,20 @@ class ChatFlow:
                 ),
             )
 
-        with self.callback_manager.as_trace("refine_question"):
-            with self.callback_manager.event(
-                MyCBEventType.CONDENSE_QUESTION,
-                payload={EventPayload.QUERY_STR: self.user_question},
-            ) as event:
-                refined_question = self._fast_llm.predict(
-                    get_prompt_by_jinja2_template(
-                        refined_question_prompt,
-                        graph_knowledges=knowledge_graph_context,
-                        chat_history=self.chat_history,
-                        question=self.user_question,
-                        current_date=datetime.now().strftime("%Y-%m-%d"),
-                    ),
-                )
-                event.on_end(payload={EventPayload.COMPLETION: refined_question})
+        with self.callback_manager.event(
+            MyCBEventType.REFINE_QUESTION,
+            payload={EventPayload.QUERY_STR: self.user_question},
+        ) as event:
+            refined_question = self._fast_llm.predict(
+                get_prompt_by_jinja2_template(
+                    refined_question_prompt,
+                    graph_knowledges=knowledge_graph_context,
+                    chat_history=self.chat_history,
+                    question=self.user_question,
+                    current_date=datetime.now().strftime("%Y-%m-%d"),
+                ),
+            )
+            event.on_end(payload={EventPayload.COMPLETION: refined_question})
 
         if not annotation_silent:
             yield ChatEvent(
@@ -658,32 +687,31 @@ class ChatFlow:
             bool: Determine whether further clarification of the issue is needed from the user.
             str: The content of the questions that require clarification from the user.
         """
-        with self.callback_manager.as_trace("clarify_question"):
-            with self.callback_manager.event(
-                MyCBEventType.CLARIFYING_QUESTION,
-                payload={EventPayload.QUERY_STR: refined_question},
-            ) as event:
-                clarity_result = (
-                    self._fast_llm.predict(
-                        prompt=get_prompt_by_jinja2_template(
-                            self.chat_engine_config.llm.clarifying_question_prompt,
-                            graph_knowledges=knowledge_graph_context,
-                            chat_history=self.chat_history,
-                            question=refined_question,
-                        ),
-                    )
-                    .strip()
-                    .strip(".\"'!")
+        with self.callback_manager.event(
+            MyCBEventType.CLARIFYING_QUESTION,
+            payload={EventPayload.QUERY_STR: refined_question},
+        ) as event:
+            clarity_result = (
+                self._fast_llm.predict(
+                    prompt=get_prompt_by_jinja2_template(
+                        self.chat_engine_config.llm.clarifying_question_prompt,
+                        graph_knowledges=knowledge_graph_context,
+                        chat_history=self.chat_history,
+                        question=refined_question,
+                    ),
                 )
+                .strip()
+                .strip(".\"'!")
+            )
 
-                need_clarify = clarity_result.lower() != "false"
-                need_clarify_response = clarity_result if need_clarify else ""
-                event.on_end(
-                    payload={
-                        "need_clarify": need_clarify,
-                        "need_clarify_response": need_clarify_response,
-                    }
-                )
+            need_clarify = clarity_result.lower() != "false"
+            need_clarify_response = clarity_result if need_clarify else ""
+            event.on_end(
+                payload={
+                    "need_clarify": need_clarify,
+                    "need_clarify_response": need_clarify_response,
+                }
+            )
 
         if need_clarify:
             yield ChatEvent(
@@ -705,29 +733,31 @@ class ChatFlow:
                 ),
             )
 
-        with self.callback_manager.as_trace("search_relevant_chunks"):
-            with self.callback_manager.event(
-                MyCBEventType.RETRIEVE,
-                payload={EventPayload.QUERY_STR: refined_question},
-            ) as event:
-                retriever = VectorSearchFusionRetriever(
-                    db_session=self.db_session,
-                    knowledge_base_ids=self.knowledge_base_ids,
-                    llm=self._llm,
-                    config=VectorSearchRetrieverConfig(
-                        similarity_top_k=60,
-                        oversampling_factor=5,
-                        top_k=10,
-                    ),
-                )
+        with self.callback_manager.event(
+            MyCBEventType.RETRIEVE,
+            payload={EventPayload.QUERY_STR: refined_question},
+        ) as event:
+            retriever = VectorSearchFusionRetriever(
+                db_session=self.db_session,
+                knowledge_base_ids=self.knowledge_base_ids,
+                llm=self._llm,
+                config=VectorSearchRetrieverConfig(
+                    similarity_top_k=60,
+                    oversampling_factor=5,
+                    top_k=10,
+                ),
+                use_query_decompose=False,
+                use_async=True,
+                callback_manager=self.callback_manager,
+            )
 
-                nodes_with_score = retriever.retrieve(QueryBundle(refined_question))
+            nodes_with_score = retriever.retrieve(QueryBundle(refined_question))
 
-                event.on_end(
-                    payload={
-                        "nodes_with_score": nodes_with_score,
-                    }
-                )
+            event.on_end(
+                payload={
+                    "nodes_with_score": nodes_with_score,
+                }
+            )
 
         return nodes_with_score
 
@@ -841,7 +871,7 @@ class ChatFlow:
         db_assistant_message: ChatMessage,
         db_user_message: ChatMessage,
         response_text: str,
-        knowledge_graph: RetrievedKnowledgeGraph = RetrievedKnowledgeGraph(),
+        knowledge_graph: KnowledgeGraphRetrievalResult = KnowledgeGraphRetrievalResult(),
         source_documents: Optional[List[dict]] = list,
         annotation_silent: bool = False,
     ):

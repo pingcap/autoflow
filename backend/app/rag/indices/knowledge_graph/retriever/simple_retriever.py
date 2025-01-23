@@ -9,15 +9,16 @@ from app.models.entity import get_kb_entity_model
 from app.models.relationship import get_kb_relationship_model
 from app.rag.indices.knowledge_graph.retriever.schema import (
     KnowledgeGraphRetrieverConfig,
-    RetrievedKnowledgeGraph,
+    KnowledgeGraphRetrievalResult,
     KnowledgeGraphNode,
+    KnowledgeGraphRetriever,
 )
 from app.rag.knowledge_base.config import get_kb_embed_model, get_kb_dspy_llm
 from app.rag.graph_store import TiDBGraphStore
 from app.repositories import knowledge_base_repo
 
 
-class KnowledgeGraphRetriever(BaseRetriever):
+class KnowledgeGraphSimpleRetriever(BaseRetriever, KnowledgeGraphRetriever):
     def __init__(
         self,
         db_session: Session,
@@ -31,6 +32,7 @@ class KnowledgeGraphRetriever(BaseRetriever):
         self._callback_manager = callback_manager
         self.kb = knowledge_base_repo.must_get(db_session, knowledge_base_id)
         self.embed_model = get_kb_embed_model(db_session, self.kb)
+        self.embed_model.callback_manager = callback_manager
         self.entity_db_model = get_kb_entity_model(self.kb)
         self.relationship_db_model = get_kb_relationship_model(self.kb)
         # TODO: remove it
@@ -66,13 +68,13 @@ class KnowledgeGraphRetriever(BaseRetriever):
         ]
 
     def retrieve_knowledge_graph(
-        self, query_bundle: QueryBundle
-    ) -> RetrievedKnowledgeGraph:
-        nodes_with_score = self._retrieve(query_bundle)
+        self, query_text: str
+    ) -> KnowledgeGraphRetrievalResult:
+        nodes_with_score = self._retrieve(QueryBundle(query_text))
         if len(nodes_with_score) == 0:
-            return RetrievedKnowledgeGraph()
+            return KnowledgeGraphRetrievalResult()
         node = nodes_with_score[0].node
-        return RetrievedKnowledgeGraph(
+        return KnowledgeGraphRetrievalResult(
             query=node.query,
             entities=node.entities,
             relationships=node.relationships,

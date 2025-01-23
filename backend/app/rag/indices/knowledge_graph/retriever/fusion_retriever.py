@@ -10,14 +10,15 @@ from llama_index.core.tools import ToolMetadata
 
 from app.rag.knowledge_base.multi_kb_retriever import MultiKBFusionRetriever
 from app.rag.knowledge_base.selector import KBSelectMode
-from app.rag.indices.knowledge_graph.retriever.base_retriever import (
-    KnowledgeGraphRetriever,
+from app.rag.indices.knowledge_graph.retriever.simple_retriever import (
+    KnowledgeGraphSimpleRetriever,
 )
 from app.rag.indices.knowledge_graph.retriever.schema import (
     KnowledgeGraphRetrieverConfig,
     RetrievedRelationship,
-    RetrievedKnowledgeGraph,
+    KnowledgeGraphRetrievalResult,
     KnowledgeGraphNode,
+    KnowledgeGraphRetriever,
 )
 from app.repositories import knowledge_base_repo
 
@@ -25,14 +26,16 @@ from app.repositories import knowledge_base_repo
 logger = logging.getLogger(__name__)
 
 
-class KnowledgeGraphFusionRetriever(MultiKBFusionRetriever):
+class KnowledgeGraphFusionSimpleRetriever(
+    MultiKBFusionRetriever, KnowledgeGraphRetriever
+):
     def __init__(
         self,
         db_session: Session,
         knowledge_base_ids: List[int],
         llm: LLM,
         use_query_decompose: bool = False,
-        select_mode: KBSelectMode = KBSelectMode.ALL,
+        kb_select_mode: KBSelectMode = KBSelectMode.ALL,
         use_async: bool = True,
         config: KnowledgeGraphRetrieverConfig = KnowledgeGraphRetrieverConfig(),
         callback_manager: Optional[CallbackManager] = CallbackManager([]),
@@ -44,7 +47,7 @@ class KnowledgeGraphFusionRetriever(MultiKBFusionRetriever):
         knowledge_bases = knowledge_base_repo.get_by_ids(db_session, knowledge_base_ids)
         for kb in knowledge_bases:
             retrievers.append(
-                KnowledgeGraphRetriever(
+                KnowledgeGraphSimpleRetriever(
                     db_session=db_session,
                     knowledge_base_id=kb.id,
                     config=config,
@@ -64,19 +67,21 @@ class KnowledgeGraphFusionRetriever(MultiKBFusionRetriever):
             retriever_choices=retriever_choices,
             llm=llm,
             use_query_decompose=use_query_decompose,
-            select_mode=select_mode,
+            kb_select_mode=kb_select_mode,
             use_async=use_async,
             callback_manager=callback_manager,
             **kwargs,
         )
 
-    def retrieve_knowledge_graph(self, query_text: str) -> RetrievedKnowledgeGraph:
+    def retrieve_knowledge_graph(
+        self, query_text: str
+    ) -> KnowledgeGraphRetrievalResult:
         nodes_with_score = self._retrieve(QueryBundle(query_text))
         if len(nodes_with_score) == 0:
-            return RetrievedKnowledgeGraph()
+            return KnowledgeGraphRetrievalResult()
         node: KnowledgeGraphNode = nodes_with_score[0].node  # type:ignore
         subqueries = [
-            RetrievedKnowledgeGraph(
+            KnowledgeGraphRetrievalResult(
                 query=subgraph.query,
                 entities=subgraph.entities,
                 relationships=subgraph.relationships,
@@ -84,12 +89,12 @@ class KnowledgeGraphFusionRetriever(MultiKBFusionRetriever):
             for subgraph in node.subqueries.values()
         ]
 
-        return RetrievedKnowledgeGraph(
+        return KnowledgeGraphRetrievalResult(
             query=node.query,
             entities=node.entities,
             relationships=node.relationships,
             subqueries=[
-                RetrievedKnowledgeGraph(
+                KnowledgeGraphRetrievalResult(
                     query=sub.query,
                     entities=sub.entities,
                     relationships=node.relationships,

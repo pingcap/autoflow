@@ -1,19 +1,27 @@
 import logging
-from typing import List
+from datetime import datetime
+from typing import List, Tuple
 from llama_index.core.retrievers import BaseRetriever
-from llama_index.core import VectorStoreIndex
 from llama_index.core.schema import NodeWithScore, QueryBundle
 from sqlmodel import Session
 
-from app.models.chunk import get_kb_chunk_model
-from app.models.entity import get_kb_entity_model
-from app.models.relationship import get_kb_relationship_model
 from app.rag.chat import get_prompt_by_jinja2_template
-from app.rag.chat_config import ChatEngineConfig
-from app.rag.knowledge_base.config import get_kb_embed_model
-from app.rag.indices.knowledge_graph import KnowledgeGraphIndex
-from app.rag.vector_store.tidb_vector_store import TiDBVectorStore
-from app.rag.graph_store.tidb_graph_store import TiDBGraphStore
+from app.rag.chat_config import (
+    ChatEngineConfig,
+    KnowledgeGraphOption,
+    KnowledgeBaseOption,
+)
+from app.rag.indices.knowledge_graph.retriever.fusion_retriever import (
+    KnowledgeGraphFusionSimpleRetriever,
+)
+from app.rag.indices.knowledge_graph.retriever.schema import (
+    KnowledgeGraphRetrievalResult,
+    KnowledgeGraphRetrieverConfig,
+)
+from app.rag.indices.vector_search.retriever.fusion_retriever import (
+    VectorSearchFusionRetriever,
+)
+from app.rag.indices.vector_search.retriever.schema import VectorSearchRetrieverConfig
 from app.repositories.knowledge_base import knowledge_base_repo
 
 
@@ -46,112 +54,131 @@ class ChatEngineBasedRetriever(BaseRetriever):
             db_session, engine_name
         )
         self.db_chat_engine = self.chat_engine_config.get_db_chat_engine()
+
+        # Init LLM.
+        self._llm = self.chat_engine_config.get_llama_llm(self.db_session)
         self._fast_llm = self.chat_engine_config.get_fast_llama_llm(self.db_session)
         self._fast_dspy_lm = self.chat_engine_config.get_fast_dspy_lm(self.db_session)
-        self._reranker = self.chat_engine_config.get_reranker(db_session)
 
-        if self.chat_engine_config.knowledge_base:
-            # TODO: Support multiple knowledge base retrieve.
-            linked_knowledge_base = (
-                self.chat_engine_config.knowledge_base.linked_knowledge_base
+        # Load knowledge bases.
+        kb_config: KnowledgeBaseOption = self.chat_engine_config.knowledge_base
+        linked_knowledge_base_ids = []
+        if len(kb_config.linked_knowledge_bases) == 0:
+            linked_knowledge_base_ids.append(
+                self.chat_engine_config.knowledge_base.linked_knowledge_base.id
             )
-            kb = knowledge_base_repo.must_get(db_session, linked_knowledge_base.id)
-            self._chunk_model = get_kb_chunk_model(kb)
-            self._entity_model = get_kb_entity_model(kb)
-            self._relationship_model = get_kb_relationship_model(kb)
-            self._embed_model = get_kb_embed_model(self.db_session, kb)
+        else:
+            linked_knowledge_base_ids.extend(
+                [kb.id for kb in kb_config.linked_knowledge_bases]
+            )
+        self.knowledge_base_ids = linked_knowledge_base_ids
+        self.knowledge_bases = knowledge_base_repo.get_by_ids(
+            self.db_session, knowledge_base_ids=linked_knowledge_base_ids
+        )
 
     def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
-        if not self.chat_engine_config.knowledge_base:
-            logger.warn(
-                "The chat engine does not configured the retrieve knowledge base, return empty list"
-            )
-            return []
-
-        # 1. Retrieve entities, relations, and chunks from the knowledge graph
-        # 2. Refine the user question using graph information
-        refined_query = self._refine_query(query_bundle.query_str)
-
-        # 3. Retrieve the related chunks from the vector store
-        # 4. Rerank after the retrieval
-        vector_store = TiDBVectorStore(
-            session=self.db_session,
-            chunk_db_model=self._chunk_model,
-            oversampling_factor=self.oversampling_factor,
-        )
-        vector_index = VectorStoreIndex.from_vector_store(
-            vector_store,
-            embed_model=self._embed_model,
-        )
-
-        # Node postprocessors
-        metadata_filter = self.chat_engine_config.get_metadata_filter()
-        reranker = self.chat_engine_config.get_reranker(
-            self.db_session, top_n=self.top_k
-        )
-        if reranker:
-            node_postprocessors = [metadata_filter, reranker]
+        if self.enable_kg_enhance_query_refine:
+            refined_question = self._kg_enhance_query_refine(query_bundle.query_str)
         else:
-            node_postprocessors = [metadata_filter]
+            refined_question = query_bundle.query_str
 
-        # Retriever Engine
-        retrieve_engine = vector_index.as_retriever(
-            node_postprocessors=node_postprocessors,
-            similarity_top_k=self.similarity_top_k or self.top_k,
-        )
+        return self._search_relevant_chunks(refined_question=refined_question)
 
-        return retrieve_engine.retrieve(refined_query)
-
-    def _refine_query(self, query: str) -> str:
+    def _kg_enhance_query_refine(self, query_str):
+        # 1. Retrieve Knowledge graph related to the user question.
         kg_config = self.chat_engine_config.knowledge_graph
-        if kg_config.enabled:
-            graph_store = TiDBGraphStore(
-                dspy_lm=self._fast_dspy_lm,
-                session=self.db_session,
-                embed_model=self._embed_model,
-                entity_db_model=self._entity_model,
-                relationship_db_model=self._relationship_model,
-            )
-            graph_index: KnowledgeGraphIndex = KnowledgeGraphIndex.from_existing(
-                dspy_lm=self._fast_dspy_lm,
-                kg_store=graph_store,
+        knowledge_graph_context = ""
+        if kg_config is not None and kg_config.enabled:
+            _, knowledge_graph_context = self._search_knowledge_graph(
+                user_question=query_str, kg_config=kg_config
             )
 
-            if kg_config.using_intent_search:
-                sub_queries = graph_index.intent_analyze(query)
-                result = graph_index.graph_semantic_search(
-                    sub_queries, include_meta=True
-                )
-                graph_knowledges = get_prompt_by_jinja2_template(
-                    self.chat_engine_config.llm.intent_graph_knowledge,
-                    sub_queries=result["queries"],
-                )
-                graph_knowledges_context = graph_knowledges.template
-            else:
-                entities, relations, _ = graph_index.retrieve_with_weight(
-                    query,
-                    [],
-                    depth=kg_config.depth,
-                    include_meta=kg_config.include_meta,
-                    with_degree=kg_config.with_degree,
-                    with_chunks=False,
-                )
-                graph_knowledges = get_prompt_by_jinja2_template(
-                    self.chat_engine_config.llm.normal_graph_knowledge,
-                    entities=entities,
-                    relationships=relations,
-                )
-                graph_knowledges_context = graph_knowledges.template
+        # 2. Refine the user question using knowledge graph and chat history.
+        refined_question = self._refine_user_question(
+            user_question=query_str,
+            knowledge_graph_context=knowledge_graph_context,
+            refined_question_prompt=self.chat_engine_config.llm.condense_question_prompt,
+        )
+
+        return refined_question
+
+    def _search_knowledge_graph(
+        self, user_question: str, kg_config: KnowledgeGraphOption
+    ) -> Tuple[KnowledgeGraphRetrievalResult, str]:
+        # For forward compatibility of chat engine config.
+        enable_metadata_filter = kg_config.enable_metadata_filter or (
+            kg_config.relationship_meta_filters is not None
+        )
+        metadata_filters = (
+            kg_config.metadata_filters or kg_config.relationship_meta_filters
+        )
+
+        kg_retriever = KnowledgeGraphFusionSimpleRetriever(
+            db_session=self.db_session,
+            knowledge_base_ids=self.knowledge_base_ids,
+            llm=self._llm,
+            use_query_decompose=kg_config.using_intent_search,
+            use_async=True,
+            config=KnowledgeGraphRetrieverConfig(
+                depth=kg_config.depth,
+                include_metadata=kg_config.include_meta,
+                with_degree=kg_config.with_degree,
+                enable_metadata_filter=enable_metadata_filter,
+                metadata_filters=metadata_filters,
+            ),
+            callback_manager=self.callback_manager,
+        )
+
+        if kg_config.using_intent_search:
+            knowledge_graph = kg_retriever.retrieve_knowledge_graph(user_question)
+            kg_context_template = get_prompt_by_jinja2_template(
+                self.chat_engine_config.llm.intent_graph_knowledge,
+                # For forward compatibility considerations.
+                sub_queries=knowledge_graph.to_subqueries_dict(),
+            )
+            knowledge_graph_context = kg_context_template.template
         else:
-            entities, relations = [], []
-            graph_knowledges_context = ""
+            knowledge_graph = kg_retriever.retrieve_knowledge_graph(user_question)
+            kg_context_template = get_prompt_by_jinja2_template(
+                self.chat_engine_config.llm.normal_graph_knowledge,
+                entities=knowledge_graph.entities,
+                relationships=knowledge_graph.relationships,
+            )
+            knowledge_graph_context = kg_context_template.template
 
-        refined_query = self._fast_llm.predict(
+        return (
+            knowledge_graph,
+            knowledge_graph_context,
+        )
+
+    def _refine_user_question(
+        self,
+        user_question: str,
+        refined_question_prompt: str,
+        knowledge_graph_context: str = "",
+    ) -> str:
+        return self._fast_llm.predict(
             get_prompt_by_jinja2_template(
-                self.chat_engine_config.llm.condense_question_prompt,
-                graph_knowledges=graph_knowledges_context,
-                question=query,
+                refined_question_prompt,
+                graph_knowledges=knowledge_graph_context,
+                question=user_question,
+                current_date=datetime.now().strftime("%Y-%m-%d"),
             ),
         )
 
-        return refined_query
+    def _search_relevant_chunks(self, refined_question: str) -> List[NodeWithScore]:
+        retriever = VectorSearchFusionRetriever(
+            db_session=self.db_session,
+            knowledge_base_ids=self.knowledge_base_ids,
+            llm=self._llm,
+            config=VectorSearchRetrieverConfig(
+                similarity_top_k=self.similarity_top_k,
+                oversampling_factor=self.oversampling_factor,
+                top_k=self.top_k,
+            ),
+            use_query_decompose=False,
+            use_async=True,
+            callback_manager=self.callback_manager,
+        )
+
+        return retriever.retrieve(QueryBundle(refined_question))

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 from app.rag.indices.knowledge_graph.retriever.schema import (
@@ -10,6 +12,7 @@ from app.rag.knowledge_base.multi_kb_retriever import FusionRetrivalBaseConfig
 
 
 class ChunkRetrievalConfig(FusionRetrivalBaseConfig):
+    full_documents: Optional[bool] = False
     vector_search: VectorSearchRetrieverConfig
 
 

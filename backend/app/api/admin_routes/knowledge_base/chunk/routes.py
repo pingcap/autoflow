@@ -1,13 +1,11 @@
 import logging
 
-from typing import List
 from fastapi import APIRouter
-from llama_index.core import QueryBundle
 from app.api.deps import SessionDep, CurrentSuperuserDep
-from app.rag.indices.vector_search.retriever.base_retriever import (
-    VectorSearchRetriever,
+from app.rag.indices.vector_search.retriever.simple_retriever import (
+    VectorSearchSimpleRetriever,
 )
-from app.rag.indices.vector_search.retriever.schema import RetrievedChunk
+from app.rag.indices.vector_search.retriever.schema import ChunksRetrievalResult
 
 from app.exceptions import InternalServerError, KBNotFound
 from .models import KBRetrieveChunksRequest
@@ -22,16 +20,17 @@ def retrieve_chunks(
     user: CurrentSuperuserDep,
     kb_id: int,
     request: KBRetrieveChunksRequest,
-) -> List[RetrievedChunk]:
+) -> ChunksRetrievalResult:
     try:
-        # TODO: support knowledge graph search.
         vector_search_config = request.retrieval_config.vector_search
-        retriever = VectorSearchRetriever(
+        retriever = VectorSearchSimpleRetriever(
             db_session=db_session,
             knowledge_base_id=kb_id,
             config=vector_search_config,
         )
-        return retriever.retrieve_chunks(QueryBundle(request.query))
+        return retriever.retrieve_chunks(
+            request.query,
+        )
     except KBNotFound as e:
         raise e
     except Exception as e:

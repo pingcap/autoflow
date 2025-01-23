@@ -13,16 +13,18 @@ from app.rag.knowledge_base.config import get_kb_embed_model
 from app.rag.rerankers.resolver import resolve_reranker_by_id
 from app.rag.indices.vector_search.retriever.schema import (
     VectorSearchRetrieverConfig,
-    RetrievedChunk,
+    ChunksRetrievalResult,
+    map_nodes_to_chunks,
+    ChunksRetriever,
 )
 from app.rag.vector_store.tidb_vector_store import TiDBVectorStore
 from app.rag.postprocessors.resolver import get_metadata_post_filter
-from app.repositories import knowledge_base_repo
+from app.repositories import knowledge_base_repo, document_repo
 
 logger = logging.getLogger(__name__)
 
 
-class VectorSearchRetriever(BaseRetriever):
+class VectorSearchSimpleRetriever(BaseRetriever, ChunksRetriever):
     _chunk_model: Type[SQLModel]
 
     def __init__(
@@ -41,6 +43,7 @@ class VectorSearchRetriever(BaseRetriever):
         self._kb = knowledge_base_repo.must_get(db_session, knowledge_base_id)
         self._chunk_db_model = get_kb_chunk_model(self._kb)
         self._embed_model = get_kb_embed_model(db_session, self._kb)
+        self._embed_model.callback_manager = callback_manager
 
         # Vector Index
         vector_store = TiDBVectorStore(
@@ -80,19 +83,19 @@ class VectorSearchRetriever(BaseRetriever):
         nodes = self._retrieve_engine.retrieve(query_bundle)
         return nodes[: self._config.top_k]
 
-    def retrieve_chunks(self, query_bundle: QueryBundle) -> List[RetrievedChunk]:
-        nodes_with_score = self._retrieve(query_bundle)
-        return map_nodes_to_chunks(nodes_with_score)
+    def retrieve_chunks(
+        self, query_str: str, full_document: bool = False
+    ) -> ChunksRetrievalResult:
+        nodes_with_score = self.retrieve(query_str)
+        chunks = map_nodes_to_chunks(nodes_with_score)
+        document_ids = [c.document_id for c in chunks]
+        if full_document:
+            documents = document_repo.list_full_documents_by_ids(
+                self._db_session, document_ids
+            )
+        else:
+            documents = document_repo.list_simple_documents_by_ids(
+                self._db_session, document_ids
+            )
 
-
-def map_nodes_to_chunks(nodes_with_score: List[NodeWithScore]) -> List[RetrievedChunk]:
-    return [
-        RetrievedChunk(
-            id=ns.node.node_id,
-            text=ns.node.text,
-            metadata=ns.node.metadata,
-            document_id=ns.node.metadata["document_id"],
-            score=ns.score,
-        )
-        for ns in nodes_with_score
-    ]
+        return ChunksRetrievalResult(chunks=chunks, documents=documents)

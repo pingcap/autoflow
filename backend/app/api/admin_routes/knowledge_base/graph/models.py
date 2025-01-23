@@ -32,6 +32,14 @@ class RelationshipUpdate(BaseModel):
     weight: Optional[int] = None
 
 
+class GraphSearchRequest(BaseModel):
+    query: str
+    include_meta: bool = True
+    depth: int = 2
+    with_degree: bool = True
+    relationship_meta_filters: dict = {}
+
+
 # Knowledge Graph Retrieval
 
 

@@ -18,7 +18,6 @@ class KnowledgeGraphStore(ABC):
         depth: int = 2,
         include_meta: bool = False,
         with_degree: bool = False,
-        with_chunks: bool = True,
         relationship_meta_filters: Dict = {},
         session: Optional[Session] = None,
     ) -> Tuple[list, list, list]:

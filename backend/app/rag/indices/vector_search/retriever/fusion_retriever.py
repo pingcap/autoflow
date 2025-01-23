@@ -5,27 +5,28 @@ from llama_index.core.llms import LLM
 from llama_index.core.schema import NodeWithScore
 from llama_index.core.tools import ToolMetadata
 from sqlmodel import Session
-
-from app.rag.indices.vector_search.retriever.base_retriever import (
-    VectorSearchRetriever,
+from app.rag.indices.vector_search.retriever.simple_retriever import (
+    VectorSearchSimpleRetriever,
 )
 from app.rag.indices.vector_search.retriever.schema import (
     VectorSearchRetrieverConfig,
-    RetrievedChunk,
+    ChunksRetrievalResult,
+    map_nodes_to_chunks,
+    ChunksRetriever,
 )
 from app.rag.knowledge_base.multi_kb_retriever import MultiKBFusionRetriever
 from app.rag.knowledge_base.selector import KBSelectMode
-from app.repositories import knowledge_base_repo
+from app.repositories import knowledge_base_repo, document_repo
 
 
-class VectorSearchFusionRetriever(MultiKBFusionRetriever):
+class VectorSearchFusionRetriever(MultiKBFusionRetriever, ChunksRetriever):
     def __init__(
         self,
         db_session: Session,
         knowledge_base_ids: List[int],
         llm: LLM,
-        use_query_decompose: bool = True,
-        select_mode: KBSelectMode = KBSelectMode.ALL,
+        use_query_decompose: bool = False,
+        kb_select_mode: KBSelectMode = KBSelectMode.ALL,
         use_async: bool = True,
         config: VectorSearchRetrieverConfig = VectorSearchRetrieverConfig(),
         callback_manager: Optional[CallbackManager] = CallbackManager([]),
@@ -37,7 +38,7 @@ class VectorSearchFusionRetriever(MultiKBFusionRetriever):
         knowledge_bases = knowledge_base_repo.get_by_ids(db_session, knowledge_base_ids)
         for kb in knowledge_bases:
             retrievers.append(
-                VectorSearchRetriever(
+                VectorSearchSimpleRetriever(
                     knowledge_base_id=kb.id,
                     config=config,
                     callback_manager=callback_manager,
@@ -57,7 +58,7 @@ class VectorSearchFusionRetriever(MultiKBFusionRetriever):
             retriever_choices=retriever_choices,
             llm=llm,
             use_query_decompose=use_query_decompose,
-            select_mode=select_mode,
+            kb_select_mode=kb_select_mode,
             use_async=use_async,
             callback_manager=callback_manager,
             **kwargs,
@@ -85,15 +86,22 @@ class VectorSearchFusionRetriever(MultiKBFusionRetriever):
 
         return sorted(all_nodes.values(), key=lambda x: x.score or 0.0, reverse=True)
 
-    def retrieve_chunks(self, query_bundle: QueryBundle) -> List[RetrievedChunk]:
-        nodes_with_score = self._retrieve(query_bundle)
+    def retrieve_chunks(
+        self,
+        query_str: str,
+        full_document: bool = False,
+    ) -> ChunksRetrievalResult:
+        nodes_with_score = self._retrieve(QueryBundle(query_str))
+        chunks = map_nodes_to_chunks(nodes_with_score)
 
-        return [
-            RetrievedChunk(
-                id=ns.node.node_id,
-                text=ns.node.text,
-                metadata=ns.node.metadata,
-                score=ns.score,
+        document_ids = [c.document_id for c in chunks]
+        if full_document:
+            documents = document_repo.list_full_documents_by_ids(
+                self._db_session, document_ids
             )
-            for ns in nodes_with_score
-        ]
+        else:
+            documents = document_repo.list_simple_documents_by_ids(
+                self._db_session, document_ids
+            )
+
+        return ChunksRetrievalResult(chunks=chunks, documents=documents)

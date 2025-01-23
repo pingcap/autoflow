@@ -8,10 +8,8 @@ from app.api.admin_routes.knowledge_base.graph.models import (
     SynopsisEntityCreate,
     EntityUpdate,
     RelationshipUpdate,
-    KnowledgeRequest,
-    KnowledgeNeighborRequest,
-    KnowledgeChunkRequest,
     KBRetrieveKnowledgeGraphRequest,
+    GraphSearchRequest,
 )
 from app.api.deps import SessionDep
 from app.exceptions import KBNotFound, InternalServerError
@@ -19,11 +17,11 @@ from app.models import (
     EntityPublic,
     RelationshipPublic,
 )
-from app.rag.indices.knowledge_graph.retriever.base_retriever import (
+from app.rag.indices.knowledge_graph.retriever.simple_retriever import (
     KnowledgeGraphRetriever,
 )
 from app.rag.indices.knowledge_graph.retriever.schema import (
-    RetrievedKnowledgeGraph,
+    KnowledgeGraphRetrievalResult,
 )
 from app.rag.knowledge_base.index_store import (
     get_kb_tidb_graph_editor,
@@ -202,11 +200,10 @@ def update_relationship(
         raise e
 
 
-# TODO：rename the path to /retrieve
-@router.post("/admin/knowledge_bases/{kb_id}/graph/search")
-def search_graph(
+@router.post("/admin/knowledge_bases/{kb_id}/graph/retrieve")
+def retrieve_kb_knowledge_graph(
     db_session: SessionDep, kb_id: int, request: KBRetrieveKnowledgeGraphRequest
-) -> RetrievedKnowledgeGraph:
+) -> KnowledgeGraphRetrievalResult:
     try:
         retriever = KnowledgeGraphRetriever(
             db_session=db_session,
@@ -214,7 +211,7 @@ def search_graph(
             config=request.retrival_config.knowledge_graph,
         )
         knowledge_graph = retriever.retrieve_knowledge_graph(QueryBundle(request.query))
-        return RetrievedKnowledgeGraph(
+        return KnowledgeGraphRetrievalResult(
             entities=knowledge_graph.entities,
             relationships=knowledge_graph.relationships,
         )
@@ -225,67 +222,25 @@ def search_graph(
         raise e
 
 
-@router.post("/admin/knowledge_bases/{kb_id}/graph/knowledge")
-def retrieve_knowledge(session: SessionDep, kb_id: int, request: KnowledgeRequest):
+@router.post("/admin/knowledge_bases/{kb_id}/graph/search", deprecated=True)
+def legacy_search_graph(session: SessionDep, kb_id: int, request: GraphSearchRequest):
     try:
         kb = knowledge_base_repo.must_get(session, kb_id)
         graph_store = get_kb_tidb_graph_store(session, kb)
-        data = graph_store.retrieve_graph_data(
+        entities, relations = graph_store.retrieve_with_weight(
             request.query,
-            request.top_k,
-            request.similarity_threshold,
+            [],
+            request.depth,
+            request.include_meta,
+            request.with_degree,
+            request.relationship_meta_filters,
         )
         return {
-            "entities": data["entities"],
-            "relationships": data["relationships"],
+            "entities": entities,
+            "relationships": relations,
         }
     except KBNotFound as e:
         raise e
     except Exception as e:
-        logger.exception(e)
-        raise InternalServerError()
-
-
-@router.post("/admin/knowledge_bases/{kb_id}/graph/knowledge/neighbors")
-def retrieve_knowledge_neighbors(
-    session: SessionDep, kb_id: int, request: KnowledgeNeighborRequest
-):
-    try:
-        kb = knowledge_base_repo.must_get(session, kb_id)
-        graph_store = get_kb_tidb_graph_store(session, kb)
-        data = graph_store.retrieve_neighbors(
-            request.entities_ids,
-            request.query,
-            request.max_depth,
-            request.max_neighbors,
-            request.similarity_threshold,
-        )
-        return data
-    except KBNotFound as e:
+        # TODO: throw InternalServerError
         raise e
-    except Exception as e:
-        logger.exception(e)
-        raise InternalServerError()
-
-
-@router.post("/admin/knowledge_bases/{kb_id}/graph/knowledge/chunks")
-def retrieve_knowledge_chunks(
-    session: SessionDep, kb_id: int, request: KnowledgeChunkRequest
-):
-    try:
-        kb = knowledge_base_repo.must_get(session, kb_id)
-        graph_store = get_kb_tidb_graph_store(session, kb)
-        data = graph_store.get_chunks_by_relationships(request.relationships_ids)
-        if not data:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No chunks found for the given relationships",
-            )
-        return data
-    except KBNotFound as e:
-        raise e
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        logger.exception(e)
-        raise InternalServerError()

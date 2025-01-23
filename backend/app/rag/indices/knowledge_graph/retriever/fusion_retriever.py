@@ -70,10 +70,8 @@ class KnowledgeGraphFusionRetriever(MultiKBFusionRetriever):
             **kwargs,
         )
 
-    def retrieve_knowledge_graph(
-        self, query_bundle: QueryBundle
-    ) -> RetrievedKnowledgeGraph:
-        nodes_with_score = self._retrieve(query_bundle)
+    def retrieve_knowledge_graph(self, query_text: str) -> RetrievedKnowledgeGraph:
+        nodes_with_score = self._retrieve(QueryBundle(query_text))
         if len(nodes_with_score) == 0:
             return RetrievedKnowledgeGraph()
         node: KnowledgeGraphNode = nodes_with_score[0].node  # type:ignore

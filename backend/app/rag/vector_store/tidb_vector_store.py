@@ -1,7 +1,8 @@
 import logging
-from typing import Any, List, Optional, Type
-
 import tidb_vector
+import sqlalchemy
+
+from typing import Any, List, Optional, Type
 from llama_index.core.schema import BaseNode, MetadataMode, TextNode
 from llama_index.core.bridge.pydantic import PrivateAttr
 from llama_index.core.vector_stores.types import (
@@ -13,7 +14,6 @@ from llama_index.core.vector_stores.utils import (
     metadata_dict_to_node,
     node_to_metadata_dict,
 )
-import sqlalchemy
 from sqlmodel import (
     SQLModel,
     Session,
@@ -23,9 +23,9 @@ from sqlmodel import (
     alias,
 )
 from tidb_vector.sqlalchemy import VectorAdaptor
-
 from app.core.db import engine
 from app.models import Chunk
+
 
 logger = logging.getLogger(__name__)
 
@@ -189,6 +189,7 @@ class TiDBVectorStore(BasePydanticVectorStore):
             self._chunk_db_model.id,
             self._chunk_db_model.text,
             self._chunk_db_model.meta,
+            self._chunk_db_model.document_id,
             self._chunk_db_model.embedding.cosine_distance(query.query_embedding).label(
                 "distance"
             ),
@@ -209,6 +210,7 @@ class TiDBVectorStore(BasePydanticVectorStore):
                 sub.c.id,
                 sub.c.text,
                 sub.c.meta,
+                sub.c.document_id,
                 sub.c.distance,
             )
             .order_by(asc("distance"))
@@ -222,11 +224,13 @@ class TiDBVectorStore(BasePydanticVectorStore):
         for row in results:
             try:
                 node = metadata_dict_to_node(row.meta)
+                node.metadata["document_id"] = row.document_id
                 node.set_content(row.text)
-            except Exception:
+            except Exception as e:
                 # NOTE: deprecated legacy logic for backward compatibility
                 logger.warning(
-                    "Failed to parse metadata dict, falling back to legacy logic."
+                    f"Failed to parse metadata dict (error: {e}), falling back to legacy logic.",
+                    exc_info=True,
                 )
                 node = TextNode(
                     id_=row.id,

@@ -31,7 +31,7 @@ def retrieve_chunks(
             knowledge_base_id=kb_id,
             config=vector_search_config,
         )
-        return retriever.retrieve_chunks(QueryBundle(request.query), db_session)
+        return retriever.retrieve_chunks(QueryBundle(request.query))
     except KBNotFound as e:
         raise e
     except Exception as e:

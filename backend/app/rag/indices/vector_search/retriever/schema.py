@@ -40,5 +40,5 @@ class RetrievedChunk(BaseModel):
     id: str
     text: str
     metadata: dict
-    document: Optional[RetrievedChunkDocument] = None
+    document_id: int
     score: float

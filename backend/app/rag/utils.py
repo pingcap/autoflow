@@ -28,7 +28,7 @@ def parse_goal_response_format(goal: str) -> Tuple[str, Dict[str, str]]:
     Extracts the main goal and its requirements from the input string.
 
     Args:
-        question_str (str): The input question string with optional requirements.
+        goal (str): The input question string with optional requirements.
 
     Returns:
         Tuple[str, Dict[str, str]]: A tuple containing the main goal and a dictionary of requirements.

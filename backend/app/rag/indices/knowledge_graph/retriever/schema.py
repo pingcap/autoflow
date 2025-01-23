@@ -56,6 +56,21 @@ class RetrievedKnowledgeGraph(BaseModel):
         description="List of subqueries in the knowledge graph", default_factory=list
     )
 
+    def to_subqueries_dict(self) -> dict:
+        sub_queries = {}
+        for subquery in self.subqueries:
+            sub_queries[subquery.query] = {
+                "entities": [e.model_dump() for e in subquery.entities],
+                "relationships": [r.model_dump() for r in subquery.relationships],
+            }
+        return sub_queries
+
+    def to_graph_data_dict(self) -> dict:
+        return {
+            "entities": [e.id for e in self.entities],
+            "relationships": [r.id for r in self.relationships],
+        }
+
 
 # KnowledgeGraphNode
 

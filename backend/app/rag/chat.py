@@ -1,16 +1,13 @@
 import json
 import time
 import logging
-
+import requests
 
 from uuid import UUID
 from typing import List, Generator, Optional, Tuple
 from datetime import datetime, UTC
 from urllib.parse import urljoin
-
-import requests
 from llama_index.core.schema import NodeWithScore
-from pydantic import BaseModel
 from sqlalchemy import text, delete
 from sqlmodel import Session, select, func
 from llama_index.core import QueryBundle
@@ -53,14 +50,15 @@ from app.rag.indices.knowledge_graph.retriever.fusion_retriever import (
     KnowledgeGraphFusionRetriever,
 )
 from app.rag.indices.knowledge_graph.retriever.schema import (
-    RetrievedEntity,
-    RetrievedRelationship,
     KnowledgeGraphRetrieverConfig,
+    RetrievedKnowledgeGraph,
 )
 from app.rag.indices.vector_search.retriever.fusion_retriever import (
     VectorSearchFusionRetriever,
 )
-from app.rag.indices.vector_search.retriever.schema import VectorSearchRetrieverConfig
+from app.rag.indices.vector_search.retriever.schema import (
+    VectorSearchRetrieverConfig,
+)
 
 from app.rag.knowledge_base.config import get_kb_embed_model
 from app.rag.knowledge_base.index_store import get_kb_tidb_graph_editor
@@ -94,11 +92,6 @@ from app.utils.jinja2 import get_prompt_by_jinja2_template
 logger = logging.getLogger(__name__)
 
 
-class ClarityResult(BaseModel):
-    clarity_needed: bool
-    clarifying_question: str
-
-
 class ChatFlow:
     def __init__(
         self,
@@ -111,12 +104,13 @@ class ChatFlow:
         engine_name: str = "default",
         chat_id: Optional[UUID] = None,
     ) -> None:
+        self.chat_id = chat_id
         self.db_session = db_session
         self.user = user
         self.browser_id = browser_id
         self.engine_name = engine_name
 
-        # Chat instance.
+        # Load chat engine and chat session.
         self.user_question, self.chat_history = self._parse_chat_messages(chat_messages)
         if chat_id:
             # FIXME:
@@ -179,7 +173,7 @@ class ChatFlow:
                     ),
                 )
 
-        # Langfuse
+        # Init Langfuse for tracing.
         enable_langfuse = (
             SiteSetting.langfuse_secret_key and SiteSetting.langfuse_public_key
         )
@@ -203,15 +197,17 @@ class ChatFlow:
             self.trace_url = root_observation.get_trace_url()
         else:
             self.callback_manager = CallbackManager([])
+            self.trace_id = None
+            self.trace_url = ""
 
-        # LLM
+        # Init LLM.
         self._llm = self.chat_engine_config.get_llama_llm(self.db_session)
         self._llm.callback_manager = self.callback_manager
         self._fast_llm = self.chat_engine_config.get_fast_llama_llm(self.db_session)
         self._fast_llm.callback_manager = self.callback_manager
         self._fast_dspy_lm = self.chat_engine_config.get_fast_dspy_lm(self.db_session)
 
-        # Knowledge bases.
+        # Load knowledge bases.
         kb_config: KnowledgeBaseOption = self.chat_engine_config.knowledge_base
         linked_knowledge_base_ids = []
         if len(kb_config.linked_knowledge_bases) == 0:
@@ -261,26 +257,15 @@ class ChatFlow:
             )
 
     def _builtin_chat(self) -> Generator[ChatEvent | str, None, None]:
-        db_user_message, db_assistant_message = self._chat_start()
-
-        yield ChatEvent(
-            event_type=ChatEventType.DATA_PART,
-            payload=ChatStreamDataPayload(
-                chat=self.db_chat_obj,
-                user_message=db_user_message,
-                assistant_message=db_assistant_message,
-            ),
-        )
+        db_user_message, db_assistant_message = yield from self._chat_start()
 
         # 1. Retrieve Knowledge graph related to the user question.
         kg_config = self.chat_engine_config.knowledge_graph
+        knowledge_graph = RetrievedKnowledgeGraph()
         knowledge_graph_context = ""
-        graph_data_source_ids = []
         if kg_config is not None and kg_config.enabled:
             (
-                entities,
-                relationships,
-                graph_data_source_ids,
+                knowledge_graph,
                 knowledge_graph_context,
             ) = yield from self._search_knowledge_graph(kg_config=kg_config)
 
@@ -293,129 +278,70 @@ class ChatFlow:
 
         # 3. Check if the question provided enough context information or need to clarify.
         if self.chat_engine_config.clarify_question:
-            early_stop, need_clarify_response = self._clarify_question(
+            need_clarify, need_clarify_response = yield from self._clarify_question(
                 refined_question=refined_question,
                 knowledge_graph_context=knowledge_graph_context,
             )
-            if early_stop:
-                yield ChatEvent(
-                    event_type=ChatEventType.TEXT_PART,
-                    payload=need_clarify_response,
-                )
+            if need_clarify:
                 yield from self._chat_finish(
                     db_assistant_message=db_assistant_message,
                     db_user_message=db_user_message,
                     response_text=need_clarify_response,
-                    source_documents=[],
-                    graph_data_source_ids={},
+                    knowledge_graph=knowledge_graph,
                 )
                 return
 
         # 4. Use refined questions to search for relevant chunks.
-        relevant_chunk_nodes = self._search_relevant_chunks(
+        relevant_chunk_nodes = yield from self._search_relevant_chunks(
             refined_question=refined_question
         )
 
         # 5. Generate a response using the refined question and related chunks
-        response, source_documents = yield from self._generate_answer(
+        response_text, source_documents = yield from self._generate_answer(
             refined_question=refined_question,
             knowledge_graph_context=knowledge_graph_context,
             relevant_chunk_nodes=relevant_chunk_nodes,
         )
 
-        response_text = ""
-        for word in response.response_gen:
-            response_text += word
-            yield ChatEvent(
-                event_type=ChatEventType.TEXT_PART,
-                payload=word,
-            )
-
-        if not response_text:
-            raise Exception("Got empty response from LLM")
-
         yield from self._chat_finish(
             db_assistant_message=db_assistant_message,
             db_user_message=db_user_message,
             response_text=response_text,
+            knowledge_graph=knowledge_graph,
             source_documents=source_documents,
-            graph_data_source_ids=graph_data_source_ids,
         )
 
+    # TODO: Separate _external_chat() method into another ExternalChatFlow class, but at the same time, we need to
+    #  share some common methods through ChatMixin or BaseChatFlow.
     def _external_chat(self) -> Generator[ChatEvent | str, None, None]:
-        db_user_message, db_assistant_message = self._chat_start()
+        db_user_message, db_assistant_message = yield from self._chat_start()
 
-        yield ChatEvent(
-            event_type=ChatEventType.DATA_PART,
-            payload=ChatStreamDataPayload(
-                chat=self.db_chat_obj,
-                user_message=db_user_message,
-                assistant_message=db_assistant_message,
-            ),
-        )
-
-        # retrieve entities, relations, and chunks from the knowledge graph
-        # this retrieve progress is only for the clarifying question checking
+        goal, response_format = self.user_question, {}
         try:
-            # 1. Retrieve Knowledge graph related to the user question.
-            kg_config = self.chat_engine_config.knowledge_graph
-            knowledge_graph_context = ""
-            graph_data_source_ids = {}
-            if kg_config is not None and kg_config.enabled:
-                (
-                    entities,
-                    relationships,
-                    graph_data_source_ids,
-                    knowledge_graph_context,
-                ) = yield from self._search_knowledge_graph(kg_config=kg_config)
+            # 1. Generate the goal with the user question, knowledge graph and chat history.
+            goal, response_format = yield from self._generate_goal()
 
-            # 2. Refine the user question using knowledge graph and chat history.
-            refined_question = yield from self._refine_user_question(
-                knowledge_graph_context=knowledge_graph_context,
-                refined_question_prompt=self.chat_engine_config.llm.generate_goal_prompt,
-                annotation_silent=True,
-            )
-
-            # 3. Check if the question provided enough context information or need to clarify.
+            # 2. Check if the goal provided enough context information or need to clarify.
             if self.chat_engine_config.clarify_question:
-                early_stop, need_clarify_response = self._clarify_question(
-                    refined_question=refined_question,
-                    knowledge_graph_context=knowledge_graph_context,
+                need_clarify, need_clarify_response = yield from self._clarify_question(
+                    refined_question=goal,
                 )
-                if early_stop:
-                    yield ChatEvent(
-                        event_type=ChatEventType.TEXT_PART,
-                        payload=need_clarify_response,
-                    )
+                if need_clarify:
+                    logger.info("", extra={"chat_id": self.chat_id})
                     yield from self._chat_finish(
                         db_assistant_message=db_assistant_message,
                         db_user_message=db_user_message,
                         response_text=need_clarify_response,
-                        source_documents=[],
-                        graph_data_source_ids=graph_data_source_ids,
                         annotation_silent=True,
                     )
                     return
-
-            goal = refined_question.strip()
-            if goal.startswith("Goal: "):
-                goal = goal[len("Goal: ") :].strip()
-
-            logger.info(
-                f"Refined question with knowledge graph and generated goal: {goal}"
-            )
         except Exception as e:
-            logger.error(f"Failed to refine question with related knowledge graph: {e}")
             goal = self.user_question
-
-        response_format = {}
-        try:
-            clean_goal, response_format = parse_goal_response_format(goal)
-            logger.info(f"clean goal: {clean_goal}, response_format: {response_format}")
-            if clean_goal:
-                goal = clean_goal
-        except Exception as e:
-            logger.error(f"Failed to parse goal and response format: {e}")
+            logger.warning(
+                f"Failed to generate refined goal, fallback to use user question as goal directly: {e}",
+                exc_info=True,
+                extra={},
+            )
 
         cache_messages = None
         if settings.ENABLE_QUESTION_CACHE:
@@ -504,24 +430,22 @@ class ChatFlow:
                 "Specific error occurred during post verification job.", exc_info=True
             )
 
-        db_assistant_message.content = response_text
-        db_assistant_message.trace_url = (
-            f"{base_url}?task_id={task_id}" if task_id else ""
-        )
-        db_assistant_message.meta = {
+        trace_url = f"{base_url}?task_id={task_id}" if task_id else ""
+        message_meta = {
             "task_id": task_id,
             "goal": goal,
             **response_format,
         }
+
+        db_assistant_message.content = response_text
+        db_assistant_message.trace_url = trace_url
+        db_assistant_message.meta = message_meta
         db_assistant_message.updated_at = datetime.now(UTC)
         db_assistant_message.finished_at = datetime.now(UTC)
         self.db_session.add(db_assistant_message)
-        db_user_message.trace_url = f"{base_url}?task_id={task_id}" if task_id else ""
-        db_user_message.meta = {
-            "task_id": task_id,
-            "goal": goal,
-            **response_format,
-        }
+
+        db_user_message.trace_url = trace_url
+        db_user_message.meta = message_meta
         db_user_message.updated_at = datetime.now(UTC)
         db_user_message.finished_at = datetime.now(UTC)
         self.db_session.add(db_user_message)
@@ -536,7 +460,34 @@ class ChatFlow:
             ),
         )
 
-    def _chat_start(self) -> Tuple[DBChatMessage, DBChatMessage]:
+    def _generate_goal(self) -> Generator[ChatEvent, None, Tuple[str, dict]]:
+        try:
+            refined_question = yield from self._refine_user_question(
+                refined_question_prompt=self.chat_engine_config.llm.generate_goal_prompt,
+                annotation_silent=True,
+            )
+
+            goal = refined_question.strip()
+            if goal.startswith("Goal: "):
+                goal = goal[len("Goal: ") :].strip()
+        except Exception as e:
+            logger.error(f"Failed to refine question with related knowledge graph: {e}")
+            goal = self.user_question
+
+        response_format = {}
+        try:
+            clean_goal, response_format = parse_goal_response_format(goal)
+            logger.info(f"clean goal: {clean_goal}, response_format: {response_format}")
+            if clean_goal:
+                goal = clean_goal
+        except Exception as e:
+            logger.error(f"Failed to parse goal and response format: {e}")
+
+        return goal, response_format
+
+    def _chat_start(
+        self,
+    ) -> Generator[ChatEvent, None, Tuple[DBChatMessage, DBChatMessage]]:
         db_user_message = chat_repo.create_message(
             session=self.db_session,
             chat=self.db_chat_obj,
@@ -555,17 +506,28 @@ class ChatFlow:
                 content="",
             ),
         )
+        yield ChatEvent(
+            event_type=ChatEventType.DATA_PART,
+            payload=ChatStreamDataPayload(
+                chat=self.db_chat_obj,
+                user_message=db_user_message,
+                assistant_message=db_assistant_message,
+            ),
+        )
+        yield ChatEvent(
+            event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
+            payload=ChatStreamMessagePayload(
+                state=ChatMessageSate.TRACE,
+                context={"langfuse_url": self.trace_url},
+            ),
+        )
         return db_user_message, db_assistant_message
 
     def _search_knowledge_graph(
         self,
         kg_config: KnowledgeGraphOption,
         annotation_silent: bool = False,
-    ) -> Generator[
-        ChatEvent | str,
-        None,
-        Tuple[List[RetrievedEntity], List[RetrievedRelationship], dict, str],
-    ]:
+    ) -> Generator[ChatEvent, None, Tuple[RetrievedKnowledgeGraph, str]]:
         """
         Search the knowledge graph for relevant entities, relationships, and chunks.
         Args:
@@ -573,15 +535,10 @@ class ChatFlow:
             annotation_silent: bool, if True, do not send annotation events
 
         Returns:
-            List[RetrievedEntity]: entities
-            List[RetrievedRelationship]: relationships
-            List[dict]: the knowledge graph source ids
+            RetrievedKnowledgeGraph: The retrieved knowledge graph.
             str: graph_knowledges_context
         """
-
-        entities, relationships = [], []
-
-        # For parameter compatibility.
+        # For forward compatibility of chat engine config.
         enable_metadata_filter = kg_config.enable_metadata_filter or (
             kg_config.relationship_meta_filters is not None
         )
@@ -605,32 +562,20 @@ class ChatFlow:
             callback_manager=self.callback_manager,
         )
 
-        knowledge_graph = kg_retriever.retrieve_knowledge_graph(
-            QueryBundle(self.user_question)
-        )
-
         if kg_config.using_intent_search:
             if not annotation_silent:
                 yield ChatEvent(
                     event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
                     payload=ChatStreamMessagePayload(
                         state=ChatMessageSate.KG_RETRIEVAL,
-                        display="Identifying Your Question's Core Intents",
+                        display="Identifying The Question's Intents and Perform Knowledge Graph Search",
                     ),
                 )
-
-            # compatibility considerations.
-            sub_queries = {}
-            for subquery in knowledge_graph.subqueries:
-                sub_queries[subquery.query] = {
-                    "entities": subquery.entities,
-                    "relationships": subquery.relationships,
-                }
-
-            graph_data_source_ids = {}
+            knowledge_graph = kg_retriever.retrieve_knowledge_graph(self.user_question)
             kg_context_template = get_prompt_by_jinja2_template(
                 self.chat_engine_config.llm.intent_graph_knowledge,
-                sub_queries=sub_queries,
+                # For forward compatibility considerations.
+                sub_queries=knowledge_graph.to_subqueries_dict(),
             )
             knowledge_graph_context = kg_context_template.template
         else:
@@ -638,13 +583,11 @@ class ChatFlow:
                 yield ChatEvent(
                     event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
                     payload=ChatStreamMessagePayload(
-                        state=ChatMessageSate.TRACE,
+                        state=ChatMessageSate.KG_RETRIEVAL,
                         display="Searching the Knowledge Graph for Relevant Context",
-                        context={"langfuse_url": self.trace_url},
                     ),
                 )
-
-            graph_data_source_ids = {}
+            knowledge_graph = kg_retriever.retrieve_knowledge_graph(self.user_question)
             kg_context_template = get_prompt_by_jinja2_template(
                 self.chat_engine_config.llm.normal_graph_knowledge,
                 entities=knowledge_graph.entities,
@@ -653,18 +596,16 @@ class ChatFlow:
             knowledge_graph_context = kg_context_template.template
 
         return (
-            entities,
-            relationships,
-            graph_data_source_ids,
+            knowledge_graph,
             knowledge_graph_context,
         )
 
     def _refine_user_question(
         self,
-        knowledge_graph_context: str,
         refined_question_prompt: str,
+        knowledge_graph_context: str = "",
         annotation_silent: bool = False,
-    ):
+    ) -> Generator[ChatEvent, None, str]:
         if not annotation_silent:
             yield ChatEvent(
                 event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
@@ -674,7 +615,6 @@ class ChatFlow:
                 ),
             )
 
-        # 1. Refine the question
         with self.callback_manager.as_trace("refine_question"):
             with self.callback_manager.event(
                 MyCBEventType.CONDENSE_QUESTION,
@@ -704,17 +644,19 @@ class ChatFlow:
     def _clarify_question(
         self,
         refined_question: str,
-        knowledge_graph_context: str,
-    ) -> Tuple[bool, str]:
+        knowledge_graph_context: str = "",
+    ) -> Generator[ChatEvent, None, Tuple[bool, str]]:
         """
-        Determine whether to refine the user question or early stop the conversation with a clarifying question.
+        Check if the question clear and provided enough context information, otherwise, it is necessary to
+        stop the conversation early and ask the user for the further clarification.
 
         Args:
+            refined_question: str
             knowledge_graph_context: str
 
         Returns:
-            bool: whether to early stop the conversation
-            str: clarifying question
+            bool: Determine whether further clarification of the issue is needed from the user.
+            str: The content of the questions that require clarification from the user.
         """
         with self.callback_manager.as_trace("clarify_question"):
             with self.callback_manager.event(
@@ -734,22 +676,26 @@ class ChatFlow:
                     .strip(".\"'!")
                 )
 
-                clarity_needed = clarity_result.lower() != "false"
+                need_clarify = clarity_result.lower() != "false"
+                need_clarify_response = clarity_result if need_clarify else ""
                 event.on_end(
                     payload={
-                        "clarity_needed": clarity_needed,
-                        "clarity_result": clarity_result,
+                        "need_clarify": need_clarify,
+                        "need_clarify_response": need_clarify_response,
                     }
                 )
 
-        if clarity_needed:
-            return True, clarity_result
-        else:
-            return False, ""
+        if need_clarify:
+            yield ChatEvent(
+                event_type=ChatEventType.TEXT_PART,
+                payload=need_clarify_response,
+            )
+
+        return need_clarify, need_clarify_response
 
     def _search_relevant_chunks(
         self, refined_question: str, annotation_silent: bool = False
-    ) -> List[NodeWithScore]:
+    ) -> Generator[ChatEvent, None, List[NodeWithScore]]:
         if not annotation_silent:
             yield ChatEvent(
                 event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
@@ -791,7 +737,7 @@ class ChatFlow:
         knowledge_graph_context: str,
         relevant_chunk_nodes: List[NodeWithScore],
         annotation_silent: bool = False,
-    ) -> Generator[ChatEvent | str, None, Tuple[StreamingResponse, List[dict]]]:
+    ) -> Generator[ChatEvent, None, Tuple[str, List[dict]]]:
         text_qa_template = get_prompt_by_jinja2_template(
             self.chat_engine_config.llm.text_qa_prompt,
             current_date=datetime.now().strftime("%Y-%m-%d"),
@@ -805,18 +751,18 @@ class ChatFlow:
             callback_manager=self.callback_manager,
         )
         response = response_synthesizer.synthesize(
-            refined_question, relevant_chunk_nodes
+            query=refined_question, nodes=relevant_chunk_nodes
         )
         source_documents = self._get_source_documents(response)
 
+        yield ChatEvent(
+            event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
+            payload=ChatStreamMessagePayload(
+                state=ChatMessageSate.SOURCE_NODES,
+                context=source_documents,
+            ),
+        )
         if not annotation_silent:
-            yield ChatEvent(
-                event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
-                payload=ChatStreamMessagePayload(
-                    state=ChatMessageSate.SOURCE_NODES,
-                    context=source_documents,
-                ),
-            )
             yield ChatEvent(
                 event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
                 payload=ChatStreamMessagePayload(
@@ -825,7 +771,18 @@ class ChatFlow:
                 ),
             )
 
-        return response, source_documents
+        response_text = ""
+        for word in response.response_gen:
+            response_text += word
+            yield ChatEvent(
+                event_type=ChatEventType.TEXT_PART,
+                payload=word,
+            )
+
+        if not response_text:
+            raise Exception("Got empty response from LLM")
+
+        return response_text, source_documents
 
     def _parse_chat_messages(
         self, chat_messages: List[ChatMessage]
@@ -835,37 +792,17 @@ class ChatFlow:
         return user_question, chat_history
 
     def _get_source_documents(self, response: StreamingResponse) -> List[dict]:
-        source_nodes_ids = [s_n.node_id for s_n in response.source_nodes]
-        stmt = (
-            select(
-                self._chunk_db_model.id,
-                DBDocument.id,
-                DBDocument.name,
-                DBDocument.source_uri,
-            )
-            .outerjoin(DBDocument, self._chunk_db_model.document_id == DBDocument.id)
-            .where(
-                self._chunk_db_model.id.in_(source_nodes_ids),
-            )
+        document_ids = [
+            s_n.node.metadata["document_id"] for s_n in response.source_nodes
+        ]
+        stmt = select(DBDocument.id, DBDocument.name, DBDocument.source_uri).where(
+            DBDocument.id.in_(document_ids)
         )
-        source_chunks = self.db_session.exec(stmt).all()
-        # Sort the source chunks based on the order of the source_nodes_ids, which are arranged according to their related scores.
-        source_chunks = sorted(
-            source_chunks, key=lambda x: source_nodes_ids.index(str(x[0]))
-        )
-        source_documents = []
-        source_documents_ids = []
-        for s in source_chunks:
-            if s[1] not in source_documents_ids:
-                source_documents_ids.append(s[1])
-                source_documents.append(
-                    {
-                        "id": s[1],
-                        "name": s[2],
-                        "source_uri": s[3],
-                    }
-                )
-        return source_documents
+        rows = self.db_session.exec(stmt).all()
+
+        # Keep the original order of document ids, which is sorted by similarity.
+        rows = sorted(rows, key=lambda row: document_ids.index(row[0]))
+        return [{"id": row[0], "name": row[1], "source_uri": row[2]} for row in rows]
 
     def _post_verification(
         self, user_question: str, response_text: str, chat_id: UUID, message_id: int
@@ -904,8 +841,8 @@ class ChatFlow:
         db_assistant_message: ChatMessage,
         db_user_message: ChatMessage,
         response_text: str,
-        source_documents: List[dict],
-        graph_data_source_ids: dict,
+        knowledge_graph: RetrievedKnowledgeGraph = RetrievedKnowledgeGraph(),
+        source_documents: Optional[List[dict]] = list,
         annotation_silent: bool = False,
     ):
         if not annotation_silent:
@@ -923,14 +860,17 @@ class ChatFlow:
             db_assistant_message.id,
         )
 
+        graph_data = knowledge_graph.to_graph_data_dict()
+
         db_assistant_message.sources = source_documents
-        db_assistant_message.graph_data = graph_data_source_ids
+        db_assistant_message.graph_data = graph_data
         db_assistant_message.content = response_text
         db_assistant_message.post_verification_result_url = post_verification_result_url
         db_assistant_message.updated_at = datetime.now(UTC)
         db_assistant_message.finished_at = datetime.now(UTC)
         self.db_session.add(db_assistant_message)
-        db_user_message.graph_data = graph_data_source_ids
+
+        db_user_message.graph_data = graph_data
         db_user_message.updated_at = datetime.now(UTC)
         db_user_message.finished_at = datetime.now(UTC)
         self.db_session.add(db_user_message)
@@ -947,7 +887,7 @@ class ChatFlow:
 
 
 def user_can_view_chat(chat: DBChat, user: Optional[User]) -> bool:
-    # Anonymous or pulic chat can be accessed by anyone
+    # Anonymous or public chat can be accessed by anyone
     # Non-anonymous chat can be accessed by owner or superuser
     if not chat.user_id or chat.visibility == ChatVisibility.PUBLIC:
         return True

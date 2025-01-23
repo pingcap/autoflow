@@ -88,7 +88,7 @@ class MultiKBFusionRetriever(BaseRetriever):
             for retriever, i in sections:
                 tasks.append(retriever.aretrieve(query))
                 task_queries.append((query.query_str, i))
-        task_results = run_async_tasks(tasks, show_progress=True)
+        task_results = run_async_tasks(tasks)
 
         results = {}
         for query_tuple, query_result in zip(task_queries, task_results):

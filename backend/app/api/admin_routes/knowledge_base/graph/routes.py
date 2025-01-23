@@ -23,7 +23,6 @@ from app.rag.indices.knowledge_graph.retriever.base_retriever import (
     KnowledgeGraphRetriever,
 )
 from app.rag.indices.knowledge_graph.retriever.schema import (
-    KnowledgeGraphRetrieverConfig,
     RetrievedKnowledgeGraph,
 )
 from app.rag.knowledge_base.index_store import (
@@ -212,16 +211,12 @@ def search_graph(
         retriever = KnowledgeGraphRetriever(
             db_session=db_session,
             knowledge_base_id=kb_id,
-            config=KnowledgeGraphRetrieverConfig(
-                **request.retrival_config.model_dump()
-            ),
+            config=request.retrival_config.knowledge_graph,
         )
-        entities, relationships = retriever.retrieve_knowledge_graph(
-            QueryBundle(request.query)
-        )
+        knowledge_graph = retriever.retrieve_knowledge_graph(QueryBundle(request.query))
         return RetrievedKnowledgeGraph(
-            entities=entities,
-            relationships=relationships,
+            entities=knowledge_graph.entities,
+            relationships=knowledge_graph.relationships,
         )
     except KBNotFound as e:
         raise e

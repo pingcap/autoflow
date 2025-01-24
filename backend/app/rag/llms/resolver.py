@@ -69,8 +69,8 @@ def resolve_llm(
                 )
             )
             google_creds.refresh(request=Request())
-            if "max_tokens" not in config:
-                config.update(max_tokens=4096)
+            config.setdefault("max_tokens", 4096)
+            config.setdefault("context_window", 200 * 1000)
             return Vertex(
                 model=model,
                 project=credentials["project_id"],

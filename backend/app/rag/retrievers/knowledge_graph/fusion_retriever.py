@@ -8,12 +8,12 @@ from llama_index.core.llms import LLM
 from llama_index.core.schema import NodeWithScore
 from llama_index.core.tools import ToolMetadata
 
-from app.rag.knowledge_base.multi_kb_retriever import MultiKBFusionRetriever
+from app.rag.retrievers.multiple_knowledge_base import MultiKBFusionRetriever
 from app.rag.knowledge_base.selector import KBSelectMode
-from app.rag.indices.knowledge_graph.retriever.simple_retriever import (
+from app.rag.retrievers.knowledge_graph.simple_retriever import (
     KnowledgeGraphSimpleRetriever,
 )
-from app.rag.indices.knowledge_graph.retriever.schema import (
+from app.rag.retrievers.knowledge_graph.schema import (
     KnowledgeGraphRetrieverConfig,
     RetrievedRelationship,
     KnowledgeGraphRetrievalResult,
@@ -26,9 +26,7 @@ from app.repositories import knowledge_base_repo
 logger = logging.getLogger(__name__)
 
 
-class KnowledgeGraphFusionSimpleRetriever(
-    MultiKBFusionRetriever, KnowledgeGraphRetriever
-):
+class KnowledgeGraphFusionRetriever(MultiKBFusionRetriever, KnowledgeGraphRetriever):
     def __init__(
         self,
         db_session: Session,

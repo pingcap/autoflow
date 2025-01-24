@@ -6,7 +6,7 @@ from sqlmodel import Session
 from app.models import (
     Document as DBDocument,
 )
-from app.rag.retrievers.LegacyChatEngineRetriever import (
+from app.rag.retrievers.chat_engine_based import (
     ChatEngineBasedRetriever,
 )
 from app.repositories.chunk import ChunkRepo

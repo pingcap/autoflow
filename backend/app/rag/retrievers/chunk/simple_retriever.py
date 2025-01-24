@@ -11,20 +11,20 @@ from app.models.chunk import get_kb_chunk_model
 from app.models.patch.sql_model import SQLModel
 from app.rag.knowledge_base.config import get_kb_embed_model
 from app.rag.rerankers.resolver import resolve_reranker_by_id
-from app.rag.indices.vector_search.retriever.schema import (
+from app.rag.retrievers.chunk.schema import (
     VectorSearchRetrieverConfig,
     ChunksRetrievalResult,
-    map_nodes_to_chunks,
-    ChunksRetriever,
+    ChunkRetriever,
 )
-from app.rag.vector_store.tidb_vector_store import TiDBVectorStore
+from app.rag.retrievers.chunk.helpers import map_nodes_to_chunks
+from app.rag.indices.vector_search.vector_store.tidb_vector_store import TiDBVectorStore
 from app.rag.postprocessors.resolver import get_metadata_post_filter
 from app.repositories import knowledge_base_repo, document_repo
 
 logger = logging.getLogger(__name__)
 
 
-class VectorSearchSimpleRetriever(BaseRetriever, ChunksRetriever):
+class ChunkSimpleRetriever(BaseRetriever, ChunkRetriever):
     _chunk_model: Type[SQLModel]
 
     def __init__(

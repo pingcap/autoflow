@@ -11,17 +11,15 @@ from app.rag.chat_config import (
     KnowledgeGraphOption,
     KnowledgeBaseOption,
 )
-from app.rag.indices.knowledge_graph.retriever.fusion_retriever import (
-    KnowledgeGraphFusionSimpleRetriever,
+from app.rag.retrievers.knowledge_graph.fusion_retriever import (
+    KnowledgeGraphFusionRetriever,
 )
-from app.rag.indices.knowledge_graph.retriever.schema import (
+from app.rag.retrievers.knowledge_graph.schema import (
     KnowledgeGraphRetrievalResult,
     KnowledgeGraphRetrieverConfig,
 )
-from app.rag.indices.vector_search.retriever.fusion_retriever import (
-    VectorSearchFusionRetriever,
-)
-from app.rag.indices.vector_search.retriever.schema import VectorSearchRetrieverConfig
+from app.rag.retrievers.chunk.fusion_retriever import ChunkFusionRetriever
+from app.rag.retrievers.chunk.schema import VectorSearchRetrieverConfig
 from app.repositories.knowledge_base import knowledge_base_repo
 
 
@@ -113,7 +111,7 @@ class ChatEngineBasedRetriever(BaseRetriever):
             kg_config.metadata_filters or kg_config.relationship_meta_filters
         )
 
-        kg_retriever = KnowledgeGraphFusionSimpleRetriever(
+        kg_retriever = KnowledgeGraphFusionRetriever(
             db_session=self.db_session,
             knowledge_base_ids=self.knowledge_base_ids,
             llm=self._llm,
@@ -167,7 +165,7 @@ class ChatEngineBasedRetriever(BaseRetriever):
         )
 
     def _search_relevant_chunks(self, refined_question: str) -> List[NodeWithScore]:
-        retriever = VectorSearchFusionRetriever(
+        retriever = ChunkFusionRetriever(
             db_session=self.db_session,
             knowledge_base_ids=self.knowledge_base_ids,
             llm=self._llm,

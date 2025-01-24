@@ -8,8 +8,8 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.attributes import flag_modified
 from app.models import Relationship, Entity, EntityType
 from app.rag.indices.knowledge_graph.schema import Relationship as RelationshipAIModel
-from app.rag.graph_store import TiDBGraphStore
-from app.rag.graph_store.helpers import (
+from app.rag.indices.knowledge_graph.graph_store import TiDBGraphStore
+from app.rag.indices.knowledge_graph.graph_store.helpers import (
     get_entity_description_embedding,
     get_relationship_description_embedding,
     get_entity_metadata_embedding,

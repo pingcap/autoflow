@@ -7,14 +7,14 @@ from llama_index.core.retrievers import BaseRetriever
 from llama_index.core.schema import NodeWithScore
 from app.models.entity import get_kb_entity_model
 from app.models.relationship import get_kb_relationship_model
-from app.rag.indices.knowledge_graph.retriever.schema import (
+from app.rag.retrievers.knowledge_graph.schema import (
     KnowledgeGraphRetrieverConfig,
     KnowledgeGraphRetrievalResult,
     KnowledgeGraphNode,
     KnowledgeGraphRetriever,
 )
 from app.rag.knowledge_base.config import get_kb_embed_model, get_kb_dspy_llm
-from app.rag.graph_store import TiDBGraphStore
+from app.rag.indices.knowledge_graph.graph_store import TiDBGraphStore
 from app.repositories import knowledge_base_repo
 
 

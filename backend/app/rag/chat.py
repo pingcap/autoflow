@@ -45,24 +45,24 @@ from app.rag.chat_stream_protocol import (
     ChatEvent,
 )
 from app.models.relationship import get_kb_relationship_model
-from app.rag.graph_store import TiDBGraphStore
-from app.rag.indices.knowledge_graph.retriever.fusion_retriever import (
-    KnowledgeGraphFusionSimpleRetriever,
+from app.rag.indices.knowledge_graph.graph_store import TiDBGraphStore
+from app.rag.retrievers.knowledge_graph.fusion_retriever import (
+    KnowledgeGraphFusionRetriever,
 )
-from app.rag.indices.knowledge_graph.retriever.schema import (
+from app.rag.retrievers.knowledge_graph.schema import (
     KnowledgeGraphRetrieverConfig,
     KnowledgeGraphRetrievalResult,
 )
-from app.rag.indices.vector_search.retriever.fusion_retriever import (
-    VectorSearchFusionRetriever,
+from app.rag.retrievers.chunk.fusion_retriever import (
+    ChunkFusionRetriever,
 )
-from app.rag.indices.vector_search.retriever.schema import (
+from app.rag.retrievers.chunk.schema import (
     VectorSearchRetrieverConfig,
 )
 
 from app.rag.knowledge_base.config import get_kb_embed_model
 from app.rag.knowledge_base.index_store import get_kb_tidb_graph_editor
-from app.rag.graph_store.tidb_graph_editor import (
+from app.rag.indices.knowledge_graph.graph_store import (
     legacy_tidb_graph_editor,
     TiDBGraphEditor,
 )
@@ -547,7 +547,7 @@ class ChatFlow:
             kg_config.metadata_filters or kg_config.relationship_meta_filters
         )
 
-        kg_retriever = KnowledgeGraphFusionSimpleRetriever(
+        kg_retriever = KnowledgeGraphFusionRetriever(
             db_session=self.db_session,
             knowledge_base_ids=self.knowledge_base_ids,
             llm=self._llm,
@@ -737,7 +737,7 @@ class ChatFlow:
             MyCBEventType.RETRIEVE,
             payload={EventPayload.QUERY_STR: refined_question},
         ) as event:
-            retriever = VectorSearchFusionRetriever(
+            retriever = ChunkFusionRetriever(
                 db_session=self.db_session,
                 knowledge_base_ids=self.knowledge_base_ids,
                 llm=self._llm,

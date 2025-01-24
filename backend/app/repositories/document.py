@@ -8,7 +8,7 @@ from fastapi_pagination.ext.sqlmodel import paginate
 from app.api.admin_routes.knowledge_base.document.models import DocumentFilters
 from app.exceptions import DocumentNotFound
 from app.models import Document
-from app.rag.indices.vector_search.retriever.schema import RetrievedChunkDocument
+from app.rag.retrievers.chunk.schema import RetrievedChunkDocument
 from app.repositories.base_repo import BaseRepo
 
 

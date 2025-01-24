@@ -6,9 +6,8 @@ from app.models.chunk import get_kb_chunk_model
 from app.models.entity import get_kb_entity_model
 from app.rag.knowledge_base.config import get_kb_dspy_llm, get_kb_embed_model
 from app.models.relationship import get_kb_relationship_model
-from app.rag.graph_store import TiDBGraphStore
-from app.rag.graph_store.tidb_graph_editor import TiDBGraphEditor
-from app.rag.vector_store.tidb_vector_store import TiDBVectorStore
+from app.rag.indices.knowledge_graph.graph_store import TiDBGraphStore, TiDBGraphEditor
+from app.rag.indices.vector_search.vector_store.tidb_vector_store import TiDBVectorStore
 
 
 def get_kb_tidb_vector_store(session: Session, kb: KnowledgeBase) -> TiDBVectorStore:

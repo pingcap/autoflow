@@ -2,7 +2,6 @@ import logging
 from typing import List
 
 from fastapi import APIRouter, HTTPException, status
-from llama_index.core import QueryBundle
 
 from app.api.admin_routes.knowledge_base.graph.models import (
     SynopsisEntityCreate,
@@ -17,15 +16,15 @@ from app.models import (
     EntityPublic,
     RelationshipPublic,
 )
-from app.rag.indices.knowledge_graph.retriever.simple_retriever import (
-    KnowledgeGraphRetriever,
-)
-from app.rag.indices.knowledge_graph.retriever.schema import (
+from app.rag.retrievers.knowledge_graph.schema import (
     KnowledgeGraphRetrievalResult,
 )
 from app.rag.knowledge_base.index_store import (
     get_kb_tidb_graph_editor,
     get_kb_tidb_graph_store,
+)
+from app.rag.retrievers.knowledge_graph.simple_retriever import (
+    KnowledgeGraphSimpleRetriever,
 )
 from app.repositories import knowledge_base_repo
 
@@ -205,12 +204,12 @@ def retrieve_kb_knowledge_graph(
     db_session: SessionDep, kb_id: int, request: KBRetrieveKnowledgeGraphRequest
 ) -> KnowledgeGraphRetrievalResult:
     try:
-        retriever = KnowledgeGraphRetriever(
+        retriever = KnowledgeGraphSimpleRetriever(
             db_session=db_session,
             knowledge_base_id=kb_id,
             config=request.retrival_config.knowledge_graph,
         )
-        knowledge_graph = retriever.retrieve_knowledge_graph(QueryBundle(request.query))
+        knowledge_graph = retriever.retrieve_knowledge_graph(request.query)
         return KnowledgeGraphRetrievalResult(
             entities=knowledge_graph.entities,
             relationships=knowledge_graph.relationships,

@@ -2,17 +2,17 @@ import logging
 
 from fastapi import APIRouter
 from app.api.deps import SessionDep, CurrentSuperuserDep
-from app.rag.indices.knowledge_graph.retriever.fusion_retriever import (
-    KnowledgeGraphFusionSimpleRetriever,
+from app.rag.retrievers.knowledge_graph.fusion_retriever import (
+    KnowledgeGraphFusionRetriever,
 )
-from app.rag.indices.knowledge_graph.retriever.schema import (
+from app.rag.retrievers.knowledge_graph.schema import (
     KnowledgeGraphRetrievalResult,
 )
-from app.rag.indices.vector_search.retriever.fusion_retriever import (
-    VectorSearchFusionRetriever,
+from app.rag.retrievers.chunk.fusion_retriever import (
+    ChunkFusionRetriever,
 )
 from app.exceptions import KBNotFound
-from app.rag.indices.vector_search.retriever.schema import ChunksRetrievalResult
+from app.rag.retrievers.chunk.schema import ChunksRetrievalResult
 from app.rag.llms.resolver import get_llm_or_default
 from .models import ChunksRetrivalRequest, KnowledgeGraphRetrivalRequest
 
@@ -29,7 +29,7 @@ def retrieve_chunks(
     try:
         config = request.retrieval_config
         llm = get_llm_or_default(db_session, config.llm_id)
-        retriever = VectorSearchFusionRetriever(
+        retriever = ChunkFusionRetriever(
             db_session=db_session,
             knowledge_base_ids=config.knowledge_base_ids,
             llm=llm,
@@ -54,7 +54,7 @@ def retrieve_knowledge_graph(
     try:
         config = request.retrieval_config
         llm = get_llm_or_default(db_session, config.llm_id)
-        retriever = KnowledgeGraphFusionSimpleRetriever(
+        retriever = KnowledgeGraphFusionRetriever(
             db_session=db_session,
             knowledge_base_ids=config.knowledge_base_ids,
             llm=llm,

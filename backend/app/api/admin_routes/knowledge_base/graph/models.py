@@ -1,7 +1,7 @@
 from typing import List, Optional
 from pydantic import BaseModel, model_validator
 
-from app.rag.indices.knowledge_graph.retriever.schema import (
+from app.rag.retrievers.knowledge_graph.schema import (
     KnowledgeGraphRetrieverConfig,
 )
 

@@ -5,21 +5,21 @@ from llama_index.core.llms import LLM
 from llama_index.core.schema import NodeWithScore
 from llama_index.core.tools import ToolMetadata
 from sqlmodel import Session
-from app.rag.indices.vector_search.retriever.simple_retriever import (
-    VectorSearchSimpleRetriever,
+from app.rag.retrievers.chunk.simple_retriever import (
+    ChunkSimpleRetriever,
 )
-from app.rag.indices.vector_search.retriever.schema import (
+from app.rag.retrievers.chunk.schema import (
     VectorSearchRetrieverConfig,
     ChunksRetrievalResult,
-    map_nodes_to_chunks,
-    ChunksRetriever,
+    ChunkRetriever,
 )
-from app.rag.knowledge_base.multi_kb_retriever import MultiKBFusionRetriever
+from app.rag.retrievers.chunk.helpers import map_nodes_to_chunks
+from app.rag.retrievers.multiple_knowledge_base import MultiKBFusionRetriever
 from app.rag.knowledge_base.selector import KBSelectMode
 from app.repositories import knowledge_base_repo, document_repo
 
 
-class VectorSearchFusionRetriever(MultiKBFusionRetriever, ChunksRetriever):
+class ChunkFusionRetriever(MultiKBFusionRetriever, ChunkRetriever):
     def __init__(
         self,
         db_session: Session,
@@ -38,7 +38,7 @@ class VectorSearchFusionRetriever(MultiKBFusionRetriever, ChunksRetriever):
         knowledge_bases = knowledge_base_repo.get_by_ids(db_session, knowledge_base_ids)
         for kb in knowledge_bases:
             retrievers.append(
-                VectorSearchSimpleRetriever(
+                ChunkSimpleRetriever(
                     knowledge_base_id=kb.id,
                     config=config,
                     callback_manager=callback_manager,

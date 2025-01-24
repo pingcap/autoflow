@@ -2,11 +2,11 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from app.rag.indices.knowledge_graph.retriever.schema import (
+from app.rag.retrievers.knowledge_graph.schema import (
     KnowledgeGraphRetrieverConfig,
 )
-from app.rag.indices.vector_search.retriever.schema import VectorSearchRetrieverConfig
-from app.rag.knowledge_base.multi_kb_retriever import FusionRetrivalBaseConfig
+from app.rag.retrievers.chunk.schema import VectorSearchRetrieverConfig
+from app.rag.retrievers.multiple_knowledge_base import FusionRetrivalBaseConfig
 
 # Chunks Retrival
 

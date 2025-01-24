@@ -16,7 +16,7 @@ from tidb_vector.sqlalchemy import VectorAdaptor
 from sqlalchemy import or_, desc
 
 from app.core.db import engine
-from app.rag.graph_store.helpers import (
+from app.rag.indices.knowledge_graph.graph_store.helpers import (
     get_entity_description_embedding,
     get_relationship_description_embedding,
     calculate_relationship_score,
@@ -26,13 +26,13 @@ from app.rag.graph_store.helpers import (
     DEFAULT_WEIGHT_COEFFICIENT_CONFIG,
     DEFAULT_DEGREE_COEFFICIENT,
 )
-from app.rag.graph_store.schema import KnowledgeGraphStore
+from app.rag.indices.knowledge_graph.graph_store.schema import KnowledgeGraphStore
 from app.rag.indices.knowledge_graph.schema import (
     Entity,
     Relationship,
     SynopsisEntity,
 )
-from app.rag.indices.knowledge_graph.retriever.schema import (
+from app.rag.retrievers.knowledge_graph.schema import (
     RetrievedEntity,
     RetrievedRelationship,
 )

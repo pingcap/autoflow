@@ -7,6 +7,7 @@ from pydantic import BaseModel
 class LLMProvider(str, enum.Enum):
     OPENAI = "openai"
     GEMINI = "gemini"
+    # TODO: remove ANTHROPIC_VERTEX as it's deprecated.
     ANTHROPIC_VERTEX = "anthropic_vertex"
     VERTEX = "vertex"
     OPENAI_LIKE = "openai_like"
@@ -116,22 +117,6 @@ llm_provider_options: List[LLMProviderOption] = [
         credentials_description="The API key of Gitee AI, you can find it in https://ai.gitee.com/dashboard/settings/tokens",
         credentials_type="str",
         default_credentials="****",
-    ),
-    LLMProviderOption(
-        provider=LLMProvider.ANTHROPIC_VERTEX,
-        provider_display_name="Anthropic Vertex AI (Deprecated)",
-        provider_description="Anthropic's Claude models are now generally available through Vertex AI.",
-        provider_url="https://docs.anthropic.com/en/api/claude-on-vertex-ai",
-        default_llm_model="claude-3-5-sonnet@20241022",
-        llm_model_description="",
-        credentials_display_name="Google Credentials JSON",
-        credentials_description="The JSON Object of Google Credentials, refer to https://cloud.google.com/docs/authentication/provide-credentials-adc#on-prem",
-        credentials_type="dict",
-        default_credentials={
-            "type": "service_account",
-            "project_id": "****",
-            "private_key_id": "****",
-        },
     ),
     LLMProviderOption(
         provider=LLMProvider.VERTEX,

@@ -151,9 +151,9 @@ class ChatFlow:
                     user_id=self.user.id if self.user else None,
                     browser_id=self.browser_id,
                     origin=origin,
-                    visibility=ChatVisibility.PUBLIC.value
+                    visibility=ChatVisibility.PUBLIC
                     if not self.user
-                    else ChatVisibility.PRIVATE.value,
+                    else ChatVisibility.PRIVATE,
                 ),
             )
             chat_id = self.db_chat_obj.id

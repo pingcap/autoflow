@@ -10,6 +10,7 @@ from alembic import op
 from sqlalchemy.dialects import mysql
 
 from app.models.base import IntEnumType
+from app.models.chat import ChatVisibility
 
 # revision identifiers, used by Alembic.
 revision = "2adc0b597dcd"
@@ -24,7 +25,7 @@ def upgrade():
         "chats",
         "visibility",
         existing_type=mysql.SMALLINT(),
-        type_=IntEnumType(),
+        type_=IntEnumType(ChatVisibility),
         existing_nullable=False,
     )
     # ### end Alembic commands ###
@@ -35,7 +36,7 @@ def downgrade():
     op.alter_column(
         "chats",
         "visibility",
-        existing_type=IntEnumType(),
+        existing_type=IntEnumType(ChatVisibility),
         type_=mysql.SMALLINT(),
         existing_nullable=False,
     )

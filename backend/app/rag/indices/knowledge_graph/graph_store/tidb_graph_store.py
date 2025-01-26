@@ -814,9 +814,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
                 defer(self._entity_model.meta_vec),
             )
             .order_by(desc("similarity"))
-            .having(text("similarity >= :threshold"))
-            .params(threshold=similarity_threshold)
-            .limit(top_k)
+            .limit(top_k * 2)  # Fetch more results to account for filtering
         )
 
         # Query similar relationships
@@ -840,9 +838,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
                 .defer(self._entity_model.description_vec),
             )
             .order_by(desc("similarity"))
-            .having(text("similarity >= :threshold"))
-            .params(threshold=similarity_threshold)
-            .limit(top_k)
+            .limit(top_k * 2)  # Fetch more results to account for filtering
         )
 
         # Execute both queries
@@ -850,34 +846,36 @@ class TiDBGraphStore(KnowledgeGraphStore):
         relationships = []
 
         for entity, similarity in self._session.exec(entity_query).all():
-            entities.append(
-                {
-                    "id": entity.id,
-                    "name": entity.name,
-                    "description": entity.description,
-                    "metadata": entity.meta,
-                    "similarity_score": similarity,
-                }
-            )
+            if similarity >= similarity_threshold and len(entities) < top_k:
+                entities.append(
+                    {
+                        "id": entity.id,
+                        "name": entity.name,
+                        "description": entity.description,
+                        "metadata": entity.meta,
+                        "similarity_score": similarity,
+                    }
+                )
 
         for relationship, similarity in self._session.exec(relationship_query).all():
-            relationships.append(
-                {
-                    "id": relationship.id,
-                    "relationship": relationship.description,
-                    "source_entity": {
-                        "id": relationship.source_entity.id,
-                        "name": relationship.source_entity.name,
-                        "description": relationship.source_entity.description,
-                    },
-                    "target_entity": {
-                        "id": relationship.target_entity.id,
-                        "name": relationship.target_entity.name,
-                        "description": relationship.target_entity.description,
-                    },
-                    "similarity_score": similarity,
-                }
-            )
+            if similarity >= similarity_threshold and len(relationships) < top_k:
+                relationships.append(
+                    {
+                        "id": relationship.id,
+                        "relationship": relationship.description,
+                        "source_entity": {
+                            "id": relationship.source_entity.id,
+                            "name": relationship.source_entity.name,
+                            "description": relationship.source_entity.description,
+                        },
+                        "target_entity": {
+                            "id": relationship.target_entity.id,
+                            "name": relationship.target_entity.name,
+                            "description": relationship.target_entity.description,
+                        },
+                        "similarity_score": similarity,
+                    }
+                )
 
         return {"entities": entities, "relationships": relationships}
 
@@ -952,14 +950,16 @@ class TiDBGraphStore(KnowledgeGraphStore):
                     )
                 )
                 .order_by(desc("similarity"))
-                .having(text("similarity >= :threshold"))
-                .params(threshold=similarity_threshold)
-                .limit(max_neighbors)
+                .limit(max_neighbors * 2)  # Fetch more results to account for filtering
             ).all()
 
             next_level_nodes = set()
 
             for rel, similarity in relationships:
+                # Skip if similarity is below threshold
+                if similarity < similarity_threshold:
+                    continue
+
                 # Determine direction and connected entity
                 if rel.source_entity_id in current_level_nodes:
                     connected_id = rel.target_entity_id

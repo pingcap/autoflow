@@ -515,13 +515,6 @@ class ChatFlow:
                 assistant_message=db_assistant_message,
             ),
         )
-        yield ChatEvent(
-            event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
-            payload=ChatStreamMessagePayload(
-                state=ChatMessageSate.TRACE,
-                context={"langfuse_url": self.trace_url},
-            ),
-        )
         return db_user_message, db_assistant_message
 
     def _search_knowledge_graph(

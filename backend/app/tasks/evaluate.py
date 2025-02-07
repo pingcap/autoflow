@@ -23,8 +23,8 @@ from app.models import (
 )
 from dotenv import load_dotenv
 
-from app.rag.chat import ChatFlow
-from app.rag.chat_stream_protocol import ChatEvent
+from app.rag.chat.chat_flow import ChatFlow
+from app.rag.chat.stream_protocol import ChatEvent
 from app.rag.types import ChatEventType, ChatMessageSate
 
 load_dotenv()

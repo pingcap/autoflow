@@ -1,17 +1,19 @@
 import logging
 import dspy
 
-from typing import Optional, List, Mapping, Any
+from typing import Optional, List
 from pydantic import BaseModel, Field
 from sqlmodel import Session
 
 from llama_index.core.postprocessor.types import BaseNodePostprocessor
 from llama_index.core.llms.llm import LLM
 
+from app.rag.postprocessors.metadata_post_filter import MetadataPostFilter
+from app.rag.retrievers.chunk.schema import VectorSearchRetrieverConfig
+from app.rag.retrievers.knowledge_graph.schema import KnowledgeGraphRetrieverConfig
 from app.utils.dspy import get_dspy_lm_by_llama_llm
 from app.rag.llms.resolver import get_default_llm, resolve_llm
 from app.rag.rerankers.resolver import get_default_reranker_model, resolve_reranker
-from app.rag.postprocessors import get_metadata_post_filter, MetadataFilters
 
 from app.models import (
     LLM as DBLLM,
@@ -46,19 +48,13 @@ class LLMOption(BaseModel):
     generate_goal_prompt: str = DEFAULT_GENERATE_GOAL_PROMPT
 
 
-class VectorSearchOption(BaseModel):
-    metadata_post_filters: Optional[MetadataFilters] = None
+class VectorSearchOption(VectorSearchRetrieverConfig):
+    pass
 
 
-class KnowledgeGraphOption(BaseModel):
+class KnowledgeGraphOption(KnowledgeGraphRetrieverConfig):
     enabled: bool = True
-    depth: int = 2
-    include_meta: bool = True
-    with_degree: bool = False
     using_intent_search: bool = True
-    enable_metadata_filter: bool = False
-    metadata_filters: Optional[Mapping[str, Any]] = None
-    relationship_meta_filters: Optional[dict] = None  # To be deprecated.
 
 
 class ExternalChatEngine(BaseModel):
@@ -71,25 +67,27 @@ class LinkedKnowledgeBase(BaseModel):
 
 
 class KnowledgeBaseOption(BaseModel):
-    linked_knowledge_base: LinkedKnowledgeBase
+    linked_knowledge_base: LinkedKnowledgeBase = None
     linked_knowledge_bases: Optional[List[LinkedKnowledgeBase]] = Field(
         default_factory=list
     )
 
 
 class ChatEngineConfig(BaseModel):
+    external_engine_config: Optional[ExternalChatEngine] = None
+
     llm: LLMOption = LLMOption()
-    # Notice: Currently knowledge base option is optional, if it is not configured, it will use
-    # the deprecated chunks / relationships / entities table as the data source.
-    knowledge_base: Optional[KnowledgeBaseOption] = None
+
+    knowledge_base: KnowledgeBaseOption = KnowledgeBaseOption()
     knowledge_graph: KnowledgeGraphOption = KnowledgeGraphOption()
     vector_search: VectorSearchOption = VectorSearchOption()
 
+    refine_question_with_kg: bool = True
+    clarify_question: bool = False
+
     post_verification_url: Optional[str] = None
     post_verification_token: Optional[str] = None
-    external_engine_config: Optional[ExternalChatEngine] = None
     hide_sources: bool = False
-    clarify_question: bool = False
 
     _db_chat_engine: Optional[DBChatEngine] = None
     _db_llm: Optional[DBLLM] = None
@@ -171,7 +169,23 @@ class ChatEngineConfig(BaseModel):
         )
 
     def get_metadata_filter(self) -> BaseNodePostprocessor:
-        return get_metadata_post_filter(self.vector_search.metadata_post_filters)
+        return MetadataPostFilter(self.vector_search.metadata_filters)
+
+    def get_knowledge_bases(self, db_session: Session) -> List[KnowledgeBase]:
+        if not self.knowledge_base:
+            return []
+        kb_config: KnowledgeBaseOption = self.knowledge_base
+        linked_knowledge_base_ids = []
+        if len(kb_config.linked_knowledge_bases) == 0:
+            linked_knowledge_base_ids.append(kb_config.linked_knowledge_base.id)
+        else:
+            linked_knowledge_base_ids.extend(
+                [kb.id for kb in kb_config.linked_knowledge_bases]
+            )
+        knowledge_bases = knowledge_base_repo.get_by_ids(
+            db_session, knowledge_base_ids=linked_knowledge_base_ids
+        )
+        return knowledge_bases
 
     def screenshot(self) -> dict:
         return self.model_dump(

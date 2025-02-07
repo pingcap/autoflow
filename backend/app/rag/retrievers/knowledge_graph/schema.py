@@ -1,37 +1,85 @@
 import datetime
 import json
 from abc import ABC
+from enum import Enum
 
 from hashlib import sha256
 from typing import Optional, Mapping, Any, List
 from llama_index.core.schema import BaseNode, MetadataMode
 from pydantic import BaseModel, Field
 
+from app.models.entity import EntityType
+from app.api.admin_routes.models import KnowledgeBaseDescriptor
+
 # Retriever Config
+
+
+class MetadataFilterConfig(BaseModel):
+    enabled: bool = True
+    filters: dict[str, Any] = None
 
 
 class KnowledgeGraphRetrieverConfig(BaseModel):
     depth: int = 2
     include_meta: bool = False
     with_degree: bool = False
-    enable_metadata_filter: bool = False
-    metadata_filters: Optional[dict] = None
+    metadata_filter: Optional[MetadataFilterConfig] = None
+
+
+# Stored Knowledge Graph
+
+
+class StoredKnowledgeGraphVersion(int, Enum):
+    V1 = 1
+
+
+class StoredSubGraph(BaseModel):
+    query: Optional[str] = None
+    knowledge_base_id: Optional[int] = None
+    entities: Optional[list[int]] = None
+    relationships: Optional[list[int]] = None
+
+
+class StoredKnowledgeGraph(StoredSubGraph):
+    """
+    StoredKnowledgeGraph represents the structure of the knowledge graph stored in the database.
+    """
+
+    # If not provided, it means that the old version of the storage format is used, which only
+    # stores entities and relationships information.
+    version: Optional[int] = StoredKnowledgeGraphVersion.V1
+    knowledge_base_ids: Optional[list[int]] = []
+    subgraphs: Optional[list["StoredSubGraph"]] = None
 
 
 # Retrieved Knowledge Graph
 
 
 class RetrievedEntity(BaseModel):
-    id: int = Field(description="Unique identifier for the entity")
+    id: int = Field(description="ID of the entity")
+    knowledge_base_id: Optional[int] = Field(
+        description="ID of the knowledge base", default=None
+    )
+    entity_type: Optional[EntityType] = Field(
+        description="Type of the entity", default=EntityType.original
+    )
     name: str = Field(description="Name of the entity")
     description: str = Field(description="Description of the entity")
     meta: Optional[Mapping[str, Any]] = Field(description="Metadata of the entity")
 
+    @property
+    def global_id(self) -> str:
+        return f"{self.knowledge_base_id or 0}-{self.id}"
+
+    def __hash__(self):
+        return hash(self.global_id)
+
 
 class RetrievedRelationship(BaseModel):
-    id: int = Field(description="Unique identifier for the relationship")
-    source_entity_id: int = Field(description="Unique identifier for the source entity")
-    target_entity_id: int = Field(description="Unique identifier for the target entity")
+    id: int = Field(description="ID of the relationship")
+    knowledge_base_id: int = Field(description="ID of the knowledge base", default=None)
+    source_entity_id: int = Field(description="ID of the source entity")
+    target_entity_id: int = Field(description="ID of the target entity")
     description: str = Field(description="Description of the relationship")
     meta: Optional[Mapping[str, Any]] = Field(
         description="Metadata of the relationship"
@@ -41,36 +89,89 @@ class RetrievedRelationship(BaseModel):
     )
     weight: Optional[float] = Field(description="Weight of the relationship")
     last_modified_at: Optional[datetime.datetime] = Field(
-        description="Last modified at of the relationship"
+        description="Last modified at of the relationship", default=None
     )
 
+    @property
+    def global_id(self) -> str:
+        return f"{self.knowledge_base_id or 0}-{self.id}"
 
-class KnowledgeGraphRetrievalResult(BaseModel):
-    query: Optional[str] = None
+    def __hash__(self):
+        return hash(self.global_id)
+
+
+class RetrievedSubGraph(BaseModel):
+    query: Optional[str | list[str]] = Field(
+        description="List of queries that are used to retrieve the knowledge graph",
+        default=None,
+    )
+    knowledge_base: Optional[KnowledgeBaseDescriptor] = Field(
+        description="The knowledge base that the knowledge graph is retrieved from",
+        default=None,
+    )
     entities: List[RetrievedEntity] = Field(
         description="List of entities in the knowledge graph", default_factory=list
     )
     relationships: List[RetrievedRelationship] = Field(
         description="List of relationships in the knowledge graph", default_factory=list
     )
-    subqueries: Optional[List["KnowledgeGraphRetrievalResult"]] = Field(
-        description="List of subqueries in the knowledge graph", default_factory=list
+
+
+class RetrievedKnowledgeGraph(RetrievedSubGraph):
+    """
+    RetrievedKnowledgeGraph represents the structure of the knowledge graph retrieved
+    from the knowledge base.
+    """
+
+    knowledge_bases: Optional[List[KnowledgeBaseDescriptor]] = Field(
+        description="List of knowledge bases that the knowledge graph is retrieved from",
+        default_factory=list,
+    )
+
+    subgraphs: Optional[List["RetrievedSubGraph"]] = Field(
+        description="List of subgraphs of the knowledge graph", default_factory=list
     )
 
     def to_subqueries_dict(self) -> dict:
-        sub_queries = {}
-        for subquery in self.subqueries:
-            sub_queries[subquery.query] = {
-                "entities": [e.model_dump() for e in subquery.entities],
-                "relationships": [r.model_dump() for r in subquery.relationships],
-            }
-        return sub_queries
+        """
+        For forward compatibility, we need to convert the subgraphs to a dictionary
+        of subqueries and then pass it to the prompt template.
+        """
+        subqueries = {}
+        for subgraph in self.subgraphs:
+            if subgraph.query not in subqueries:
+                subqueries[subgraph.query] = {
+                    "entities": [e.model_dump() for e in subgraph.entities],
+                    "relationships": [r.model_dump() for r in subgraph.relationships],
+                }
+            else:
+                subqueries[subgraph.query]["entities"].extend(
+                    [e.model_dump() for e in subgraph.entities]
+                )
+                subqueries[subgraph.query]["relationships"].extend(
+                    [r.model_dump() for r in subgraph.relationships]
+                )
 
-    def to_graph_data_dict(self) -> dict:
-        return {
-            "entities": [e.id for e in self.entities],
-            "relationships": [r.id for r in self.relationships],
-        }
+        return subqueries
+
+    def to_stored_graph_dict(self) -> dict:
+        subgraph = self.to_stored_graph()
+        return subgraph.model_dump()
+
+    def to_stored_graph(self) -> StoredKnowledgeGraph:
+        return StoredKnowledgeGraph(
+            query=self.query,
+            knowledge_base_id=self.knowledge_base.id if self.knowledge_base else None,
+            knowledge_base_ids=[kb.id for kb in self.knowledge_bases]
+            if self.knowledge_bases
+            else None,
+            entities=[e.id for e in self.entities],
+            relationships=[r.id for r in self.relationships],
+            subgraphs=[s.to_stored_graph() for s in self.subgraphs],
+        )
+
+
+KnowledgeGraphRetrievalResult = RetrievedKnowledgeGraph
 
 
 class KnowledgeGraphRetriever(ABC):
@@ -110,6 +211,11 @@ class KnowledgeGraphNode(BaseNode):
         super().__init__(*args, **kwargs)
 
     query: Optional[str] = Field(description="Query of the knowledge graph")
+    knowledge_base_id: Optional[int] = Field(
+        default=None,
+        description="The id of the knowledge base that the knowledge graph belongs to",
+    )
+
     entities: List[RetrievedEntity] = Field(
         description="The list of entities in the knowledge graph", default_factory=list
     )
@@ -117,10 +223,12 @@ class KnowledgeGraphNode(BaseNode):
         description="The list of relationships in the knowledge graph",
         default_factory=list,
     )
-    subqueries: Optional[Mapping[str, "KnowledgeGraphNode"]] = Field(
-        description="Subqueries",
-        default_factory=dict,
+    children: Optional[List["KnowledgeGraphNode"]] = Field(
+        description="The children of the knowledge graph",
+        default_factory=list,
     )
+
+    # Template
 
     knowledge_base_template: str = Field(
         default=DEFAULT_KNOWLEDGE_GRAPH_TMPL,
@@ -191,7 +299,7 @@ class KnowledgeGraphNode(BaseNode):
         self.query = value.query
         self.entities = value.entities
         self.relationships = value.relationships
-        self.subqueries = value.subqueries
+        self.children = value.subgraphs
 
     @property
     def hash(self) -> str:

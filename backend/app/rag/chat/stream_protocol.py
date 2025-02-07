@@ -1,6 +1,8 @@
 import json
 from dataclasses import dataclass
 
+from pydantic import BaseModel
+
 from app.models import ChatMessage, Chat
 from app.rag.types import ChatEventType, ChatMessageSate
 
@@ -30,15 +32,22 @@ class ChatStreamDataPayload(ChatStreamPayload):
 class ChatStreamMessagePayload(ChatStreamPayload):
     state: ChatMessageSate = ChatMessageSate.TRACE
     display: str = ""
-    context: dict | list | str = ""
+    context: dict | list | str | BaseModel | None = None
     message: str = ""
 
     def dump(self):
+        if isinstance(self.context, list):
+            context = [c.model_dump() for c in self.context]
+        elif isinstance(self.context, BaseModel):
+            context = self.context.model_dump()
+        else:
+            context = self.context
+
         return [
             {
                 "state": self.state.name,
                 "display": self.display,
-                "context": self.context,
+                "context": context,
                 "message": self.message,
             }
         ]

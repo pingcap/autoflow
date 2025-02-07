@@ -65,11 +65,13 @@ class ChunkFusionRetriever(MultiKBFusionRetriever, ChunkRetriever):
         )
 
     def _fusion(
-        self, results: Dict[Tuple[str, int], List[NodeWithScore]]
+        self, query: str, results: Dict[Tuple[str, int], List[NodeWithScore]]
     ) -> List[NodeWithScore]:
-        return self._simple_fusion(results)
+        return self._simple_fusion(query, results)
 
-    def _simple_fusion(self, results: Dict[Tuple[str, int], List[NodeWithScore]]):
+    def _simple_fusion(
+        self, query: str, results: Dict[Tuple[str, int], List[NodeWithScore]]
+    ):
         """Apply simple fusion."""
         # Use a dict to de-duplicate nodes
         all_nodes: Dict[str, NodeWithScore] = {}

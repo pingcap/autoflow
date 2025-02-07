@@ -63,7 +63,7 @@ async def reset_admin_password(
 async def ensure_default_chat_engine(session: AsyncSession) -> None:
     result = await session.scalar(func.count(ChatEngine.id))
     if result == 0:
-        from app.rag.chat_config import ChatEngineConfig
+        from app.rag.chat.config import ChatEngineConfig
 
         chat_engine = ChatEngine(
             name="default",

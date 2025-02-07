@@ -38,9 +38,9 @@ from app.api.admin_routes.reranker_model.routes import (
 from app.api.admin_routes import (
     chat_engine as admin_chat_engine,
     feedback as admin_feedback,
+    legacy_retrieve as admin_legacy_retrieve,
     site_setting as admin_site_settings,
     upload as admin_upload,
-    retrieve_old as admin_retrieve_old,
     stats as admin_stats,
     semantic_cache as admin_semantic_cache,
     langfuse as admin_langfuse,
@@ -84,7 +84,7 @@ api_router.include_router(admin_llm_router, tags=["admin/llm"])
 api_router.include_router(admin_embedding_model_router, tags=["admin/embedding_model"])
 api_router.include_router(admin_reranker_model_router, tags=["admin/reranker_model"])
 api_router.include_router(admin_langfuse.router, tags=["admin/langfuse"])
-api_router.include_router(admin_retrieve_old.router, tags=["admin/retrieve_old"])
+api_router.include_router(admin_legacy_retrieve.router, tags=["admin/retrieve_old"])
 api_router.include_router(admin_stats.router, tags=["admin/stats"])
 api_router.include_router(admin_semantic_cache.router, tags=["admin/semantic_cache"])
 api_router.include_router(admin_evaluation_task.router, tags=["admin/evaluation/task"])
@@ -96,19 +96,3 @@ api_router.include_router(
 api_router.include_router(
     fastapi_users.get_auth_router(auth_backend), prefix="/auth", tags=["auth"]
 )
-
-# api_router.include_router(
-#     fastapi_users.get_register_router(UserRead, UserCreate),
-#     prefix="/auth",
-#     tags=["auth"],
-# )
-# api_router.include_router(
-#     fastapi_users.get_reset_password_router(),
-#     prefix="/auth",
-#     tags=["auth"],
-# )
-# api_router.include_router(
-#     fastapi_users.get_verify_router(UserRead),
-#     prefix="/auth",
-#     tags=["auth"],
-# )

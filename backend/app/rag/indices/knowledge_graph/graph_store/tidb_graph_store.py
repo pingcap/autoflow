@@ -35,11 +35,13 @@ from app.rag.indices.knowledge_graph.schema import (
 from app.rag.retrievers.knowledge_graph.schema import (
     RetrievedEntity,
     RetrievedRelationship,
+    RetrievedKnowledgeGraph,
 )
 from app.models import (
     Entity as DBEntity,
     Relationship as DBRelationship,
     Chunk as DBChunk,
+    KnowledgeBase,
 )
 from app.models import EntityType
 
@@ -83,6 +85,7 @@ class MergeEntitiesProgram(dspy.Module):
 class TiDBGraphStore(KnowledgeGraphStore):
     def __init__(
         self,
+        knowledge_base: KnowledgeBase,
         dspy_lm: dspy.LM,
         session: Optional[Session] = None,
         embed_model: Optional[EmbedType] = None,
@@ -91,6 +94,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
         relationship_db_model: Type[SQLModel] = DBRelationship,
         chunk_db_model: Type[SQLModel] = DBChunk,
     ):
+        self.knowledge_base = knowledge_base
         self._session = session
         self._owns_session = session is None
         if self._session is None:
@@ -310,6 +314,58 @@ class TiDBGraphStore(KnowledgeGraphStore):
         else:
             self._session.flush()
 
+    def get_subgraph_by_relationship_ids(
+        self, ids: list[int], **kwargs
+    ) -> RetrievedKnowledgeGraph:
+        stmt = (
+            select(self._relationship_model)
+            .where(self._relationship_model.id.in_(ids))
+            .options(
+                joinedload(self._relationship_model.source_entity),
+                joinedload(self._relationship_model.target_entity),
+            )
+        )
+        relationships_set = self._session.exec(stmt)
+        entities_set = set()
+        relationships = []
+        entities = []
+
+        for rel in relationships_set:
+            entities_set.add(rel.source_entity)
+            entities_set.add(rel.target_entity)
+            relationships.append(
+                RetrievedRelationship(
+                    id=rel.id,
+                    knowledge_base_id=self.knowledge_base.id,
+                    source_entity_id=rel.source_entity_id,
+                    target_entity_id=rel.target_entity_id,
+                    description=rel.description,
+                    rag_description=f"{rel.source_entity.name} -> {rel.description} -> {rel.target_entity.name}",
+                    meta=rel.meta,
+                    weight=rel.weight,
+                    last_modified_at=rel.last_modified_at,
+                )
+            )
+
+        for entity in entities_set:
+            entities.append(
+                RetrievedEntity(
+                    id=entity.id,
+                    knowledge_base_id=self.knowledge_base.id,
+                    name=entity.name,
+                    description=entity.description,
+                    meta=entity.meta,
+                    entity_type=entity.entity_type,
+                )
+            )
+
+        return RetrievedKnowledgeGraph(
+            knowledge_base=self.knowledge_base.to_descriptor(),
+            entities=entities,
+            relationships=relationships,
+            **kwargs,
+        )
+
     def get_or_create_entity(self, entity: Entity, commit: bool = True) -> SQLModel:
         # using the cosine distance between the description vectors to determine if the entity already exists
         entity_type = (
@@ -508,6 +564,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
         entities = [
             RetrievedEntity(
                 id=e.id,
+                knowledge_base_id=self.knowledge_base.id,
                 name=e.name,
                 description=e.description,
                 meta=e.meta if include_meta else None,
@@ -518,10 +575,11 @@ class TiDBGraphStore(KnowledgeGraphStore):
         relationships = [
             RetrievedRelationship(
                 id=r.id,
+                knowledge_base_id=self.knowledge_base.id,
                 source_entity_id=r.source_entity_id,
                 target_entity_id=r.target_entity_id,
-                description=r.description,
                 rag_description=f"{r.source_entity.name} -> {r.description} -> {r.target_entity.name}",
+                description=r.description,
                 meta=r.meta,
                 weight=r.weight,
                 last_modified_at=r.last_modified_at,

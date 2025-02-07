@@ -80,7 +80,7 @@ class MultiKBFusionRetriever(BaseRetriever):
             else:
                 results = self._run_sync_queries(queries)
 
-        return self._fusion(results)
+        return self._fusion(query_bundle.query_str, results)
 
     def _gen_sub_queries(self, query_bundle: QueryBundle) -> List[QueryBundle]:
         with self.callback_manager.event(
@@ -125,6 +125,6 @@ class MultiKBFusionRetriever(BaseRetriever):
 
     @abstractmethod
     def _fusion(
-        self, results: Dict[Tuple[str, int], List[NodeWithScore]]
+        self, query: str, results: Dict[Tuple[str, int], List[NodeWithScore]]
     ) -> List[NodeWithScore]:
         """fusion method"""

@@ -10,7 +10,7 @@ from fastapi_pagination.ext.sqlmodel import paginate
 
 from app.models import Chat, User, ChatMessage, ChatUpdate
 from app.repositories.base_repo import BaseRepo
-from app.exceptions import ChatNotFound
+from app.exceptions import ChatNotFound, ChatMessageNotFound
 
 
 class ChatRepo(BaseRepo):
@@ -101,6 +101,16 @@ class ChatRepo(BaseRepo):
                 ChatMessage.chat.has(Chat.deleted_at == None),
             )
         ).first()
+
+    def must_get_message(
+        self,
+        session: Session,
+        chat_message_id: int,
+    ):
+        msg = self.get_message(session, chat_message_id)
+        if not msg:
+            raise ChatMessageNotFound(chat_message_id)
+        return msg
 
     def create_message(
         self,

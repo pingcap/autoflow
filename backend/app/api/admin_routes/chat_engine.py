@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi_pagination import Params, Page
 
 from app.api.deps import SessionDep, CurrentSuperuserDep
-from app.rag.chat_config import ChatEngineConfig
+from app.rag.chat.config import ChatEngineConfig
 from app.repositories import chat_engine_repo
 from app.models import ChatEngine, ChatEngineUpdate
 

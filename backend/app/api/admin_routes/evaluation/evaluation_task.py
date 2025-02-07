@@ -115,7 +115,7 @@ def get_evaluation_task(
 
 
 @router.get("/admin/evaluation/tasks/{evaluation_task_id}/summary")
-def get_evaluation_task_summary(
+def summary_evaluation_task(
     evaluation_task_id: int, session: SessionDep, user: CurrentSuperuserDep
 ) -> EvaluationTaskSummary:
     task = must_get(session, EvaluationTask, evaluation_task_id)

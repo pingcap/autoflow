@@ -4,7 +4,7 @@ import logging
 
 from fastapi import APIRouter, Body
 from app.api.deps import SessionDep, CurrentSuperuserDep
-from app.rag.chat_config import ChatEngineConfig
+from app.rag.chat.config import ChatEngineConfig
 from app.rag.semantic_cache import SemanticCacheManager, SemanticItem
 
 router = APIRouter()

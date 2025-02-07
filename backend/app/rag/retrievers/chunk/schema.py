@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel
 
@@ -7,12 +7,14 @@ from app.models import Document
 
 
 class RerankerConfig(BaseModel):
+    enabled: bool = True
     model_id: int = None
     top_n: int = 10
 
 
 class MetadataFilterConfig(BaseModel):
-    filters: dict = None
+    enabled: bool = True
+    filters: Dict[str, Any] = None
 
 
 class VectorSearchRetrieverConfig(BaseModel):
@@ -50,7 +52,7 @@ class RetrievedChunk(BaseModel):
 
 class ChunksRetrievalResult(BaseModel):
     chunks: list[RetrievedChunk]
-    documents: list[Document | RetrievedChunkDocument]
+    documents: Optional[list[Document | RetrievedChunkDocument]] = None
 
 
 class ChunkRetriever(ABC):

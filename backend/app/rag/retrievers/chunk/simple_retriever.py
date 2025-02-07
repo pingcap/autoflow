@@ -18,7 +18,7 @@ from app.rag.retrievers.chunk.schema import (
 )
 from app.rag.retrievers.chunk.helpers import map_nodes_to_chunks
 from app.rag.indices.vector_search.vector_store.tidb_vector_store import TiDBVectorStore
-from app.rag.postprocessors.resolver import get_metadata_post_filter
+from app.rag.postprocessors.metadata_post_filter import MetadataPostFilter
 from app.repositories import knowledge_base_repo, document_repo
 
 logger = logging.getLogger(__name__)
@@ -60,16 +60,16 @@ class ChunkSimpleRetriever(BaseRetriever, ChunkRetriever):
         node_postprocessors = []
 
         # Metadata filter
-        enable_metadata_filter = config.metadata_filter is not None
-        if enable_metadata_filter:
-            metadata_filter = get_metadata_post_filter(config.metadata_filter.filters)
+        filter_config = config.metadata_filter
+        if filter_config and filter_config.enabled:
+            metadata_filter = MetadataPostFilter(filter_config.filters)
             node_postprocessors.append(metadata_filter)
 
         # Reranker
-        enable_reranker = config.reranker is not None
-        if enable_reranker:
+        reranker_config = config.reranker
+        if reranker_config and reranker_config.enabled:
             reranker = resolve_reranker_by_id(
-                db_session, config.reranker.model_id, config.reranker.top_n
+                db_session, reranker_config.model_id, reranker_config.top_n
             )
             node_postprocessors.append(reranker)
 

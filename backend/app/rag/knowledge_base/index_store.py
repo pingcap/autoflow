@@ -31,6 +31,7 @@ def get_kb_tidb_graph_store(session: Session, kb: KnowledgeBase) -> TiDBGraphSto
     chunk_model = get_kb_chunk_model(kb)
 
     graph_store = TiDBGraphStore(
+        knowledge_base=kb,
         dspy_lm=dspy_lm,
         session=session,
         embed_model=embed_model,
@@ -51,4 +52,9 @@ def get_kb_tidb_graph_editor(session: Session, kb: KnowledgeBase) -> TiDBGraphEd
     entity_db_model = get_kb_entity_model(kb)
     relationship_db_model = get_kb_relationship_model(kb)
     embed_model = get_kb_embed_model(session, kb)
-    return TiDBGraphEditor(entity_db_model, relationship_db_model, embed_model)
+    return TiDBGraphEditor(
+        knowledge_base_id=kb.id,
+        entity_db_model=entity_db_model,
+        relationship_db_model=relationship_db_model,
+        embed_model=embed_model,
+    )

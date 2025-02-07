@@ -12,31 +12,21 @@ from fastapi.responses import StreamingResponse
 from fastapi_pagination import Params, Page
 
 from app.api.deps import SessionDep, OptionalUserDep, CurrentUserDep
+from app.rag.chat.chat_flow import ChatFlow
+from app.rag.retrievers.knowledge_graph.schema import KnowledgeGraphRetrievalResult
 from app.repositories import chat_repo
 from app.models import Chat, ChatUpdate
-from app.rag.chat import (
-    ChatFlow,
-    ChatEvent,
+
+from app.rag.chat.chat_service import (
+    get_final_chat_result,
     user_can_view_chat,
     user_can_edit_chat,
     get_chat_message_subgraph,
     get_chat_message_recommend_questions,
     remove_chat_message_recommend_questions,
 )
-from app.rag.types import (
-    MessageRole,
-    ChatMessage,
-    ChatEventType,
-    ChatMessageSate,
-)
-from app.exceptions import (
-    ChatNotFound,
-    KBNotFound,
-    LLMException,
-    EmbeddingModelException,
-    RerankerModelException,
-    InternalServerError,
-)
+from app.rag.types import MessageRole, ChatMessage
+from app.exceptions import InternalServerError
 
 logger = logging.getLogger(__name__)
 
@@ -86,59 +76,22 @@ def chats(
             chat_messages=chat_request.messages,
             engine_name=chat_request.chat_engine,
         )
-    except ChatNotFound as e:
-        raise e
-    except KBNotFound as e:
-        raise e
-    except LLMException as e:
-        raise e
-    except EmbeddingModelException as e:
-        raise e
-    except RerankerModelException as e:
+
+        if chat_request.stream:
+            return StreamingResponse(
+                chat_flow.chat(),
+                media_type="text/event-stream",
+                headers={
+                    "X-Content-Type-Options": "nosniff",
+                },
+            )
+        else:
+            return get_final_chat_result(chat_flow.chat())
+    except HTTPException as e:
         raise e
     except Exception as e:
         logger.exception(e)
         raise InternalServerError()
-
-    if chat_request.stream:
-        return StreamingResponse(
-            chat_flow.chat(),
-            media_type="text/event-stream",
-            headers={
-                "X-Content-Type-Options": "nosniff",
-            },
-        )
-    else:
-        trace, sources, content = None, [], ""
-        chat_id, message_id = None, None
-        # TODO: maybe we can wrap following code in the chat() method, and using "yield from" to return the values.
-        for m in chat_flow.chat():
-            if not isinstance(m, ChatEvent):
-                continue
-            if m.event_type == ChatEventType.MESSAGE_ANNOTATIONS_PART:
-                if m.payload.state == ChatMessageSate.SOURCE_NODES:
-                    sources = m.payload.context
-                elif m.payload.state == ChatMessageSate.TRACE:
-                    trace = m.payload.context
-            elif m.event_type == ChatEventType.TEXT_PART:
-                content += m.payload
-            elif m.event_type == ChatEventType.DATA_PART:
-                chat_id = m.payload.chat.id
-                message_id = m.payload.assistant_message.id
-            elif m.event_type == ChatEventType.ERROR_PART:
-                raise HTTPException(
-                    status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                    detail=m.payload,
-                )
-            else:
-                pass
-        return {
-            "chat_id": chat_id,
-            "message_id": message_id,
-            "trace": trace,
-            "sources": sources,
-            "content": content,
-        }
 
 
 @router.get("/chats")
@@ -154,9 +107,7 @@ def list_chats(
 
 @router.get("/chats/{chat_id}")
 def get_chat(session: SessionDep, user: OptionalUserDep, chat_id: UUID):
-    chat = chat_repo.get(session, chat_id)
-    if not chat:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Chat not found")
+    chat = chat_repo.must_get(session, chat_id)
 
     if not user_can_view_chat(chat, user):
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Access denied")
@@ -171,71 +122,99 @@ def get_chat(session: SessionDep, user: OptionalUserDep, chat_id: UUID):
 def update_chat(
     session: SessionDep, user: CurrentUserDep, chat_id: UUID, chat_update: ChatUpdate
 ):
-    chat = chat_repo.get(session, chat_id)
-    if not chat:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Chat not found")
+    try:
+        chat = chat_repo.must_get(session, chat_id)
 
-    if not user_can_edit_chat(chat, user):
-        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Access denied")
-    return chat_repo.update(session, chat, chat_update)
+        if not user_can_edit_chat(chat, user):
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, detail="Access denied"
+            )
+
+        return chat_repo.update(session, chat, chat_update)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.exception(e, exc_info=True)
+        raise InternalServerError()
 
 
 @router.delete("/chats/{chat_id}")
 def delete_chat(session: SessionDep, user: CurrentUserDep, chat_id: UUID):
-    chat = chat_repo.get(session, chat_id)
-    if not chat:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Chat not found")
+    try:
+        chat = chat_repo.must_get(session, chat_id)
 
-    if not user_can_edit_chat(chat, user):
-        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Access denied")
-    return chat_repo.delete(session, chat)
+        if not user_can_edit_chat(chat, user):
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, detail="Access denied"
+            )
 
-
-class SubgraphResponse(BaseModel):
-    entities: List[dict]
-    relationships: List[dict]
+        return chat_repo.delete(session, chat)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.exception(e, exc_info=True)
+        raise InternalServerError()
 
 
 @router.get(
-    "/chat-messages/{chat_message_id}/subgraph", response_model=SubgraphResponse
+    "/chat-messages/{chat_message_id}/subgraph",
+    response_model=KnowledgeGraphRetrievalResult,
 )
 def get_chat_subgraph(session: SessionDep, user: OptionalUserDep, chat_message_id: int):
-    chat_message = chat_repo.get_message(session, chat_message_id)
-    if not chat_message:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Chat message not found"
-        )
+    try:
+        chat_message = chat_repo.must_get_message(session, chat_message_id)
 
-    if not user_can_view_chat(chat_message.chat, user):
-        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Access denied")
+        if not user_can_view_chat(chat_message.chat, user):
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, detail="Access denied"
+            )
 
-    entities, relations = get_chat_message_subgraph(session, chat_message)
-
-    return SubgraphResponse(entities=entities, relationships=relations)
-
-
-@router.get(
-    "/chat-messages/{chat_message_id}/recommended-questions", response_model=List[str]
-)
-def get_recommended_questions(session: SessionDep, chat_message_id: int):
-    chat_message = chat_repo.get_message(session, chat_message_id)
-    if not chat_message or len(chat_message.content) == 0:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Chat message not found"
-        )
-
-    return get_chat_message_recommend_questions(session, chat_message)
+        result = get_chat_message_subgraph(session, chat_message)
+        return result.model_dump(exclude_none=True)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.exception(e, exc_info=True)
+        raise InternalServerError()
 
 
-@router.post(
-    "/chat-messages/{chat_message_id}/recommended-questions", response_model=List[str]
-)
-def refresh_recommended_questions(session: SessionDep, chat_message_id: int):
-    chat_message = chat_repo.get_message(session, chat_message_id)
-    if not chat_message or len(chat_message.content) == 0:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Chat message not found"
-        )
+@router.get("/chat-messages/{chat_message_id}/recommended-questions")
+def get_recommended_questions(
+    session: SessionDep, user: OptionalUserDep, chat_message_id: int
+) -> List[str]:
+    try:
+        chat_message = chat_repo.must_get_message(session, chat_message_id)
 
-    remove_chat_message_recommend_questions(session, chat_message_id)
-    return get_chat_message_recommend_questions(session, chat_message)
+        if not user_can_view_chat(chat_message.chat, user):
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, detail="Access denied"
+            )
+
+        return get_chat_message_recommend_questions(session, chat_message)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.exception(e, exc_info=True)
+        raise InternalServerError()
+
+
+@router.post("/chat-messages/{chat_message_id}/recommended-questions")
+def refresh_recommended_questions(
+    session: SessionDep, user: OptionalUserDep, chat_message_id: int
+) -> List[str]:
+    try:
+        chat_message = chat_repo.must_get_message(session, chat_message_id)
+
+        if not user_can_view_chat(chat_message.chat, user):
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, detail="Access denied"
+            )
+
+        remove_chat_message_recommend_questions(session, chat_message_id)
+
+        return get_chat_message_recommend_questions(session, chat_message)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.exception(e, exc_info=True)
+        raise InternalServerError()

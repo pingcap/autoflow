@@ -6,7 +6,7 @@ from llama_index.embeddings.openai import OpenAIEmbedding, OpenAIEmbeddingModelT
 from sqlmodel import Session, select, SQLModel
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.attributes import flag_modified
-from app.models import Relationship, Entity, EntityType
+from app.models import EntityType
 from app.rag.indices.knowledge_graph.schema import Relationship as RelationshipAIModel
 from app.rag.indices.knowledge_graph.graph_store import TiDBGraphStore
 from app.rag.indices.knowledge_graph.graph_store.helpers import (
@@ -25,10 +25,12 @@ class TiDBGraphEditor:
 
     def __init__(
         self,
+        knowledge_base_id: int,
         entity_db_model: Type[SQLModel],
         relationship_db_model: Type[SQLModel],
         embed_model: Optional[EmbedType] = None,
     ):
+        self.knowledge_base_id = knowledge_base_id
         self._entity_db_model = entity_db_model
         self._relationship_db_model = relationship_db_model
 
@@ -117,32 +119,6 @@ class TiDBGraphEditor:
     ) -> Optional[SQLModel]:
         return session.get(self._relationship_db_model, relationship_id)
 
-    def get_relationship_by_ids(
-        self, session: Session, ids: list[int]
-    ) -> Tuple[List[SQLModel], List[SQLModel]]:
-        stmt = (
-            select(self._relationship_db_model)
-            .where(self._relationship_db_model.id.in_(ids))
-            .options(
-                joinedload(self._relationship_db_model.source_entity),
-                joinedload(self._relationship_db_model.target_entity),
-            )
-        )
-        relationships_queryset = session.exec(stmt)
-
-        relationships = []
-        entities = []
-        entities_set = set()
-        for relationship in relationships_queryset:
-            entities_set.add(relationship.source_entity)
-            entities_set.add(relationship.target_entity)
-            relationships.append(relationship)
-
-        for entity in entities_set:
-            entities.append(entity)
-
-        return entities, relationships
-
     def update_relationship(
         self, session: Session, relationship: SQLModel, new_relationship: dict
     ) -> SQLModel:
@@ -210,6 +186,7 @@ class TiDBGraphEditor:
         )
         session.add(synopsis_entity)
         graph_store = TiDBGraphStore(
+            knowledge_base=self.knowledge_base_id,
             dspy_lm=None,
             session=session,
             embed_model=self._embed_model,
@@ -243,6 +220,3 @@ class TiDBGraphEditor:
             commit=False,
         )
         return synopsis_entity
-
-
-legacy_tidb_graph_editor = TiDBGraphEditor(Entity, Relationship)

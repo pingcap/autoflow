@@ -4,7 +4,7 @@ from sqlmodel import text
 from app.api.deps import SessionDep
 from app.api.routes.models import SystemConfigStatusResponse
 from app.site_settings import SiteSetting
-from app.rag.chat import (
+from app.rag.chat.chat_service import (
     check_rag_required_config,
     check_rag_optional_config,
     check_rag_config_need_migration,

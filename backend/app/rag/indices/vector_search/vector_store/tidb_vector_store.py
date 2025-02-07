@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 def node_to_relation_dict(node: BaseNode) -> dict:
     relations = {}
-    for r_type, node_info in node.relationships.items():
+    for r_type, node_info in node.relations.items():
         relations[r_type.name] = {
             "node_id": node_info.node_id,
             "node_type": node_info.node_type.name,

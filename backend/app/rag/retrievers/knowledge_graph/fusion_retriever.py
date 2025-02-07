@@ -8,6 +8,7 @@ from llama_index.core.llms import LLM
 from llama_index.core.schema import NodeWithScore
 from llama_index.core.tools import ToolMetadata
 
+from app.models import KnowledgeBase
 from app.rag.retrievers.multiple_knowledge_base import MultiKBFusionRetriever
 from app.rag.knowledge_base.selector import KBSelectMode
 from app.rag.retrievers.knowledge_graph.simple_retriever import (
@@ -15,7 +16,6 @@ from app.rag.retrievers.knowledge_graph.simple_retriever import (
 )
 from app.rag.retrievers.knowledge_graph.schema import (
     KnowledgeGraphRetrieverConfig,
-    RetrievedRelationship,
     KnowledgeGraphRetrievalResult,
     KnowledgeGraphNode,
     KnowledgeGraphRetriever,
@@ -27,6 +27,8 @@ logger = logging.getLogger(__name__)
 
 
 class KnowledgeGraphFusionRetriever(MultiKBFusionRetriever, KnowledgeGraphRetriever):
+    knowledge_base_map: Dict[int, KnowledgeBase] = {}
+
     def __init__(
         self,
         db_session: Session,
@@ -39,11 +41,15 @@ class KnowledgeGraphFusionRetriever(MultiKBFusionRetriever, KnowledgeGraphRetrie
         callback_manager: Optional[CallbackManager] = CallbackManager([]),
         **kwargs,
     ):
+        self.use_query_decompose = use_query_decompose
+
         # Prepare knowledge graph retrievers for knowledge bases.
         retrievers = []
         retriever_choices = []
         knowledge_bases = knowledge_base_repo.get_by_ids(db_session, knowledge_base_ids)
+        self.knowledge_bases = knowledge_bases
         for kb in knowledge_bases:
+            self.knowledge_base_map[kb.id] = kb
             retrievers.append(
                 KnowledgeGraphSimpleRetriever(
                     db_session=db_session,
@@ -78,75 +84,67 @@ class KnowledgeGraphFusionRetriever(MultiKBFusionRetriever, KnowledgeGraphRetrie
         if len(nodes_with_score) == 0:
             return KnowledgeGraphRetrievalResult()
         node: KnowledgeGraphNode = nodes_with_score[0].node  # type:ignore
-        subqueries = [
-            KnowledgeGraphRetrievalResult(
-                query=subgraph.query,
-                entities=subgraph.entities,
-                relationships=subgraph.relationships,
-            )
-            for subgraph in node.subqueries.values()
-        ]
 
         return KnowledgeGraphRetrievalResult(
             query=node.query,
+            knowledge_bases=[kb.to_descriptor() for kb in self.knowledge_bases],
             entities=node.entities,
             relationships=node.relationships,
-            subqueries=[
+            subgraphs=[
                 KnowledgeGraphRetrievalResult(
-                    query=sub.query,
-                    entities=sub.entities,
-                    relationships=node.relationships,
+                    query=child_node.query,
+                    knowledge_base=self.knowledge_base_map[
+                        child_node.knowledge_base_id
+                    ].to_descriptor(),
+                    entities=child_node.entities,
+                    relationships=child_node.relationships,
                 )
-                for sub in subqueries
+                for child_node in node.children
             ],
         )
 
     def _fusion(
-        self, results: Dict[Tuple[str, int], List[NodeWithScore]]
+        self, query: str, results: Dict[Tuple[str, int], List[NodeWithScore]]
     ) -> List[NodeWithScore]:
-        return self._knowledge_graph_fusion(results)
+        return self._knowledge_graph_fusion(query, results)
 
     def _knowledge_graph_fusion(
-        self, results: Dict[Tuple[str, int], List[NodeWithScore]]
+        self, query: str, results: Dict[Tuple[str, int], List[NodeWithScore]]
     ) -> List[NodeWithScore]:
-        merged_queries = {}
-        merged_entities = {}
+        merged_entities = set()
         merged_relationships = {}
+        merged_knowledge_base_ids = set()
+        merged_children_nodes = []
+
         for nodes_with_scores in results.values():
             if len(nodes_with_scores) == 0:
                 continue
             node: KnowledgeGraphNode = nodes_with_scores[0].node  # type:ignore
-            merged_queries[node.query] = node
+
+            # Merge knowledge base id.
+            merged_knowledge_base_ids.add(node.knowledge_base_id)
 
             # Merge entities.
-            for e in node.entities:
-                if e.id not in merged_entities:
-                    merged_entities[e.id] = e
+            merged_entities.update(node.entities)
 
             # Merge relationships.
             for r in node.relationships:
-                key = (r.source_entity_id, r.target_entity_id, r.description)
+                key = r.rag_description
                 if key not in merged_relationships:
-                    merged_relationships[key] = RetrievedRelationship(
-                        id=r.id,
-                        source_entity_id=r.source_entity_id,
-                        target_entity_id=r.target_entity_id,
-                        description=r.description,
-                        rag_description=r.rag_description,
-                        weight=0,
-                        meta=r.meta,
-                        last_modified_at=r.last_modified_at,
-                    )
+                    merged_relationships[key] = r
                 else:
                     merged_relationships[key].weight += r.weight
+            # Merge to children nodes.
+            merged_children_nodes.append(node)
 
         return [
             NodeWithScore(
                 node=KnowledgeGraphNode(
-                    query=None,
-                    entities=list(merged_entities.values()),
+                    query=query,
+                    entities=list(merged_entities),
                     relationships=list(merged_relationships.values()),
-                    subqueries=merged_queries,
+                    knowledge_base_ids=merged_knowledge_base_ids,
+                    children=merged_children_nodes,
                 ),
                 score=1,
             )

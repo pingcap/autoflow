@@ -13,6 +13,7 @@ from sqlmodel import (
     SQLModel,
 )
 
+from app.api.admin_routes.models import KnowledgeBaseDescriptor
 from app.exceptions import KBDataSourceNotFound
 from app.models.auth import User
 from app.models.data_source import DataSource
@@ -110,3 +111,9 @@ class KnowledgeBase(SQLModel, table=True):
         if data_source is None:
             raise KBDataSourceNotFound(self.id, data_source_id)
         return data_source
+
+    def to_descriptor(self) -> KnowledgeBaseDescriptor:
+        return KnowledgeBaseDescriptor(
+            id=self.id,
+            name=self.name,
+        )

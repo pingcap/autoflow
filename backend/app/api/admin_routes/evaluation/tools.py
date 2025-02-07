@@ -1,6 +1,4 @@
-from http.client import HTTPException
 from typing import TypeVar, Type
-
 from fastapi import status, HTTPException
 from sqlmodel import SQLModel, Session
 

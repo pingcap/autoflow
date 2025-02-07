@@ -1,76 +1,49 @@
 import logging
-from enum import Enum
-from typing import List, Optional, Any, Union
 
+from typing import Dict, List, Optional, Any, Union
 from llama_index.core import QueryBundle
 from llama_index.core.postprocessor.types import BaseNodePostprocessor
-from llama_index.core.schema import NodeWithScore
-from pydantic import BaseModel
+from llama_index.core.schema import BaseNode, NodeWithScore
+from llama_index.core.vector_stores.types import (
+    MetadataFilter,
+    MetadataFilters,
+    FilterOperator,
+    FilterCondition,
+)
 
 
-class FilterOperator(str, Enum):
-    """Vector store filter operator."""
-
-    # TODO add more operators
-    EQ = "=="  # default operator (string, int, float)
-    GT = ">"  # greater than (int, float)
-    LT = "<"  # less than (int, float)
-    NE = "!="  # not equal to (string, int, float)
-    GTE = ">="  # greater than or equal to (int, float)
-    LTE = "<="  # less than or equal to (int, float)
-    IN = "in"  # In array (string or number)
-    NIN = "nin"  # Not in array (string or number)
-    ANY = "any"  # Contains any (array of strings)
-    ALL = "all"  # Contains all (array of strings)
-    TEXT_MATCH = "text_match"  # full text match (allows you to search for a specific substring, token or phrase
-    # within the text field)
-    CONTAINS = "contains"  # metadata array contains value (string or number)
+SimpleMetadataFilter = Dict[str, Any]
 
 
-class FilterCondition(str, Enum):
-    AND = "and"
-    OR = "or"
+def simple_filter_to_metadata_filters(filters: SimpleMetadataFilter) -> MetadataFilters:
+    simple_filters = []
+    for key, value in filters.items():
+        simple_filters.append(
+            MetadataFilter(
+                key=key,
+                value=value,
+                operator=FilterOperator.EQ,
+            )
+        )
+    return MetadataFilters(filters=simple_filters)
 
 
-class MetadataFilter(BaseModel):
-    key: str
-    value: Union[
-        int,
-        float,
-        str,
-        List[int],
-        List[float],
-        List[str],
-    ]
-    operator: FilterOperator = FilterOperator.EQ
-
-
-# Notice:
-#
-# llama index is still heavily using pydantic v1 to define data models. Using classes in llama index to define FastAPI
-# parameters may cause the following errors:
-#
-#   TypeError: BaseModel.validate() takes 2 positional arguments but 3 were given
-#
-# See: https://github.com/run-llama/llama_index/issues/14807#issuecomment-2241285940
-class MetadataFilters(BaseModel):
-    """Metadata filters for vector stores."""
-
-    # Exact match filters and Advanced filters with operators like >, <, >=, <=, !=, etc.
-    filters: List[Union[MetadataFilter, "MetadataFilters"]]
-    # and/or such conditions for combining different filters
-    condition: Optional[FilterCondition] = FilterCondition.AND
-
-
-_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class MetadataPostFilter(BaseNodePostprocessor):
     filters: Optional[MetadataFilters] = None
 
-    def __init__(self, filters: Optional[MetadataFilters] = None, **kwargs: Any):
+    def __init__(
+        self,
+        filters: Optional[Union[MetadataFilters, SimpleMetadataFilter]] = None,
+        **kwargs: Any,
+    ):
         super().__init__(**kwargs)
-        self.filters = filters
+        if isinstance(filters, MetadataFilters):
+            self.filters = filters
+        else:
+            self.filters = simple_filter_to_metadata_filters(filters)
 
     def _postprocess_nodes(
         self,
@@ -87,29 +60,29 @@ class MetadataPostFilter(BaseNodePostprocessor):
                 filtered_nodes.append(node)
         return filtered_nodes
 
-    def match_all_filters(self, node: Any) -> bool:
+    def match_all_filters(self, node: BaseNode) -> bool:
         if self.filters is None or not isinstance(self.filters, MetadataFilters):
             return True
 
         if self.filters.condition != FilterCondition.AND:
-            _logger.warning(
+            logger.warning(
                 f"Advanced filtering is not supported yet. "
                 f"Filter condition {self.filters.condition} is ignored."
             )
             return True
 
         for f in self.filters.filters:
-            if f.key not in node.extra_info:
+            if f.key not in node.metadata:
                 return False
 
             if f.operator is not None and f.operator != FilterOperator.EQ:
-                _logger.warning(
+                logger.warning(
                     f"Advanced filtering is not supported yet. "
                     f"Filter operator {f.operator} is ignored."
                 )
                 return True
 
-            value = node.extra_info[f.key]
+            value = node.metadata[f.key]
             if f.value != value:
                 return False
 

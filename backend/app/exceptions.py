@@ -25,6 +25,13 @@ class ChatNotFound(ChatException):
         self.detail = f"chat #{chat_id} is not found"
 
 
+class ChatMessageNotFound(ChatException):
+    status_code = 404
+
+    def __init__(self, message_id: int):
+        self.detail = f"chat message #{message_id} is not found"
+
+
 # LLM
 
 
@@ -149,7 +156,11 @@ class KBIsUsedByChatEngines(KBException):
 # Document
 
 
-class DocumentNotFound(KBException):
+class DocumentException(HTTPException):
+    pass
+
+
+class DocumentNotFound(DocumentException):
     status_code = 404
 
     def __init__(self, document_id: int):

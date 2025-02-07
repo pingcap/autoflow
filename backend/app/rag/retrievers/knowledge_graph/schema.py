@@ -211,9 +211,14 @@ class KnowledgeGraphNode(BaseNode):
         super().__init__(*args, **kwargs)
 
     query: Optional[str] = Field(description="Query of the knowledge graph")
+
     knowledge_base_id: Optional[int] = Field(
-        default=None,
         description="The id of the knowledge base that the knowledge graph belongs to",
+        default=None,
+    )
+    knowledge_base_ids: Optional[List[int]] = Field(
+        description="List of ids of the knowledge base that the knowledge graph belongs to",
+        default_factory=list,
     )
 
     entities: List[RetrievedEntity] = Field(
@@ -280,13 +285,10 @@ class KnowledgeGraphNode(BaseNode):
                     rag_description=relationship.rag_description,
                     weight=relationship.weight,
                     last_modified_at=relationship.last_modified_at,
-                    meta=self._get_metadata_str(relationship.meta),
+                    meta=json.dumps(relationship.meta, indent=2, ensure_ascii=False),
                 )
             )
         return "\n\n".join(strs)
-
-    def _get_metadata_str(self, meta: Mapping[str, Any]) -> str:
-        return json.dumps(meta, indent=2, ensure_ascii=False)
 
     def _get_knowledge_graph_str(self) -> str:
         return self.knowledge_base_template.format(
@@ -295,11 +297,23 @@ class KnowledgeGraphNode(BaseNode):
             relationships_str=self._get_relationships_str(),
         )
 
-    def set_content(self, value: KnowledgeGraphRetrievalResult) -> None:
-        self.query = value.query
-        self.entities = value.entities
-        self.relationships = value.relationships
-        self.children = value.subgraphs
+    def set_content(self, kg: RetrievedKnowledgeGraph):
+        self.query = kg.query
+        self.knowledge_base_id = kg.knowledge_base.id if kg.knowledge_base else None
+        self.knowledge_base_ids = []
+        self.entities = kg.entities
+        self.relationships = kg.relationships
+        self.children = [
+            KnowledgeGraphNode(
+                query=subgraph.query,
+                knowledge_base_id=subgraph.knowledge_base.id
+                if subgraph.knowledge_base
+                else None,
+                entities=subgraph.entities,
+                relationships=subgraph.relationships,
+            )
+            for subgraph in kg.subgraphs
+        ]
 
     @property
     def hash(self) -> str:

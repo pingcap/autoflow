@@ -3,10 +3,13 @@ import logging
 from typing import List, Optional, Type
 
 from llama_index.core.callbacks import CallbackManager
+from llama_index.core.indices.utils import log_vector_store_query_result
+from llama_index.core.vector_stores import VectorStoreQuery, VectorStoreQueryResult
 from sqlmodel import Session
-from llama_index.core import VectorStoreIndex
 from llama_index.core.retrievers import BaseRetriever
 from llama_index.core.schema import NodeWithScore, QueryBundle
+import llama_index.core.instrumentation as instrument
+
 from app.models.chunk import get_kb_chunk_model
 from app.models.patch.sql_model import SQLModel
 from app.rag.knowledge_base.config import get_kb_embed_model
@@ -22,6 +25,9 @@ from app.rag.postprocessors.metadata_post_filter import MetadataPostFilter
 from app.repositories import knowledge_base_repo, document_repo
 
 logger = logging.getLogger(__name__)
+
+
+dispatcher = instrument.get_dispatcher(__name__)
 
 
 class ChunkSimpleRetriever(BaseRetriever, ChunkRetriever):
@@ -45,18 +51,15 @@ class ChunkSimpleRetriever(BaseRetriever, ChunkRetriever):
         self._embed_model = get_kb_embed_model(db_session, self._kb)
         self._embed_model.callback_manager = callback_manager
 
-        # Vector Index
-        vector_store = TiDBVectorStore(
+        # Init vector store.
+        self._vector_store = TiDBVectorStore(
             session=db_session,
             chunk_db_model=self._chunk_db_model,
             oversampling_factor=config.oversampling_factor,
-        )
-        self._vector_index = VectorStoreIndex.from_vector_store(
-            vector_store,
-            embed_model=self._embed_model,
             callback_manager=callback_manager,
         )
 
+        # Init node postprocessors.
         node_postprocessors = []
 
         # Metadata filter
@@ -73,15 +76,43 @@ class ChunkSimpleRetriever(BaseRetriever, ChunkRetriever):
             )
             node_postprocessors.append(reranker)
 
-        # Vector Index Retrieve Engine
-        self._retrieve_engine = self._vector_index.as_retriever(
-            node_postprocessors=node_postprocessors,
-            similarity_top_k=config.similarity_top_k or config.top_k,
-        )
+        self._node_postprocessors = node_postprocessors
 
+    @dispatcher.span
     def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
-        nodes = self._retrieve_engine.retrieve(query_bundle)
+        if query_bundle.embedding is None and len(query_bundle.embedding_strs) > 0:
+            query_bundle.embedding = self._embed_model.get_agg_embedding_from_queries(
+                query_bundle.embedding_strs
+            )
+
+        result = self._vector_store.query(
+            VectorStoreQuery(
+                query_str=query_bundle.query_str,
+                query_embedding=query_bundle.embedding,
+                similarity_top_k=self._config.similarity_top_k or self._config.top_k,
+            )
+        )
+        nodes = self._build_node_list_from_query_result(result)
+
+        for node_postprocessor in self._node_postprocessors:
+            nodes = node_postprocessor.postprocess_nodes(
+                nodes, query_bundle=query_bundle
+            )
+
         return nodes[: self._config.top_k]
+
+    def _build_node_list_from_query_result(
+        self, query_result: VectorStoreQueryResult
+    ) -> List[NodeWithScore]:
+        log_vector_store_query_result(query_result)
+        node_with_scores: List[NodeWithScore] = []
+        for ind, node in enumerate(query_result.nodes):
+            score: Optional[float] = None
+            if query_result.similarities is not None:
+                score = query_result.similarities[ind]
+            node_with_scores.append(NodeWithScore(node=node, score=score))
+
+        return node_with_scores
 
     def retrieve_chunks(
         self, query_str: str, full_document: bool = False

@@ -309,7 +309,7 @@ langchain-openai==0.2.9
     # via ragas
 langchain-text-splitters==0.3.2
     # via langchain
-langfuse==2.59.1
+langfuse==2.48.0
 langsmith==0.1.143
     # via langchain
     # via langchain-community
@@ -637,7 +637,6 @@ requests==2.32.3
     # via huggingface-hub
     # via langchain
     # via langchain-community
-    # via langfuse
     # via langsmith
     # via llama-index-core
     # via msal

@@ -20,6 +20,7 @@ COPY frontend/packages/widget-react/package.json ./frontend/packages/widget-reac
 
 WORKDIR /tidb.ai/frontend
 
+RUN npm install -g corepack@latest
 RUN corepack enable pnpm
 RUN pnpm i --frozen-lockfile
 

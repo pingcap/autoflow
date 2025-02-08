@@ -115,11 +115,11 @@ def get_evaluation_task(
 
 
 @router.get("/admin/evaluation/tasks/{evaluation_task_id}/summary")
-def summary_evaluation_task(
+def get_evaluation_task_summary(
     evaluation_task_id: int, session: SessionDep, user: CurrentSuperuserDep
 ) -> EvaluationTaskSummary:
     task = must_get(session, EvaluationTask, evaluation_task_id)
-    return get_evaluation_task_summary(task, session)
+    return get_summary_for_evaluation_task(task, session)
 
 
 @router.get("/admin/evaluation/tasks")
@@ -135,7 +135,7 @@ def list_evaluation_task(
     task_page: Page[EvaluationTask] = paginate(session, stmt, params)
     summaries: List[EvaluationTaskSummary] = []
     for task in task_page.items:
-        summaries.append(get_evaluation_task_summary(task, session))
+        summaries.append(get_summary_for_evaluation_task(task, session))
 
     return Page[EvaluationTaskSummary](
         items=summaries,
@@ -169,7 +169,7 @@ def list_evaluation_task_items(
     return paginate(session, stmt, params)
 
 
-def get_evaluation_task_summary(
+def get_summary_for_evaluation_task(
     evaluation_task: EvaluationTask, session: Session
 ) -> EvaluationTaskSummary:
     status_counts = (

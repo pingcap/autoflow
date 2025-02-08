@@ -226,7 +226,7 @@ def legacy_search_graph(session: SessionDep, kb_id: int, request: GraphSearchReq
     try:
         kb = knowledge_base_repo.must_get(session, kb_id)
         graph_store = get_kb_tidb_graph_store(session, kb)
-        entities, relations = graph_store.retrieve_with_weight(
+        entities, relationships = graph_store.retrieve_with_weight(
             request.query,
             [],
             request.depth,
@@ -236,7 +236,7 @@ def legacy_search_graph(session: SessionDep, kb_id: int, request: GraphSearchReq
         )
         return {
             "entities": entities,
-            "relationships": relations,
+            "relationships": relationships,
         }
     except KBNotFound as e:
         raise e

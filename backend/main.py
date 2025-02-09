@@ -127,11 +127,19 @@ def cli():
 @cli.command()
 @click.option("--host", default="127.0.0.1", help="Host, default=127.0.0.1")
 @click.option("--port", default=3000, help="Port, default=3000")
-def runserver(host, port):
+@click.option("--workers", default=4)
+def runserver(host, port, workers):
     warnings.warn(
         "This command will start the server in development mode, do not use it in production."
     )
-    uvicorn.run("main:app", host=host, port=port, reload=True, log_level="debug")
+    uvicorn.run(
+        "main:app",
+        host=host,
+        port=port,
+        reload=True,
+        log_level="debug",
+        workers=workers,
+    )
 
 
 @cli.command()

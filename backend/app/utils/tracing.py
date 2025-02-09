@@ -16,6 +16,7 @@ class LangfuseContextManager:
         try:
             self.instrumentor.start()
             with self.instrumentor.observe(**kwargs) as trace_client:
+                trace_client.update(name=kwargs.get("trace_name"), **kwargs)
                 self.langfuse_client = trace_client
                 yield trace_client
         except Exception:

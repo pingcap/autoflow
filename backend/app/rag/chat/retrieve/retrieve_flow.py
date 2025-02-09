@@ -1,7 +1,8 @@
 import logging
 from datetime import datetime
 from typing import List, Optional, Tuple
-from llama_index.core.callbacks import CallbackManager
+
+from llama_index.core.instrumentation import get_dispatcher
 from llama_index.core.llms import LLM
 from llama_index.core.schema import NodeWithScore, QueryBundle
 from pydantic import BaseModel
@@ -23,6 +24,7 @@ from app.rag.retrievers.knowledge_graph.schema import (
 from app.rag.retrievers.chunk.fusion_retriever import ChunkFusionRetriever
 from app.repositories import document_repo
 
+dispatcher = get_dispatcher(__name__)
 logger = logging.getLogger(__name__)
 
 
@@ -41,7 +43,6 @@ class RetrieveFlow:
         llm: Optional[LLM] = None,
         fast_llm: Optional[LLM] = None,
         knowledge_bases: Optional[List[KnowledgeBase]] = None,
-        callback_manager: Optional[CallbackManager] = CallbackManager(),
     ):
         self.db_session = db_session
         self.engine_name = engine_name
@@ -49,7 +50,6 @@ class RetrieveFlow:
             db_session, engine_name
         )
         self.db_chat_engine = self.engine_config.get_db_chat_engine()
-        self.callback_manager = callback_manager
 
         # Init LLM.
         self._llm = llm or self.engine_config.get_llama_llm(self.db_session)
@@ -94,7 +94,6 @@ class RetrieveFlow:
                 config=KnowledgeGraphRetrieverConfig.model_validate(
                     kg_config.model_dump(exclude={"enabled", "using_intent_search"})
                 ),
-                callback_manager=self.callback_manager,
             )
             knowledge_graph = kg_retriever.retrieve_knowledge_graph(user_question)
             knowledge_graph_context = self._get_knowledge_graph_context(knowledge_graph)
@@ -138,7 +137,6 @@ class RetrieveFlow:
             config=self.engine_config.vector_search,
             use_query_decompose=False,
             use_async=True,
-            callback_manager=self.callback_manager,
         )
         return retriever.retrieve(QueryBundle(user_question))
 

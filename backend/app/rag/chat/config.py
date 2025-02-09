@@ -94,6 +94,13 @@ class ChatEngineConfig(BaseModel):
     _db_fast_llm: Optional[DBLLM] = None
     _db_reranker: Optional[DBRerankerModel] = None
 
+    @property
+    def is_external_engine(self) -> bool:
+        return (
+            self.external_engine_config is not None
+            and self.external_engine_config.stream_chat_api_url
+        )
+
     def get_db_chat_engine(self) -> Optional[DBChatEngine]:
         return self._db_chat_engine
 

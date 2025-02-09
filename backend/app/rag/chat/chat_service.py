@@ -132,7 +132,7 @@ def get_graph_data_from_chat_message(
             ids=stored_kg.relationships, query=stored_kg.query
         )
         return retrieved_kg
-    else:
+    elif stored_kg.knowledge_base_ids is not None:
         kg_store_map = {}
         knowledge_base_set = set()
         relationship_set = set()
@@ -169,6 +169,8 @@ def get_graph_data_from_chat_message(
             entities=list(entity_set),
             subgraphs=subgraphs,
         )
+    else:
+        return None
 
 
 def get_chat_message_subgraph(

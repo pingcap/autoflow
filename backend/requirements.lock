@@ -309,20 +309,20 @@ langchain-openai==0.2.9
     # via ragas
 langchain-text-splitters==0.3.2
     # via langchain
-langfuse==2.48.0
+langfuse==2.59.1
 langsmith==0.1.143
     # via langchain
     # via langchain-community
     # via langchain-core
 llama-cloud==0.1.6
     # via llama-index-indices-managed-llama-cloud
-llama-index==0.12.10
+llama-index==0.12.16
 llama-index-agent-openai==0.4.1
     # via llama-index
     # via llama-index-program-openai
 llama-index-cli==0.4.0
     # via llama-index
-llama-index-core==0.12.10.post1
+llama-index-core==0.12.16.post1
     # via llama-index
     # via llama-index-agent-openai
     # via llama-index-cli
@@ -637,6 +637,7 @@ requests==2.32.3
     # via huggingface-hub
     # via langchain
     # via langchain-community
+    # via langfuse
     # via langsmith
     # via llama-index-core
     # via msal

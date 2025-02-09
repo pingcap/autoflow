@@ -1,19 +1,17 @@
 import json
 import logging
 from datetime import datetime, UTC
-from typing import List, Optional, Generator, Tuple
+from typing import List, Optional, Generator, Tuple, Any
 from urllib.parse import urljoin
 from uuid import UUID
 
 import requests
-from langfuse import Langfuse
-from langfuse.llama_index import LlamaIndexCallbackHandler
+from langfuse.llama_index import LlamaIndexInstrumentor
+from langfuse.llama_index._context import langfuse_instrumentor_context
 from llama_index.core import get_response_synthesizer
 from llama_index.core.base.llms.types import ChatMessage
-from llama_index.core.callbacks import CallbackManager, EventPayload
 from llama_index.core.schema import NodeWithScore
 from sqlmodel import Session
-
 from app.core.config import settings
 from app.exceptions import ChatNotFound
 from app.models import (
@@ -30,12 +28,12 @@ from app.rag.chat.stream_protocol import (
     ChatStreamMessagePayload,
 )
 from app.rag.retrievers.knowledge_graph.schema import KnowledgeGraphRetrievalResult
-from app.rag.types import ChatEventType, MessageRole, ChatMessageSate, MyCBEventType
+from app.rag.types import ChatEventType, MessageRole, ChatMessageSate
 from app.rag.utils import parse_goal_response_format
 from app.repositories import chat_repo
 from app.site_settings import SiteSetting
 from app.utils.jinja2 import get_prompt_by_jinja2_template
-
+from app.utils.tracing import LangfuseContextManager
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +47,8 @@ def parse_chat_messages(
 
 
 class ChatFlow:
+    _trace_manager: LangfuseContextManager
+
     def __init__(
         self,
         *,
@@ -131,34 +131,17 @@ class ChatFlow:
         enable_langfuse = (
             SiteSetting.langfuse_secret_key and SiteSetting.langfuse_public_key
         )
-        if enable_langfuse:
-            # Move to global scope.
-            langfuse = Langfuse(
-                host=SiteSetting.langfuse_host,
-                secret_key=SiteSetting.langfuse_secret_key,
-                public_key=SiteSetting.langfuse_public_key,
-            )
-            # Why we don't use high-level decorator `observe()` as \
-            #   `https://langfuse.com/docs/integrations/llama-index/get-started` suggested?
-            # track:
-            #   - https://github.com/langfuse/langfuse/issues/2015
-            #   - https://langfuse.com/blog/2024-04-python-decorator
-            root_observation = self._create_root_observation(langfuse)
-            langfuse_handler = LlamaIndexCallbackHandler()
-            langfuse_handler.set_root(root_observation)
-            self.callback_manager = CallbackManager([langfuse_handler])
-            self.trace_id = root_observation.trace_id
-            self.trace_url = root_observation.get_trace_url()
-        else:
-            self.callback_manager = CallbackManager([])
-            self.trace_id = None
-            self.trace_url = ""
+        instrumentor = LlamaIndexInstrumentor(
+            host=SiteSetting.langfuse_host,
+            secret_key=SiteSetting.langfuse_secret_key,
+            public_key=SiteSetting.langfuse_public_key,
+            enabled=enable_langfuse,
+        )
+        self._trace_manager = LangfuseContextManager(instrumentor)
 
         # Init LLM.
         self._llm = self.engine_config.get_llama_llm(self.db_session)
-        self._llm.callback_manager = self.callback_manager
         self._fast_llm = self.engine_config.get_fast_llama_llm(self.db_session)
-        self._fast_llm.callback_manager = self.callback_manager
         self._fast_dspy_lm = self.engine_config.get_fast_dspy_lm(self.db_session)
 
         # Load knowledge bases.
@@ -173,45 +156,47 @@ class ChatFlow:
             llm=self._llm,
             fast_llm=self._fast_llm,
             knowledge_bases=self.knowledge_bases,
-            callback_manager=self.callback_manager,
-        )
-
-    def _create_root_observation(self, langfuse: Langfuse):
-        return langfuse.trace(
-            name="chat",
-            user_id=self.user.email if self.user else f"anonymous-{self.browser_id}",
-            metadata={
-                "chat_engine_config": self.engine_config.screenshot(),
-            },
-            tags=[f"chat_engine:{self.engine_name}"],
-            release=settings.ENVIRONMENT,
-            input={
-                "user_question": self.user_question,
-                "chat_history": self.chat_history,
-            },
         )
 
     def chat(self) -> Generator[ChatEvent | str, None, None]:
         try:
-            self.callback_manager.start_trace(self.trace_id)
-            if (
-                self.engine_config.external_engine_config
-                and self.engine_config.external_engine_config.stream_chat_api_url
-            ):
-                yield from self._external_chat()
-            else:
-                yield from self._builtin_chat()
-            self.callback_manager.end_trace(self.trace_id)
+            with self._trace_manager.observe(
+                trace_name="ChatFlow",
+                user_id=self.user.email
+                if self.user
+                else f"anonymous-{self.browser_id}",
+                metadata={
+                    "is_external_engine": self.engine_config.is_external_engine,
+                    "chat_engine_config": self.engine_config.screenshot(),
+                },
+                tags=[f"chat_engine:{self.engine_name}"],
+                release=settings.ENVIRONMENT,
+            ) as trace:
+                trace.update(
+                    input={
+                        "user_question": self.user_question,
+                        "chat_history": self.chat_history,
+                    }
+                )
+
+                if self.engine_config.is_external_engine:
+                    yield from self._external_chat()
+                else:
+                    response_text, source_documents = yield from self._builtin_chat()
+                    trace.update(output=response_text)
         except Exception as e:
-            self.callback_manager.end_trace(self.trace_id)
             logger.exception(e)
             yield ChatEvent(
                 event_type=ChatEventType.ERROR_PART,
                 payload="Encountered an error while processing the chat. Please try again later.",
             )
 
-    def _builtin_chat(self) -> Generator[ChatEvent | str, None, None]:
+    def _builtin_chat(
+        self,
+    ) -> Generator[ChatEvent | str, None, Tuple[Optional[str], List[Any]]]:
+        ctx = langfuse_instrumentor_context.get().copy()
         db_user_message, db_assistant_message = yield from self._chat_start()
+        langfuse_instrumentor_context.get().update(ctx)
 
         # 1. Retrieve Knowledge graph related to the user question.
         (
@@ -241,7 +226,7 @@ class ChatFlow:
                     response_text=need_clarify_response,
                     knowledge_graph=knowledge_graph,
                 )
-                return
+                return None, []
 
         # 4. Use refined question to search for relevant chunks.
         relevant_chunks = yield from self._search_relevance_chunks(
@@ -250,7 +235,7 @@ class ChatFlow:
 
         # 5. Generate a response using the refined question and related chunks
         response_text, source_documents = yield from self._generate_answer(
-            refined_question=refined_question,
+            user_question=refined_question,
             knowledge_graph_context=knowledge_graph_context,
             relevant_chunks=relevant_chunks,
         )
@@ -263,6 +248,8 @@ class ChatFlow:
             source_documents=source_documents,
         )
 
+        return response_text, source_documents
+
     def _chat_start(
         self,
     ) -> Generator[ChatEvent, None, Tuple[DBChatMessage, DBChatMessage]]:
@@ -271,7 +258,7 @@ class ChatFlow:
             chat=self.db_chat_obj,
             chat_message=DBChatMessage(
                 role=MessageRole.USER.value,
-                trace_url=self.trace_url,
+                trace_url=self._trace_manager.trace_url,
                 content=self.user_question,
             ),
         )
@@ -280,7 +267,7 @@ class ChatFlow:
             chat=self.db_chat_obj,
             chat_message=DBChatMessage(
                 role=MessageRole.ASSISTANT.value,
-                trace_url=self.trace_url,
+                trace_url=self._trace_manager.trace_url,
                 content="",
             ),
         )
@@ -299,10 +286,13 @@ class ChatFlow:
         user_question: str,
         annotation_silent: bool = False,
     ) -> Generator[ChatEvent, None, Tuple[KnowledgeGraphRetrievalResult, str]]:
-        knowledge_graph = KnowledgeGraphRetrievalResult()
-        knowledge_graph_context = ""
         kg_config = self.engine_config.knowledge_graph
-        if kg_config is not None and kg_config.enabled:
+        if kg_config is None or kg_config.enabled is False:
+            return KnowledgeGraphRetrievalResult(), ""
+
+        with self._trace_manager.span(
+            name="search_knowledge_graph", input=user_question
+        ) as span:
             if not annotation_silent:
                 if kg_config.using_intent_search:
                     yield ChatEvent(
@@ -321,14 +311,17 @@ class ChatFlow:
                         ),
                     )
 
-            with self.callback_manager.event(
-                MyCBEventType.RETRIEVE_FROM_GRAPH,
-                payload={EventPayload.QUERY_STR: user_question},
-            ) as event:
-                knowledge_graph, knowledge_graph_context = (
-                    self.retrieve_flow.search_knowledge_graph(user_question)
-                )
-                event.on_end(payload={EventPayload: knowledge_graph})
+            knowledge_graph, knowledge_graph_context = (
+                self.retrieve_flow.search_knowledge_graph(user_question)
+            )
+
+            span.end(
+                output={
+                    "knowledge_graph": knowledge_graph,
+                    "knowledge_graph_context": knowledge_graph_context,
+                }
+            )
+
         return knowledge_graph, knowledge_graph_context
 
     def _refine_user_question(
@@ -339,22 +332,23 @@ class ChatFlow:
         knowledge_graph_context: str = "",
         annotation_silent: bool = False,
     ) -> Generator[ChatEvent, None, str]:
-        if not annotation_silent:
-            yield ChatEvent(
-                event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
-                payload=ChatStreamMessagePayload(
-                    state=ChatMessageSate.REFINE_QUESTION,
-                    display="Query Rewriting for Enhanced Information Retrieval",
-                ),
-            )
-
-        with self.callback_manager.event(
-            MyCBEventType.REFINE_QUESTION,
-            payload={
-                EventPayload.QUERY_STR: user_question,
+        with self._trace_manager.span(
+            name="refine_user_question",
+            input={
+                "user_question": user_question,
+                "chat_history": chat_history,
                 "knowledge_graph_context": knowledge_graph_context,
             },
-        ) as event:
+        ) as span:
+            if not annotation_silent:
+                yield ChatEvent(
+                    event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
+                    payload=ChatStreamMessagePayload(
+                        state=ChatMessageSate.REFINE_QUESTION,
+                        display="Query Rewriting for Enhanced Information Retrieval",
+                    ),
+                )
+
             refined_question = self._fast_llm.predict(
                 get_prompt_by_jinja2_template(
                     refined_question_prompt,
@@ -364,17 +358,19 @@ class ChatFlow:
                     current_date=datetime.now().strftime("%Y-%m-%d"),
                 ),
             )
-            event.on_end(payload={EventPayload.COMPLETION: refined_question})
 
-        if not annotation_silent:
-            yield ChatEvent(
-                event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
-                payload=ChatStreamMessagePayload(
-                    state=ChatMessageSate.REFINE_QUESTION,
-                    message=refined_question,
-                ),
-            )
-        return refined_question
+            if not annotation_silent:
+                yield ChatEvent(
+                    event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
+                    payload=ChatStreamMessagePayload(
+                        state=ChatMessageSate.REFINE_QUESTION,
+                        message=refined_question,
+                    ),
+                )
+
+            span.end(output=refined_question)
+
+            return refined_question
 
     def _clarify_question(
         self,
@@ -394,10 +390,13 @@ class ChatFlow:
             bool: Determine whether further clarification of the issue is needed from the user.
             str: The content of the questions that require clarification from the user.
         """
-        with self.callback_manager.event(
-            MyCBEventType.CLARIFYING_QUESTION,
-            payload={EventPayload.QUERY_STR: user_question},
-        ) as event:
+        with self._trace_manager.span(
+            name="clarify_question",
+            input={
+                "user_question": user_question,
+                "knowledge_graph_context": knowledge_graph_context,
+            },
+        ) as span:
             clarity_result = (
                 self._fast_llm.predict(
                     prompt=get_prompt_by_jinja2_template(
@@ -413,99 +412,109 @@ class ChatFlow:
 
             need_clarify = clarity_result.lower() != "false"
             need_clarify_response = clarity_result if need_clarify else ""
-            event.on_end(
-                payload={
+
+            if need_clarify:
+                yield ChatEvent(
+                    event_type=ChatEventType.TEXT_PART,
+                    payload=need_clarify_response,
+                )
+
+            span.end(
+                output={
                     "need_clarify": need_clarify,
                     "need_clarify_response": need_clarify_response,
                 }
             )
 
-        if need_clarify:
-            yield ChatEvent(
-                event_type=ChatEventType.TEXT_PART,
-                payload=need_clarify_response,
-            )
-
-        return need_clarify, need_clarify_response
+            return need_clarify, need_clarify_response
 
     def _search_relevance_chunks(
         self, user_question: str
     ) -> Generator[ChatEvent, None, List[NodeWithScore]]:
-        yield ChatEvent(
-            event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
-            payload=ChatStreamMessagePayload(
-                state=ChatMessageSate.SEARCH_RELATED_DOCUMENTS,
-                display="Retrieving the Most Relevant Documents",
-            ),
-        )
+        with self._trace_manager.span(
+            name="search_relevance_chunks", input=user_question
+        ) as span:
+            yield ChatEvent(
+                event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
+                payload=ChatStreamMessagePayload(
+                    state=ChatMessageSate.SEARCH_RELATED_DOCUMENTS,
+                    display="Retrieving the Most Relevant Documents",
+                ),
+            )
 
-        with self.callback_manager.event(
-            MyCBEventType.RETRIEVE, payload={EventPayload.QUERY_STR: user_question}
-        ) as event:
-            relevant_chunks = self.retrieve_flow.search_relevant_chunks(user_question)
-            event.on_end(
-                payload={
-                    EventPayload.CHUNKS: relevant_chunks,
+            relevance_chunks = self.retrieve_flow.search_relevant_chunks(user_question)
+
+            span.end(
+                output={
+                    "relevance_chunks": relevance_chunks,
                 }
             )
-        return relevant_chunks
+
+            return relevance_chunks
 
     def _generate_answer(
         self,
-        refined_question: str,
+        user_question: str,
         knowledge_graph_context: str,
         relevant_chunks: List[NodeWithScore],
     ) -> Generator[ChatEvent, None, Tuple[str, List[SourceDocument]]]:
-        # Initialize response synthesizer.
-        text_qa_template = get_prompt_by_jinja2_template(
-            self.engine_config.llm.text_qa_prompt,
-            current_date=datetime.now().strftime("%Y-%m-%d"),
-            graph_knowledges=knowledge_graph_context,
-            original_question=self.user_question,
-        )
-        response_synthesizer = get_response_synthesizer(
-            llm=self._llm,
-            text_qa_template=text_qa_template,
-            streaming=True,
-            callback_manager=self.callback_manager,
-        )
-
-        # Initialize response.
-        response = response_synthesizer.synthesize(
-            query=refined_question,
-            nodes=relevant_chunks,
-        )
-        source_documents = self.retrieve_flow.get_source_documents_from_nodes(
-            response.source_nodes
-        )
-        yield ChatEvent(
-            event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
-            payload=ChatStreamMessagePayload(
-                state=ChatMessageSate.SOURCE_NODES,
-                context=source_documents,
-            ),
-        )
-
-        # Generate response.
-        yield ChatEvent(
-            event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
-            payload=ChatStreamMessagePayload(
-                state=ChatMessageSate.GENERATE_ANSWER,
-                display="Generating a Precise Answer with AI",
-            ),
-        )
-        response_text = ""
-        for word in response.response_gen:
-            response_text += word
-            yield ChatEvent(
-                event_type=ChatEventType.TEXT_PART,
-                payload=word,
+        with self._trace_manager.span(
+            name="generate_answer", input=user_question
+        ) as span:
+            # Initialize response synthesizer.
+            text_qa_template = get_prompt_by_jinja2_template(
+                self.engine_config.llm.text_qa_prompt,
+                current_date=datetime.now().strftime("%Y-%m-%d"),
+                graph_knowledges=knowledge_graph_context,
+                original_question=self.user_question,
+            )
+            response_synthesizer = get_response_synthesizer(
+                llm=self._llm, text_qa_template=text_qa_template, streaming=True
             )
 
-        if not response_text:
-            raise Exception("Got empty response from LLM")
+            # Initialize response.
+            response = response_synthesizer.synthesize(
+                query=user_question,
+                nodes=relevant_chunks,
+            )
+            source_documents = self.retrieve_flow.get_source_documents_from_nodes(
+                response.source_nodes
+            )
+            yield ChatEvent(
+                event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
+                payload=ChatStreamMessagePayload(
+                    state=ChatMessageSate.SOURCE_NODES,
+                    context=source_documents,
+                ),
+            )
 
-        return response_text, source_documents
+            # Generate response.
+            yield ChatEvent(
+                event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
+                payload=ChatStreamMessagePayload(
+                    state=ChatMessageSate.GENERATE_ANSWER,
+                    display="Generating a Precise Answer with AI",
+                ),
+            )
+            response_text = ""
+            for word in response.response_gen:
+                response_text += word
+                yield ChatEvent(
+                    event_type=ChatEventType.TEXT_PART,
+                    payload=word,
+                )
+
+            if not response_text:
+                raise Exception("Got empty response from LLM")
+
+            span.end(
+                output=response_text,
+                metadata={
+                    "source_documents": source_documents,
+                },
+            )
+
+            return response_text, source_documents
 
     def _post_verification(
         self, user_question: str, response_text: str, chat_id: UUID, message_id: int
@@ -519,26 +528,44 @@ class ChatFlow:
 
         external_request_id = f"{chat_id}_{message_id}"
         qa_content = f"User question: {user_question}\n\nAnswer:\n{response_text}"
-        try:
-            resp = requests.post(
-                post_verification_url,
-                json={
-                    "external_request_id": external_request_id,
-                    "qa_content": qa_content,
-                },
-                headers={
-                    "Authorization": f"Bearer {post_verification_token}",
-                }
-                if post_verification_token
-                else {},
-                timeout=10,
-            )
-            resp.raise_for_status()
-            job_id = resp.json()["job_id"]
-            return urljoin(f"{post_verification_url}/", str(job_id))
-        except Exception:
-            logger.exception("Failed to post verification")
-            return None
+
+        with self._trace_manager.span(
+            name="post_verification",
+            input={
+                "external_request_id": external_request_id,
+                "qa_content": qa_content,
+            },
+        ) as span:
+            try:
+                resp = requests.post(
+                    post_verification_url,
+                    json={
+                        "external_request_id": external_request_id,
+                        "qa_content": qa_content,
+                    },
+                    headers={
+                        "Authorization": f"Bearer {post_verification_token}",
+                    }
+                    if post_verification_token
+                    else {},
+                    timeout=10,
+                )
+                resp.raise_for_status()
+                job_id = resp.json()["job_id"]
+                post_verification_link = urljoin(
+                    f"{post_verification_url}/", str(job_id)
+                )
+
+                span.end(
+                    output={
+                        "post_verification_link": post_verification_link,
+                    }
+                )
+
+                return post_verification_link
+            except Exception as e:
+                logger.exception("Failed to post verification: %s", e.message)
+                return None
 
     def _chat_finish(
         self,
@@ -556,6 +583,7 @@ class ChatFlow:
                     state=ChatMessageSate.FINISHED,
                 ),
             )
+
         post_verification_result_url = self._post_verification(
             self.user_question,
             response_text,
@@ -602,7 +630,6 @@ class ChatFlow:
                     user_question=goal, chat_history=self.chat_history
                 )
                 if need_clarify:
-                    logger.info("", extra={"chat_id": self.chat_id})
                     yield from self._chat_finish(
                         db_assistant_message=db_assistant_message,
                         db_user_message=db_user_message,

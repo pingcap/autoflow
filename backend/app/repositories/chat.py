@@ -8,7 +8,7 @@ from sqlmodel import select, Session, or_, func, case, desc, col
 from fastapi_pagination import Params, Page
 from fastapi_pagination.ext.sqlmodel import paginate
 
-from app.models import Chat, User, ChatMessage, ChatUpdate, ChatFilters
+from app.models import Chat, User, ChatMessage, ChatUpdate, ChatFilters, ChatOrigin
 from app.repositories.base_repo import BaseRepo
 from app.exceptions import ChatNotFound, ChatMessageNotFound
 
@@ -242,10 +242,22 @@ class ChatRepo(BaseRepo):
         stats.sort(key=lambda x: x["date"])
         return stats
 
-    def list_chat_origins(self, session: Session):
-        return session.exec(
-            select(Chat.origin, Chat.id).order_by(Chat.created_at.desc())
+    def list_chat_origins(
+        self,
+        session: Session,
+        search: Optional[str] = None,
+        params: Params | None = Params(),
+    ) -> Page[ChatOrigin]:
+        query = select(Chat.origin, func.count(Chat.id).label("count")).where(
+            Chat.deleted_at == None
         )
+
+        if search:
+            query = query.where(Chat.origin.ilike(f"%{search}%"))
+
+        query = query.group_by(Chat.origin).order_by(desc("count"))
+
+        return paginate(session, query, params)
 
 
 chat_repo = ChatRepo()

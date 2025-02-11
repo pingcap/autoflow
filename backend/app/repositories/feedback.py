@@ -1,9 +1,12 @@
-from sqlmodel import select, Session, col
+from sqlmodel import select, Session, col, func, desc
 from fastapi_pagination import Params, Page
 from fastapi_pagination.ext.sqlmodel import paginate
+from typing import Optional
 
 from app.models import Feedback, AdminFeedbackPublic, FeedbackFilters
+from app.models.feedback import FeedbackOrigin
 from app.repositories.base_repo import BaseRepo
+
 
 class FeedbackRepo(BaseRepo):
     model_cls = Feedback
@@ -28,11 +31,11 @@ class FeedbackRepo(BaseRepo):
             stmt = stmt.where(Feedback.feedback_type == filters.feedback_type)
         if filters.user_id:
             stmt = stmt.where(Feedback.user_id == filters.user_id)
-        
+
         stmt = stmt.order_by(Feedback.created_at.desc())
         return paginate(
-            session, 
-            stmt, 
+            session,
+            stmt,
             params,
             transformer=lambda items: [
                 AdminFeedbackPublic(
@@ -45,5 +48,30 @@ class FeedbackRepo(BaseRepo):
                 for item in items
             ],
         )
+
+    def list_feedback_origins(
+        self,
+        session: Session,
+        search: Optional[str] = None,
+        params: Params | None = Params(),
+    ) -> Page[FeedbackOrigin]:
+        query = select(
+            Feedback.origin, func.count(Feedback.id).label("feedbacks")
+        ).group_by(Feedback.origin)
+
+        if search:
+            query = query.where(Feedback.origin.ilike(f"%{search}%"))
+
+        query = query.order_by(desc("feedbacks"))
+
+        return paginate(
+            session,
+            query,
+            params,
+            transformer=lambda items: [
+                FeedbackOrigin(origin=item[0], feedbacks=item[1]) for item in items
+            ],
+        )
+
 
 feedback_repo = FeedbackRepo()

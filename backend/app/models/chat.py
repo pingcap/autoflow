@@ -65,3 +65,8 @@ class ChatFilters(BaseModel):
     chat_origin: Optional[str] = None
     # user_id: Optional[UUID] = None          # no use now
     engine_id: Optional[int] = None
+
+
+class ChatOrigin(BaseModel):
+    origin: str
+    chats: int

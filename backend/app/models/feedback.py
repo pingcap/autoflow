@@ -66,6 +66,7 @@ class AdminFeedbackPublic(BaseFeedback):
     user_id: Optional[UUID]
     user_email: Optional[str]
 
+
 class FeedbackFilters(BaseModel):
     created_at_start: Optional[datetime] = None
     created_at_end: Optional[datetime] = None
@@ -73,3 +74,8 @@ class FeedbackFilters(BaseModel):
     chat_id: Optional[UUID] = None
     feedback_type: Optional[FeedbackType] = None
     user_id: Optional[UUID] = None
+
+
+class FeedbackOrigin(BaseModel):
+    origin: str
+    feedbacks: int

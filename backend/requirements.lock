@@ -165,8 +165,6 @@ fsspec==2023.10.0
     # via datasets
     # via huggingface-hub
     # via llama-index-core
-    # via llama-index-legacy
-fuzzywuzzy==0.18.0
 google-ai-generativelanguage==0.6.4
     # via google-generativeai
 google-api-core==2.19.1
@@ -316,8 +314,7 @@ langsmith==0.1.143
     # via langchain
     # via langchain-community
     # via langchain-core
-levenshtein==0.26.1
-llama-cloud==0.0.15
+llama-cloud==0.1.6
     # via llama-index-indices-managed-llama-cloud
 llama-index==0.12.16
 llama-index-agent-openai==0.4.1
@@ -621,8 +618,6 @@ pyyaml==6.0.1
     # via uvicorn
 ragas==0.2.6
     # via deepeval
-rapidfuzz==3.11.0
-    # via levenshtein
 redis==5.0.5
 regex==2024.5.15
     # via dspy-ai

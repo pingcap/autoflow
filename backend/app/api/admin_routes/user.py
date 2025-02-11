@@ -1,6 +1,6 @@
+from typing import Optional
 from fastapi import APIRouter, Depends
-from fastapi_pagination import Params
-
+from fastapi_pagination import Page, Params
 
 from app.repositories.user import user_repo
 from app.api.deps import SessionDep, CurrentSuperuserDep
@@ -10,15 +10,15 @@ from app.api.admin_routes.models import (
 
 router = APIRouter(
     prefix="/admin/users",
-    tags=["admin/user"],
+    tags=["admin/users"],
 )
 
 
 @router.get("/search")
 def search_users(
-    session: SessionDep,
+    db_session: SessionDep,
     user: CurrentSuperuserDep,
-    search: str | None = None,
+    search: Optional[str] = None,
     params: Params = Depends(),
-) -> list[UserDescriptor]:
-    return user_repo.search_users(session, search, params)
+) -> Page[UserDescriptor]:
+    return user_repo.search_users(db_session, search, params)

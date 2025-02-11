@@ -1,8 +1,9 @@
-from fastapi_pagination import Page, Params, paginate
-from sqlmodel import Session
+from typing import Optional
+from fastapi_pagination import Page, Params
+from fastapi_pagination.ext.sqlmodel import paginate
+from sqlmodel import Session, select
 from app.models.auth import User
 from app.repositories.base_repo import BaseRepo
-from sqlalchemy import select
 
 
 class UserRepo(BaseRepo):
@@ -10,9 +11,9 @@ class UserRepo(BaseRepo):
 
     def search_users(
         self,
-        session: Session,
-        search: str | None = None,
-        params: Params | None = Params(),
+        db_session: Session,
+        search: Optional[str] = None,
+        params: Params = Params(),
     ) -> Page[User]:
         query = select(User)
 
@@ -20,7 +21,11 @@ class UserRepo(BaseRepo):
             query = query.where(User.email.ilike(f"%{search}%"))
 
         query = query.order_by(User.id)
-        return paginate(session, query, params)
+        return paginate(
+            db_session,
+            query,
+            params,
+        )
 
 
 user_repo = UserRepo()

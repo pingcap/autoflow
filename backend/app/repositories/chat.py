@@ -244,20 +244,30 @@ class ChatRepo(BaseRepo):
 
     def list_chat_origins(
         self,
-        session: Session,
+        db_session: Session,
         search: Optional[str] = None,
-        params: Params | None = Params(),
+        params: Params = Params(),
     ) -> Page[ChatOrigin]:
-        query = select(Chat.origin, func.count(Chat.id).label("count")).where(
-            Chat.deleted_at == None
+        query = (
+            select(Chat.origin, func.count(Chat.id).label("chats"))
+            .where(Chat.deleted_at == None)
+            .where(Chat.origin != None)
+            .where(Chat.origin != "")
         )
 
         if search:
             query = query.where(Chat.origin.ilike(f"%{search}%"))
 
-        query = query.group_by(Chat.origin).order_by(desc("count"))
+        query = query.group_by(Chat.origin).order_by(desc("chats"))
 
-        return paginate(session, query, params)
+        return paginate(
+            db_session,
+            query,
+            params,
+            transformer=lambda chats: [
+                ChatOrigin(origin=chat.origin, chats=chat.chats) for chat in chats
+            ],
+        )
 
 
 chat_repo = ChatRepo()

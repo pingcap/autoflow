@@ -43,7 +43,6 @@ class Document(UpdatableBaseModel, table=True):
 
     # TODO: rename to vector_index_status, vector_index_result.
     index_status: DocIndexTaskStatus = DocIndexTaskStatus.NOT_STARTED
-    vector_index_task_id: str = Field(sa_column=Column(String(128), nullable=False))
     index_result: str = Field(sa_column=Column(Text, nullable=True))
 
     # TODO: add kg_index_status, kg_index_result column, unify the index status.

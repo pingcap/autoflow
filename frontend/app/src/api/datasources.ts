@@ -65,6 +65,8 @@ export type DatasourceVectorIndexError = {
 }
 
 export type DatasourceKgIndexError = {
+  document_id: number
+  document_name: string
   chunk_id: string
   source_uri: string
   error: string | null

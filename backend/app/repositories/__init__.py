@@ -6,3 +6,5 @@ from .document import document_repo
 from .chunk import chunk_repo
 from .data_source import data_source_repo
 from .knowledge_base import knowledge_base_repo
+from .llm import llm_repo
+from .embedding_model import embed_model_repo

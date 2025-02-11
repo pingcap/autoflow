@@ -9,6 +9,7 @@ from app.rag.retrievers.chunk.simple_retriever import (
     ChunkSimpleRetriever,
 )
 from app.rag.retrievers.chunk.schema import (
+    RetrievedChunkDocument,
     VectorSearchRetrieverConfig,
     ChunksRetrievalResult,
     ChunkRetriever,
@@ -97,13 +98,16 @@ class ChunkFusionRetriever(MultiKBFusionRetriever, ChunkRetriever):
         chunks = map_nodes_to_chunks(nodes_with_score)
 
         document_ids = [c.document_id for c in chunks]
+        documents = document_repo.fetch_by_ids(self._db_session, document_ids)
         if full_document:
-            documents = document_repo.list_full_documents_by_ids(
-                self._db_session, document_ids
-            )
+            return ChunksRetrievalResult(chunks=chunks, documents=documents)
         else:
-            documents = document_repo.list_simple_documents_by_ids(
-                self._db_session, document_ids
+            return ChunksRetrievalResult(
+                chunks=chunks,
+                documents=[
+                    RetrievedChunkDocument(
+                        id=d.id, name=d.name, source_uri=d.source_uri
+                    )
+                    for d in documents
+                ],
             )
-
-        return ChunksRetrievalResult(chunks=chunks, documents=documents)

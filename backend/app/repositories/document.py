@@ -8,7 +8,6 @@ from fastapi_pagination.ext.sqlmodel import paginate
 from app.api.admin_routes.knowledge_base.document.models import DocumentFilters
 from app.exceptions import DocumentNotFound
 from app.models import Document
-from app.rag.retrievers.chunk.schema import RetrievedChunkDocument
 from app.repositories.base_repo import BaseRepo
 
 
@@ -64,23 +63,9 @@ class DocumentRepo(BaseRepo):
         stmt = delete(Document).where(Document.data_source_id == datasource_id)
         session.exec(stmt)
 
-    def list_full_documents_by_ids(
-        self, session: Session, document_ids: list[int]
-    ) -> list[Document]:
+    def fetch_by_ids(self, session: Session, document_ids: list[int]) -> list[Document]:
         stmt = select(Document).where(Document.id.in_(document_ids))
         return session.exec(stmt).all()
-
-    def list_simple_documents_by_ids(
-        self, session: Session, document_ids: list[int]
-    ) -> list[RetrievedChunkDocument]:
-        stmt = select(Document.id, Document.name, Document.source_uri).where(
-            Document.id.in_(document_ids)
-        )
-        rows = session.exec(stmt).all()
-        return [
-            RetrievedChunkDocument(id=row[0], name=row[1], source_uri=row[2])
-            for row in rows
-        ]
 
 
 document_repo = DocumentRepo()

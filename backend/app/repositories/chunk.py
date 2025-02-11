@@ -39,6 +39,11 @@ class ChunkRepo(BaseRepo):
             select(self.model_cls).where(self.model_cls.document_id == document_id)
         ).all()
 
+    def fetch_by_document_ids(self, session: Session, document_ids: list[int]):
+        return session.exec(
+            select(self.model_cls).where(self.model_cls.document_id.in_(document_ids))
+        ).all()
+
     def count(self, session: Session):
         return session.scalar(select(func.count(self.model_cls.id)))
 

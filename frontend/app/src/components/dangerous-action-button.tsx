@@ -36,7 +36,7 @@ export const DangerousActionButton = forwardRef<HTMLButtonElement, DangerousActi
         ? <AlertDialogTrigger asChild ref={ref} {...props} disabled={props.disabled || acting} />
         : (
           <AlertDialogTrigger asChild>
-            <Button ref={ref} {...props} disabled={props.disabled || acting} />
+            <Button variant="destructive" ref={ref} {...props} disabled={props.disabled || acting} />
           </AlertDialogTrigger>
         )}
       <AlertDialogContent>

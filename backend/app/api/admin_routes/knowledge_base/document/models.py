@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -44,3 +45,10 @@ class DocumentItem(BaseModel):
     last_modified_at: datetime
     created_at: datetime
     updated_at: datetime
+
+
+class RebuildIndexResult(BaseModel):
+    reindex_document_ids: list[int] = Field(default_factory=list)
+    ignore_document_ids: list[int] = Field(default_factory=list)
+    reindex_chunk_ids: list[UUID] = Field(default_factory=list)
+    ignore_chunk_ids: list[UUID] = Field(default_factory=list)

@@ -1,15 +1,12 @@
 import logging
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi_pagination import Params, Page
-
+from app.api.deps import SessionDep, CurrentSuperuserDep
 from app.rag.knowledge_base.index_store import (
     init_kb_tidb_vector_store,
     init_kb_tidb_graph_store,
 )
-from app.repositories.embedding_model import embed_model_repo
-from app.repositories.llm import llm_repo
-
 from .models import (
     KnowledgeBaseDetail,
     KnowledgeBaseItem,
@@ -18,25 +15,24 @@ from .models import (
     VectorIndexError,
     KGIndexError,
 )
-from app.api.deps import SessionDep, CurrentSuperuserDep
 from app.exceptions import (
     InternalServerError,
-    KBException,
-    KBNotFound,
-    KBNoVectorIndexConfigured,
-    DefaultLLMNotFound,
-    DefaultEmbeddingModelNotFound,
     KBIsUsedByChatEngines,
 )
 from app.models import (
+    DataSource,
     KnowledgeBase,
 )
-from app.models.data_source import DataSource
+from app.repositories import (
+    embed_model_repo,
+    llm_repo,
+    data_source_repo,
+    knowledge_base_repo,
+)
 from app.tasks import (
     build_kg_index_for_chunk,
     build_index_for_document,
 )
-from app.repositories import knowledge_base_repo, data_source_repo
 from app.tasks.knowledge_base import (
     import_documents_for_knowledge_base,
     stats_for_knowledge_base,
@@ -93,12 +89,8 @@ def create_knowledge_base(
         import_documents_for_knowledge_base.delay(knowledge_base.id)
 
         return knowledge_base
-    except KBNoVectorIndexConfigured as e:
-        raise e
-    except DefaultLLMNotFound as e:
-        raise e
-    except DefaultEmbeddingModelNotFound as e:
-        raise e
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception(e)
         raise InternalServerError()
@@ -121,8 +113,8 @@ def get_knowledge_base(
 ) -> KnowledgeBaseDetail:
     try:
         return knowledge_base_repo.must_get(session, knowledge_base_id)
-    except KBNotFound as e:
-        raise e
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception(e)
         raise InternalServerError()
@@ -139,10 +131,8 @@ def update_knowledge_base_setting(
         knowledge_base = knowledge_base_repo.must_get(session, knowledge_base_id)
         knowledge_base = knowledge_base_repo.update(session, knowledge_base, update)
         return knowledge_base
-    except KBNotFound as e:
-        raise e
-    except KBNoVectorIndexConfigured as e:
-        raise e
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception(e)
         raise InternalServerError()
@@ -155,8 +145,8 @@ def list_kb_linked_chat_engines(
     try:
         kb = knowledge_base_repo.must_get(session, kb_id)
         return knowledge_base_repo.list_linked_chat_engines(session, kb.id)
-    except KBNotFound as e:
-        raise e
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception(e)
         raise InternalServerError()
@@ -181,8 +171,8 @@ def delete_knowledge_base(session: SessionDep, user: CurrentSuperuserDep, kb_id:
         purge_knowledge_base_related_resources.apply_async(args=[kb_id], countdown=5)
 
         return {"detail": f"Knowledge base #{kb_id} is deleted successfully"}
-    except KBException as e:
-        raise e
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception(e)
         raise InternalServerError()
@@ -200,8 +190,8 @@ def get_knowledge_base_index_overview(
         stats_for_knowledge_base.delay(knowledge_base.id)
 
         return knowledge_base_repo.get_index_overview(session, knowledge_base)
-    except KBNotFound as e:
-        raise e
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception(e)
         raise InternalServerError()
@@ -217,8 +207,8 @@ def list_kb_vector_index_errors(
     try:
         kb = knowledge_base_repo.must_get(session, kb_id)
         return knowledge_base_repo.list_vector_index_built_errors(session, kb, params)
-    except KBNotFound as e:
-        raise e
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception(e)
         raise InternalServerError()
@@ -234,8 +224,8 @@ def list_kb_kg_index_errors(
     try:
         kb = knowledge_base_repo.must_get(session, kb_id)
         return knowledge_base_repo.list_kg_index_built_errors(session, kb, params)
-    except KBNotFound as e:
-        raise e
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception(e)
         raise InternalServerError()
@@ -267,10 +257,12 @@ def retry_failed_tasks(
         )
 
         return {
-            "detail": f"Triggered reindex {len(document_ids)} documents and {len(chunk_ids)} chunks of knowledge base #{kb_id}."
+            "detail": f"Triggered reindex {len(document_ids)} documents and {len(chunk_ids)} chunks of knowledge base #{kb_id}.",
+            "reindex_document_ids": document_ids,
+            "reindex_chunk_ids": chunk_ids,
         }
-    except KBNotFound as e:
-        raise e
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception(e)
         raise InternalServerError()

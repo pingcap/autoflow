@@ -1,11 +1,12 @@
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
-
-import Highlight from 'highlight.js/lib/core';
-import markdown from 'highlight.js/lib/languages/markdown';
-import { useEffect, useState } from 'react';
 import './code-theme.scss';
+
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useEffect, useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import Highlight from 'highlight.js/lib/core';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import markdown from 'highlight.js/lib/languages/markdown';
 
 export interface DocumentPreviewProps {
   content: string;

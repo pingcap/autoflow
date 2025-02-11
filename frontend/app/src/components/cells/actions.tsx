@@ -1,21 +1,22 @@
 import { DangerousActionButton, type DangerousActionButtonProps } from '@/components/dangerous-action-button';
 import { buttonVariants } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useDataTable } from '@/components/use-data-table';
 import { cn } from '@/lib/utils';
 import type { CellContext } from '@tanstack/react-table';
-import { EllipsisVerticalIcon, Loader2Icon } from 'lucide-react';
+import { EllipsisIcon, Loader2Icon } from 'lucide-react';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { useRouter } from 'next/navigation';
 import { type Dispatch, type ReactNode, type SetStateAction, type TransitionStartFunction, useState, useTransition } from 'react';
 
 export interface CellAction {
+  type?: 'button' | 'label' | 'separator';
   key?: string | number;
   icon?: ReactNode;
   title?: ReactNode;
   disabled?: boolean;
   dangerous?: Pick<DangerousActionButtonProps, 'dialogDescription' | 'dialogTitle'>;
-  action: (context: ActionUIContext) => Promise<void> | void;
+  action?: (context: ActionUIContext) => Promise<void> | void;
 }
 
 export interface ActionUIContext {
@@ -35,12 +36,18 @@ export function actions<Row> (items: (row: Row) => CellAction[]) {
     return (
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'text-muted-foreground p-1 size-6')} disabled={actionItems.length === 0}>
-          <EllipsisVerticalIcon className="size-4" />
+          <EllipsisIcon className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          {actionItems.map((item, index) => (
-            <Action key={item.key ?? index} item={item} open={open} setOpen={setOpen} />
-          ))}
+          {actionItems.map((item, index) => {
+            if (item.type === 'label') {
+              return <DropdownMenuLabel key={item.key ?? index}>{item.title}</DropdownMenuLabel>;
+            } else if (item.type === 'separator') {
+              return <DropdownMenuSeparator key={item.key ?? index} />;
+            } else {
+              return <Action key={item.key ?? index} item={item} open={open} setOpen={setOpen} />;
+            }
+          })}
         </DropdownMenuContent>
       </DropdownMenu>
     );
@@ -56,7 +63,7 @@ function Action ({ item, open, setOpen }: { item: CellAction, open: boolean, set
   const onAction = async () => {
     try {
       setBusy(true);
-      await item.action({ startTransition, router, table, dropdownOpen: open, setDropdownOpen: setOpen });
+      await item?.action?.({ startTransition, router, table, dropdownOpen: open, setDropdownOpen: setOpen });
     } finally {
       setBusy(false);
     }

@@ -142,9 +142,7 @@ class RetrieveFlow:
 
     def get_documents_from_nodes(self, nodes: List[NodeWithScore]) -> List[DBDocument]:
         document_ids = [n.node.metadata["document_id"] for n in nodes]
-        documents = document_repo.list_full_documents_by_ids(
-            self.db_session, document_ids
-        )
+        documents = document_repo.fetch_by_ids(self.db_session, document_ids)
         # Keep the original order of document ids, which is sorted by similarity.
         return sorted(documents, key=lambda x: document_ids.index(x.id))
 

@@ -100,7 +100,7 @@ test.describe('Knowledge Base', () => {
     await test.step('Delete Document', async () => {
       await page.goto(`/knowledge-bases/${kbId}`);
       // FIXME: add aria roles
-      await page.getByRole('button').filter({ has: page.locator('.lucide-ellipsis-vertical') }).click();
+      await page.getByRole('button').filter({ has: page.locator('.lucide-ellipsis') }).click();
       await page.getByRole('menuitem', { name: 'Delete' }).click();
       await page.getByRole('button', { name: 'Continue' }).click();
       await page.getByRole('button', { name: 'Continue' }).waitFor({ state: 'detached' });

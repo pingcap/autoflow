@@ -14,7 +14,7 @@ migrate:
 
 run_dev_server:
 	@echo "Running server..."
-	@rye run python main.py runserver
+	@rye run python main.py runserver --host 0.0.0.0 --port 5001
 
 run_dev_celery_worker:
 	@echo "Running celery..."

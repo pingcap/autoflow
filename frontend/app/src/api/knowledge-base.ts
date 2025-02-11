@@ -143,6 +143,8 @@ const vectorIndexErrorSchema = z.object({
 }) satisfies ZodType<DatasourceVectorIndexError, any, any>;
 
 const kgIndexErrorSchema = z.object({
+  document_id: z.number(),
+  document_name: z.string(),
   chunk_id: z.string(),
   source_uri: z.string(),
   error: z.string().nullable(),
@@ -192,6 +194,14 @@ export async function getKnowledgeBaseLinkedChatEngines (id: number) {
 export async function deleteKnowledgeBaseDocument (id: number, documentId: number) {
   return await fetch(requestUrl(`/api/v1/admin/knowledge_bases/${id}/documents/${documentId}`), {
     method: 'DELETE',
+    headers: await authenticationHeaders(),
+  })
+    .then(handleErrors);
+}
+
+export async function rebuildKBDocumentIndex (kb_id: number, doc_id: number) {
+  return await fetch(requestUrl(`/api/v1/admin/knowledge_bases/${kb_id}/documents/${doc_id}/reindex`), {
+    method: 'POST',
     headers: await authenticationHeaders(),
   })
     .then(handleErrors);

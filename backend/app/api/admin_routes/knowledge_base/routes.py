@@ -75,6 +75,7 @@ def create_knowledge_base(
             index_methods=create.index_methods,
             llm_id=create.llm_id,
             embedding_model_id=create.embedding_model_id,
+            chunking_config=create.chunking_config,
             data_sources=data_sources,
             created_by=user.id,
             updated_by=user.id,

@@ -46,6 +46,7 @@ class KnowledgeBaseCreate(BaseModel):
 class KnowledgeBaseUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    chunking_config: Optional[ChunkingConfig] = None
 
 
 class KnowledgeBaseDetail(BaseModel):

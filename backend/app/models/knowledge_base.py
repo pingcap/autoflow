@@ -120,7 +120,7 @@ class KnowledgeBase(SQLModel, table=True):
     name: str = Field(max_length=255, nullable=False)
     description: str = Field(sa_column=Column(MEDIUMTEXT))
 
-    # The config for transforming the document into (chunk) nodes.
+    # The config for chunking, the process to break down the document into smaller chunks.
     chunking_config: Dict = Field(
         sa_column=Column(JSON), default=GeneralChunkingConfig().model_dump()
     )

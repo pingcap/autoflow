@@ -18,6 +18,7 @@ from app.models.knowledge_base_scoped.table_naming import (
     get_kb_vector_dims,
 )
 from app.models.patch.sql_model import SQLModel as PatchSQLModel
+from app.core.config import settings
 
 
 class EntityType(str, enum.Enum):
@@ -36,15 +37,19 @@ class EntityBase(SQLModel):
     synopsis_info: List | Dict | None = Field(default=None, sa_column=Column(JSON))
 
 
-# Notice: DO NOT forget to modify the definition in `get_kb_chunk_model` to
+# Notice: DO NOT forget to modify the definition in `get_kb_entity_model` to
 # keep the table structure on both sides consistent.
 class Entity(EntityBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     description_vec: Any = Field(
-        sa_column=Column(VectorType(1536), comment="hnsw(distance=cosine)")
+        sa_column=Column(
+            VectorType(settings.EMBEDDING_DIMS), comment="hnsw(distance=cosine)"
+        )
     )
     meta_vec: Any = Field(
-        sa_column=Column(VectorType(1536), comment="hnsw(distance=cosine)")
+        sa_column=Column(
+            VectorType(settings.EMBEDDING_DIMS), comment="hnsw(distance=cosine)"
+        )
     )
 
     __tablename__ = "entities"

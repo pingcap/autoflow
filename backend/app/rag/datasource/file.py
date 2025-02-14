@@ -8,7 +8,6 @@ from pypdf import PdfReader
 
 from app.models import Document, Upload
 from app.file_storage import default_file_storage
-from app.models.document import ContentFormat
 from app.types import MimeTypes
 from .base import BaseDataSource
 
@@ -37,29 +36,28 @@ class FileDataSource(BaseDataSource):
             with default_file_storage.open(upload.path) as f:
                 if upload.mime_type == MimeTypes.PDF:
                     content = extract_text_from_pdf(f)
-                    content_format = ContentFormat.TEXT
+                    mime_type = MimeTypes.PLAIN_TXT
                 elif upload.mime_type == MimeTypes.DOCX:
                     content = extract_text_from_docx(f)
-                    content_format = ContentFormat.TEXT
+                    mime_type = MimeTypes.PLAIN_TXT
                 elif upload.mime_type == MimeTypes.PPTX:
                     content = extract_text_from_pptx(f)
-                    content_format = ContentFormat.TEXT
+                    mime_type = MimeTypes.PLAIN_TXT
                 elif upload.mime_type == MimeTypes.XLSX:
                     content = extract_text_from_xlsx(f)
-                    content_format = ContentFormat.TEXT
+                    mime_type = MimeTypes.PLAIN_TXT
                 elif upload.mime_type == MimeTypes.MARKDOWN:
                     content = f.read()
-                    content_format = ContentFormat.MARKDOWN
+                    mime_type = MimeTypes.MARKDOWN
                 else:
                     content = f.read()
-                    content_format = ContentFormat.TEXT
+                    mime_type = MimeTypes.PLAIN_TXT
 
             document = Document(
                 name=upload.name,
                 hash=hash(content),
                 content=content,
-                content_format=content_format,
-                mime_type=upload.mime_type,
+                mime_type=mime_type,
                 knowledge_base_id=self.knowledge_base_id,
                 data_source_id=self.data_source_id,
                 user_id=self.user_id,

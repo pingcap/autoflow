@@ -8,17 +8,15 @@ from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.schema import TransformComponent
 
 from sqlmodel import Session
-
-from app.models.document import ContentFormat
 from app.models.knowledge_base import (
-    AdvancedChunkingConfig,
-    AutoChunkingConfig,
     ChunkSplitter,
-    ChunkingConfig,
     ChunkingMode,
     KnowledgeBase,
-    MarkdownSplitterConfig,
-    SentenceSplitterConfig,
+    SentenceSplitterOptions,
+    GeneralChunkingConfig,
+    ChunkSplitterConfig,
+    MarkdownNodeParserOptions,
+    AdvancedChunkingConfig,
 )
 from app.rag.knowledge_base.index_store import (
     get_kb_tidb_vector_store,
@@ -27,6 +25,7 @@ from app.rag.knowledge_base.index_store import (
 from app.rag.indices.knowledge_graph import KnowledgeGraphIndex
 from app.models import Document, Chunk
 from app.rag.node_parser.file.markdown import MarkdownNodeParser
+from app.types import MimeTypes
 from app.utils.dspy import get_dspy_lm_by_llama_llm
 
 logger = logging.getLogger(__name__)
@@ -83,46 +82,55 @@ class IndexService:
         transformations = []
 
         chunking_config_dict = self._knowledge_base.chunking_config
-        config = ChunkingConfig.model_validate(chunking_config_dict)
-        if config.mode != ChunkingMode.AUTO:
-            auto_chunking_config = AutoChunkingConfig.model_validate(
-                chunking_config_dict
-            )
-            chunking_config = AdvancedChunkingConfig(
-                mode=ChunkingMode.ADVANCED,
-                rules={
-                    ContentFormat.TEXT: SentenceSplitterConfig(
-                        chunk_size=auto_chunking_config.chunk_size,
-                        chunk_overlap=auto_chunking_config.chunk_overlap,
-                    ),
-                    ContentFormat.MARKDOWN: MarkdownSplitterConfig(
-                        chunk_size=auto_chunking_config.chunk_size,
-                    ),
-                },
-            )
-        elif config.mode == ChunkingMode.ADVANCED:
+        mode = (
+            chunking_config_dict["mode"]
+            if "mode" in chunking_config_dict
+            else ChunkingMode.GENERAL
+        )
+
+        if mode == ChunkingMode.ADVANCED:
             chunking_config = AdvancedChunkingConfig.model_validate(
                 chunking_config_dict
             )
+            rules = chunking_config.rules
+        else:
+            chunking_config = GeneralChunkingConfig.model_validate(chunking_config_dict)
+            rules = {
+                MimeTypes.PLAIN_TXT: ChunkSplitterConfig(
+                    splitter=ChunkSplitter.SENTENCE_SPLITTER,
+                    splitter_options=SentenceSplitterOptions(
+                        chunk_size=chunking_config.chunk_size,
+                        chunk_overlap=chunking_config.chunk_overlap,
+                        paragraph_separator=chunking_config.paragraph_separator,
+                    ),
+                ),
+                MimeTypes.MARKDOWN: ChunkSplitterConfig(
+                    splitter=ChunkSplitter.MARKDOWN_NODE_PARSER,
+                    splitter_options=MarkdownNodeParserOptions(
+                        chunk_size=chunking_config.chunk_size,
+                    ),
+                ),
+            }
 
         # Chunking
-        content_format = db_document.content_format
-        if content_format in chunking_config.rules:
-            splitter_config = chunking_config.rules[content_format]
-        else:
-            splitter_config = chunking_config.rules[ContentFormat.TEXT]
+        mime_type = db_document.mime_type
+        if mime_type not in rules:
+            raise RuntimeError(
+                f"Can not chunking for the document in {db_document.mime_type} format"
+            )
 
-        match splitter_config.type:
-            case ChunkSplitter.MARKDOWN_SPLITTER:
-                transformations.append(
-                    MarkdownNodeParser(**splitter_config.model_dump(exclude={"type"}))
+        rule = rules[mime_type]
+        match rule.splitter:
+            case ChunkSplitter.MARKDOWN_NODE_PARSER:
+                options = MarkdownNodeParserOptions.model_validate(
+                    rule.splitter_options
                 )
+                transformations.append(MarkdownNodeParser(**options.model_dump()))
             case ChunkSplitter.SENTENCE_SPLITTER:
-                transformations.append(
-                    SentenceSplitter(**splitter_config.model_dump(exclude={"type"}))
-                )
+                options = SentenceSplitterOptions.model_validate(rule.splitter_options)
+                transformations.append(SentenceSplitter(**options.model_dump()))
             case _:
-                raise ValueError(f"Unsupported splitter type: {splitter_config.type}")
+                raise ValueError(f"Unsupported chunking splitter type: {rule.splitter}")
 
         return transformations
 

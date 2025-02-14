@@ -14,7 +14,7 @@ from app.api.admin_routes.models import (
 )
 from app.exceptions import KBNoVectorIndexConfigured
 from app.models import KgIndexStatus
-from app.models.knowledge_base import IndexMethod
+from app.models.knowledge_base import IndexMethod, ChunkingConfig, GeneralChunkingConfig
 
 
 class KnowledgeBaseCreate(BaseModel):
@@ -25,6 +25,7 @@ class KnowledgeBaseCreate(BaseModel):
     )
     llm_id: Optional[int] = None
     embedding_model_id: Optional[int] = None
+    chunking_config: ChunkingConfig = Field(default_factory=GeneralChunkingConfig)
     data_sources: list[KBDataSourceCreate] = Field(default_factory=list)
 
     @field_validator("name")

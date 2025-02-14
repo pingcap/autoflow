@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime
-from typing import Annotated, Dict, Literal, Optional, Union
+from typing import Dict, Optional, Union
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -17,14 +17,17 @@ from llama_index.core.node_parser.text.sentence import (
     DEFAULT_PARAGRAPH_SEP,
     SENTENCE_CHUNK_OVERLAP,
 )
-from app.rag.node_parser.file.markdown import DEFAULT_CHUNK_HEADER_LEVEL
+from app.rag.node_parser.file.markdown import (
+    DEFAULT_CHUNK_HEADER_LEVEL,
+    DEFAULT_CHUNK_SIZE,
+)
 from app.api.admin_routes.models import KnowledgeBaseDescriptor
 from app.exceptions import KBDataSourceNotFound
 from app.models.auth import User
 from app.models.data_source import DataSource
-from app.models.document import ContentFormat
 from app.models.embed_model import EmbeddingModel
 from app.models.llm import LLM
+from app.types import MimeTypes
 
 # For compatibility with old code, define a fake knowledge base id.
 PHONY_KNOWLEDGE_BASE_ID = 0
@@ -42,22 +45,20 @@ class KnowledgeBaseDataSource(SQLModel, table=True):
     __tablename__ = "knowledge_base_datasources"
 
 
+# Chunking Settings.
+
+
 class ChunkSplitter(str, enum.Enum):
-    SENTENCE_SPLITTER = "sentence-splitter"
-    MARKDOWN_SPLITTER = "markdown-splitter"
+    SENTENCE_SPLITTER = "SentenceSplitter"
+    MARKDOWN_NODE_PARSER = "MarkdownNodeParser"
 
 
-class BaseSplitterConfig(BaseModel):
-    type: ChunkSplitter
+class SentenceSplitterOptions(BaseModel):
     chunk_size: int = Field(
         description="The token chunk size for each chunk.",
         default=1000,
         gt=0,
     )
-
-
-class SentenceSplitterConfig(BaseSplitterConfig):
-    type: Literal[ChunkSplitter.SENTENCE_SPLITTER] = ChunkSplitter.SENTENCE_SPLITTER
     chunk_overlap: int = Field(
         description="The overlap size for each chunk.",
         default=SENTENCE_CHUNK_OVERLAP,
@@ -69,8 +70,12 @@ class SentenceSplitterConfig(BaseSplitterConfig):
     )
 
 
-class MarkdownSplitterConfig(BaseSplitterConfig):
-    type: Literal[ChunkSplitter.MARKDOWN_SPLITTER] = ChunkSplitter.MARKDOWN_SPLITTER
+class MarkdownNodeParserOptions(BaseModel):
+    chunk_size: int = Field(
+        description="The token chunk size for each chunk.",
+        default=1000,
+        gt=0,
+    )
     chunk_header_level: int = Field(
         description="The header level to split on",
         default=DEFAULT_CHUNK_HEADER_LEVEL,
@@ -79,36 +84,35 @@ class MarkdownSplitterConfig(BaseSplitterConfig):
     )
 
 
-ChunkSplitterConfig = Annotated[
-    Union[SentenceSplitterConfig, MarkdownSplitterConfig], Field(discriminator="type")
-]
-
-
-default_chunking_rules = {
-    ContentFormat.TEXT: SentenceSplitterConfig(),
-    ContentFormat.MARKDOWN: MarkdownSplitterConfig(),
-}
+class ChunkSplitterConfig(BaseModel):
+    splitter: ChunkSplitter = Field(default=ChunkSplitter.SENTENCE_SPLITTER)
+    splitter_options: Union[SentenceSplitterOptions, MarkdownNodeParserOptions] = (
+        Field()
+    )
 
 
 class ChunkingMode(str, enum.Enum):
-    AUTO = "auto"
+    GENERAL = "general"
     ADVANCED = "advanced"
 
 
 class ChunkingConfig(BaseModel):
-    mode: ChunkingMode = Field(default=ChunkingMode.AUTO)
+    mode: ChunkingMode = Field(default=ChunkingMode.GENERAL)
 
 
-class AutoChunkingConfig(ChunkingConfig):
-    chunk_size: int = Field(default=1000, gt=0)
+class GeneralChunkingConfig(ChunkingConfig):
+    mode: ChunkingMode = Field(default=ChunkingMode.GENERAL)
+    chunk_size: int = Field(default=DEFAULT_CHUNK_SIZE, gt=0)
     chunk_overlap: int = Field(default=SENTENCE_CHUNK_OVERLAP, gt=0)
     paragraph_separator: str = Field(default=DEFAULT_PARAGRAPH_SEP)
 
 
 class AdvancedChunkingConfig(ChunkingConfig):
-    rules: Dict[ContentFormat, ChunkSplitterConfig] = Field(
-        default=default_chunking_rules
-    )
+    mode: ChunkingMode = Field(default=ChunkingMode.ADVANCED)
+    rules: Dict[MimeTypes, ChunkSplitterConfig] = Field(default_factory=list)
+
+
+# Knowledge Base Model
 
 
 class KnowledgeBase(SQLModel, table=True):
@@ -118,7 +122,7 @@ class KnowledgeBase(SQLModel, table=True):
 
     # The config for transforming the document into (chunk) nodes.
     chunking_config: Dict = Field(
-        sa_column=Column(JSON), default=AutoChunkingConfig().model_dump()
+        sa_column=Column(JSON), default=GeneralChunkingConfig().model_dump()
     )
 
     # Data sources config.

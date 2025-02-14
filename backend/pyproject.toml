@@ -77,6 +77,6 @@ dev-dependencies = [
     "ruff>=0.8.6",
     "pytest-asyncio>=0.25.2",
 ]
-
 [tool.ruff.lint]
 ignore = ["E711", "E712", "F811",  "F841"]
+

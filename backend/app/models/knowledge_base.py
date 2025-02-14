@@ -16,7 +16,6 @@ from sqlmodel import (
 from llama_index.core.node_parser.text.sentence import (
     DEFAULT_PARAGRAPH_SEP,
     SENTENCE_CHUNK_OVERLAP,
-    CHUNKING_REGEX,
 )
 from app.rag.node_parser.file.markdown import DEFAULT_CHUNK_HEADER_LEVEL
 from app.api.admin_routes.models import KnowledgeBaseDescriptor
@@ -64,17 +63,9 @@ class SentenceSplitterConfig(BaseSplitterConfig):
         default=SENTENCE_CHUNK_OVERLAP,
         gt=0,
     )
-    separator: str = Field(
-        description="The separator for splitting the text.",
-        default=" ",
-    )
     paragraph_separator: str = Field(
         description="The paragraph separator for splitting the text.",
         default=DEFAULT_PARAGRAPH_SEP,
-    )
-    secondary_chunking_regex: str = Field(
-        description="The regex for secondary chunking.",
-        default=CHUNKING_REGEX,
     )
 
 

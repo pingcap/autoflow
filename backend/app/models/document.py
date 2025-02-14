@@ -27,6 +27,11 @@ class DocIndexTaskStatus(str, enum.Enum):
     FAILED = "failed"
 
 
+class ContentFormat(str, enum.Enum):
+    TEXT = "text"
+    MARKDOWN = "markdown"
+
+
 class Document(UpdatableBaseModel, table=True):
     # Avoid "expected `enum` but got `str`" error.
     model_config = ConfigDict(use_enum_values=True)
@@ -35,6 +40,7 @@ class Document(UpdatableBaseModel, table=True):
     hash: str = Field(max_length=32)
     name: str = Field(max_length=256)
     content: str = Field(sa_column=Column(MEDIUMTEXT))
+    content_format: ContentFormat = Field(max_length=20)
     mime_type: MimeTypes = Field(sa_column=Column(String(128), nullable=False))
     source_uri: str = Field(max_length=512)
     meta: dict | list = Field(default={}, sa_column=Column(JSON))

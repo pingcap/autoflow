@@ -96,21 +96,23 @@ class ChunkingMode(str, enum.Enum):
     ADVANCED = "advanced"
 
 
-class ChunkingConfig(BaseModel):
+class BaseChunkingConfig(BaseModel):
     mode: ChunkingMode = Field(default=ChunkingMode.GENERAL)
 
 
-class GeneralChunkingConfig(ChunkingConfig):
+class GeneralChunkingConfig(BaseChunkingConfig):
     mode: ChunkingMode = Field(default=ChunkingMode.GENERAL)
     chunk_size: int = Field(default=DEFAULT_CHUNK_SIZE, gt=0)
     chunk_overlap: int = Field(default=SENTENCE_CHUNK_OVERLAP, gt=0)
     paragraph_separator: str = Field(default=DEFAULT_PARAGRAPH_SEP)
 
 
-class AdvancedChunkingConfig(ChunkingConfig):
+class AdvancedChunkingConfig(BaseChunkingConfig):
     mode: ChunkingMode = Field(default=ChunkingMode.ADVANCED)
     rules: Dict[MimeTypes, ChunkSplitterConfig] = Field(default_factory=list)
 
+
+ChunkingConfig = Union[GeneralChunkingConfig | AdvancedChunkingConfig]
 
 # Knowledge Base Model
 
@@ -118,7 +120,7 @@ class AdvancedChunkingConfig(ChunkingConfig):
 class KnowledgeBase(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(max_length=255, nullable=False)
-    description: str = Field(sa_column=Column(MEDIUMTEXT))
+    description: Optional[str] = Field(sa_column=Column(MEDIUMTEXT), default=None)
 
     # The config for chunking, the process to break down the document into smaller chunks.
     chunking_config: Dict = Field(

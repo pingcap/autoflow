@@ -63,7 +63,7 @@ export interface UpdateKnowledgeBaseParams {
 export interface KnowledgeBaseSummary {
   id: number;
   name: string;
-  description: string;
+  description: string | null;
   index_methods: KnowledgeBaseIndexMethod[];
   documents_total?: number;
   data_sources_total?: number;
@@ -94,7 +94,7 @@ export type KnowledgeGraphDocumentChunk = z.infer<typeof knowledgeGraphDocumentC
 const knowledgeBaseSummarySchema = z.object({
   id: z.number(),
   name: z.string(),
-  description: z.string(),
+  description: z.string().nullable(),
   index_methods: z.enum(['vector', 'knowledge_graph']).array(),
   documents_total: z.number().optional(),
   data_sources_total: z.number().optional(),

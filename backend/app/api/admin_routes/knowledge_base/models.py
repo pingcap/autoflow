@@ -14,7 +14,7 @@ from app.api.admin_routes.models import (
 )
 from app.exceptions import KBNoVectorIndexConfigured
 from app.models import KgIndexStatus
-from app.models.knowledge_base import IndexMethod, ChunkingConfig, GeneralChunkingConfig
+from app.models.knowledge_base import IndexMethod, GeneralChunkingConfig, ChunkingConfig
 
 
 class KnowledgeBaseCreate(BaseModel):
@@ -56,12 +56,13 @@ class KnowledgeBaseDetail(BaseModel):
 
     id: int
     name: str
-    description: str
+    description: Optional[str] = None
     documents_total: int
     data_sources_total: int
     # Notice: By default, SQLModel will not serialize list type relationships.
     # https://github.com/fastapi/sqlmodel/issues/37#issuecomment-2093607242
     data_sources: list[KBDataSource]
+    chunking_config: Optional[ChunkingConfig] = None
     index_methods: list[IndexMethod]
     llm_id: int | None = None
     llm: LLMDescriptor | None = None
@@ -79,7 +80,7 @@ class KnowledgeBaseItem(BaseModel):
 
     id: int
     name: str
-    description: str
+    description: Optional[str] = None
     documents_total: int
     data_sources_total: int
     index_methods: list[IndexMethod]

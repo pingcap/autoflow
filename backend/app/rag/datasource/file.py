@@ -51,7 +51,7 @@ class FileDataSource(BaseDataSource):
                     mime_type = MimeTypes.MARKDOWN
                 else:
                     content = f.read()
-                    mime_type = MimeTypes.PLAIN_TXT
+                    mime_type = upload.mime_type
 
             document = Document(
                 name=upload.name,

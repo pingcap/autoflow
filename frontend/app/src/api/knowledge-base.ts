@@ -48,7 +48,7 @@ export type KnowledgeBaseIndexMethod = 'vector' | 'knowledge_graph';
 
 export interface CreateKnowledgeBaseParams {
   name: string;
-  description: string;
+  description?: string | null;
   index_methods: KnowledgeBaseIndexMethod[];
   llm_id?: number | null;
   embedding_model_id?: number | null;
@@ -57,7 +57,7 @@ export interface CreateKnowledgeBaseParams {
 
 export interface UpdateKnowledgeBaseParams {
   name?: string;
-  description?: string;
+  description?: string | null;
 }
 
 export interface KnowledgeBaseSummary {

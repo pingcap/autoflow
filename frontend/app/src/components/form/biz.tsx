@@ -250,7 +250,7 @@ export const KBSelect = forwardRef<any, Omit<FormComboboxProps<KnowledgeBaseSumm
       placeholder="Select Knowledge Base"
       config={{
         options: kbs ?? [],
-        optionKeywords: option => [String(option.id), option.name, option.description],
+        optionKeywords: option => [String(option.id), option.name, option.description ?? ''],
         loading: isLoading,
         error,
         renderValue: option => (

@@ -5,6 +5,7 @@ import { EmbeddingModelSelect, LLMSelect } from '@/components/form/biz';
 import { FormInput, FormSwitch, FormTextarea } from '@/components/form/control-widget';
 import { formFieldLayout } from '@/components/form/field-layout';
 import { mutateKnowledgeBases } from '@/components/knowledge-base/hooks';
+import { KnowledgeBaseChunkingConfigFields } from '@/components/knowledge-base/knowledge-base-chunking-config-fields';
 import { fieldAccessor, type GeneralSettingsFieldAccessor, GeneralSettingsForm, shallowPick } from '@/components/settings-form';
 import { GeneralSettingsField as GeneralSettingsField } from '@/components/settings-form/GeneralSettingsField';
 import type { KeyOfType } from '@/lib/typing-utils';
@@ -66,6 +67,7 @@ export function KnowledgeBaseSettingsForm ({ knowledgeBase }: { knowledgeBase: K
           <FormSwitch />
         </field.Contained>
       </GeneralSettingsField>
+      <KnowledgeBaseChunkingConfigFields />
       <GeneralSettingsField readonly schema={createdAtSchema} accessor={createdAtAccessor}>
         <field.Basic name="value" label="Created At">
           <FormInput />

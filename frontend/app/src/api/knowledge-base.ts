@@ -1,40 +1,3 @@
-/*
- POST
- /api/v1/admin/knowledge_bases
- Create Knowledge Base
-
-
-
- GET
- /api/v1/admin/knowledge_bases
- List Knowledge Bases
-
-
-
- GET
- /api/v1/admin/knowledge_bases/{knowledge_base_id}
- Get Knowledge Base
- PUT /api/v1/admin/knowledge_bases/{knowledge_base_id}
- Update Knowledge Base Setting
- DELETE /api/v1/admin/knowledge_bases/{knowledge_base_id}
- Delete Knowledge Base
- GET
- /api/v1/admin/knowledge_bases/{knowledge_base_id}/overview
- Get Knowledge Base Index Overview
- GET
- /api/v1/admin/knowledge_bases/{kb_id}/documents
- List Knowledge Base Documents
- GET
- /api/v1/admin/knowledge_bases/{kb_id}/documents/{doc_id}/chunks
- List Knowledge Base Chunks
- POST
- /api/v1/admin/knowledge_bases/{kb_id}/documents/reindex
- Batch Reindex Knowledge Base Documents
- POST
- /api/v1/admin/knowledge_bases/{kb_id}/retry-failed-index-tasks
- Retry Failed Tasks
- */
-
 import { type BaseCreateDatasourceParams, type CreateDatasourceSpecParams, type Datasource, type DatasourceKgIndexError, datasourceSchema, type DatasourceVectorIndexError } from '@/api/datasources';
 import { documentSchema } from '@/api/documents';
 import { type EmbeddingModelSummary, embeddingModelSummarySchema } from '@/api/embedding-models';
@@ -78,6 +41,7 @@ export interface KnowledgeBase extends KnowledgeBaseSummary {
   data_sources: Datasource[];
   llm?: LLMSummary | null;
   embedding_model?: EmbeddingModelSummary | null;
+  chunking_config: KnowledgeBaseChunkingConfig | null;
 }
 
 export type KnowledgeGraphIndexProgress = {
@@ -89,7 +53,84 @@ export type KnowledgeGraphIndexProgress = {
   relationships?: IndexTotalStats
 }
 
+export type KnowledgeBaseSplitterType = KnowledgeBaseChunkingSplitterRule['splitter'];
+
+export type KnowledgeBaseChunkingSentenceSplitterConfig = {
+  chunk_size: number
+  chunk_overlap: number
+  paragraph_separator: string
+}
+
+export type KnowledgeBaseChunkingMarkdownSplitterConfig = {
+  chunk_size: number
+  chunk_header_level: number
+}
+
+export type KnowledgeBaseChunkingSentenceSplitterRule = {
+  splitter: 'SentenceSplitter'
+  splitter_config: KnowledgeBaseChunkingSentenceSplitterConfig
+}
+
+export type KnowledgeBaseChunkingMarkdownSplitterRule = {
+  splitter: 'MarkdownSplitter'
+  splitter_config: KnowledgeBaseChunkingMarkdownSplitterConfig
+}
+
+export type KnowledgeBaseChunkingSplitterRule = KnowledgeBaseChunkingSentenceSplitterRule | KnowledgeBaseChunkingMarkdownSplitterRule;
+
+export type KnowledgeBaseChunkingConfigGeneral = {
+  mode: 'general'
+} & KnowledgeBaseChunkingSentenceSplitterConfig;
+
+export type KnowledgeBaseChunkingConfigAdvanced = {
+  mode: 'advanced'
+  rules: {
+    'text/plain': KnowledgeBaseChunkingSplitterRule;
+    'text/markdown': KnowledgeBaseChunkingSplitterRule
+  }
+}
+
+export type KnowledgeBaseChunkingConfig = KnowledgeBaseChunkingConfigGeneral | KnowledgeBaseChunkingConfigAdvanced;
+
 export type KnowledgeGraphDocumentChunk = z.infer<typeof knowledgeGraphDocumentChunkSchema>;
+
+const knowledgeBaseChunkingSentenceSplitterConfigSchema = z.object({
+  chunk_size: z.number().int().min(1),
+  chunk_overlap: z.number().int().min(0),
+  paragraph_separator: z.string(),
+}) satisfies z.ZodType<KnowledgeBaseChunkingSentenceSplitterConfig, any, any>;
+
+const knowledgeBaseChunkingMarkdownSplitterConfigSchema = z.object({
+  chunk_size: z.number().int().min(1),
+  chunk_header_level: z.number().int().min(1).max(6),
+}) satisfies z.ZodType<KnowledgeBaseChunkingMarkdownSplitterConfig, any, any>;
+
+const knowledgeBaseChunkingSplitterRuleSchema = z.discriminatedUnion('splitter', [
+  z.object({
+    splitter: z.literal('MarkdownSplitter'),
+    splitter_config: knowledgeBaseChunkingMarkdownSplitterConfigSchema,
+  }),
+  z.object({
+    splitter: z.literal('SentenceSplitter'),
+    splitter_config: knowledgeBaseChunkingSentenceSplitterConfigSchema,
+  }),
+]) satisfies z.ZodType<KnowledgeBaseChunkingSplitterRule, any, any>;
+
+export const knowledgeBaseChunkingConfigSchema = z.discriminatedUnion('mode', [
+  z.object({
+    mode: z.literal('general'),
+    chunk_size: z.number().int().min(1),
+    chunk_overlap: z.number().int().min(0),
+    paragraph_separator: z.string(),
+  }),
+  z.object({
+    mode: z.literal('advanced'),
+    rules: z.object({
+      'text/plain': knowledgeBaseChunkingSplitterRuleSchema,
+      'text/markdown': knowledgeBaseChunkingSplitterRuleSchema,
+    }),
+  }),
+]) satisfies z.ZodType<KnowledgeBaseChunkingConfig, any, any>;
 
 const knowledgeBaseSummarySchema = z.object({
   id: z.number(),
@@ -109,6 +150,7 @@ const knowledgeBaseSchema = knowledgeBaseSummarySchema.extend({
   data_sources: datasourceSchema.array(),
   llm: llmSummarySchema.nullable().optional(),
   embedding_model: embeddingModelSummarySchema.nullable().optional(),
+  chunking_config: knowledgeBaseChunkingConfigSchema.nullable(),
 }) satisfies ZodType<KnowledgeBase, any, any>;
 
 const knowledgeGraphIndexProgressSchema = z.object({
@@ -154,7 +196,7 @@ const knowledgeBaseLinkedChatEngine = z.object({
   id: z.number(),
   name: z.string(),
   is_default: z.boolean(),
-})
+});
 
 export async function listKnowledgeBases ({ page = 1, size = 10 }: PageParams) {
   return await fetch(requestUrl('/api/v1/admin/knowledge_bases', { page, size }), {

@@ -3,7 +3,7 @@ import type { KeyOfType } from '@/lib/typing-utils';
 import { format, parse } from 'date-fns';
 
 interface AccessorHelper<Row> {
-  field<K extends string & keyof Row> (key: K): GeneralSettingsFieldAccessor<Row, Row[K]>;
+  field<K extends string & keyof Row> (key: K, defaultValue?: Row[K]): GeneralSettingsFieldAccessor<Row, Row[K]>;
 
   dateField<K extends string & KeyOfType<Row, Date>> (key: K): GeneralSettingsFieldAccessor<Row, string>;
 
@@ -17,11 +17,11 @@ interface AccessorHelper<Row> {
 
 export function createAccessorHelper<Row> (): AccessorHelper<Row> {
   return {
-    field<K extends keyof Row> (key: K): GeneralSettingsFieldAccessor<Row, Row[K]> {
+    field<K extends keyof Row> (key: K, defaultValue: Row[K]): GeneralSettingsFieldAccessor<Row, Row[K]> {
       return {
         path: [key],
         get (data) {
-          return data[key];
+          return data[key] ?? defaultValue;
         },
         set (data, value) {
           return {

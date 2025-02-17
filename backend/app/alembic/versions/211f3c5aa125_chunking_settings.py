@@ -1,8 +1,8 @@
 """chunking_settings
 
-Revision ID: a849e5f21516
+Revision ID: 211f3c5aa125
 Revises: 2adc0b597dcd
-Create Date: 2025-02-14 17:15:25.930884
+Create Date: 2025-02-17 14:20:56.253857
 
 """
 
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = "a849e5f21516"
+revision = "211f3c5aa125"
 down_revision = "2adc0b597dcd"
 branch_labels = None
 depends_on = None

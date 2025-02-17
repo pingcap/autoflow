@@ -5,6 +5,8 @@ import { createAccessorHelper, GeneralSettingsField } from '@/components/setting
 import { FormField, FormItem, FormLabel } from '@/components/ui/form.beta';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { cn } from '@/lib/utils';
+import { cloneElement, type ReactElement } from 'react';
 
 const helper = createAccessorHelper<KnowledgeBase>();
 
@@ -67,10 +69,14 @@ function GeneralChunkingConfig () {
   return (
     <div className="grid md:grid-cols-3 gap-4">
       <fieldLayout.Basic name="value.chunk_size" label="Chunk Size">
-        <FormInput type="number" />
+        <FormInputLayout suffix="Tokens">
+          <FormInput type="number" />
+        </FormInputLayout>
       </fieldLayout.Basic>
       <fieldLayout.Basic name="value.chunk_overlap" label="Chunk Overlap">
-        <FormInput type="number" />
+        <FormInputLayout suffix="Tokens">
+          <FormInput type="number" />
+        </FormInputLayout>
       </fieldLayout.Basic>
       <fieldLayout.Basic name="value.paragraph_separator" label="Paragraph Separator">
         <FormInput />
@@ -124,10 +130,14 @@ function SplitterRuleConfig ({ rule }: { rule: keyof KnowledgeBaseChunkingConfig
             {field.state.value.splitter === 'SentenceSplitter' && (
               <div className="pl-4 grid grid-cols-3 gap-4">
                 <advancedFieldLayout.Basic name={`value.rules.${rule}.splitter_config.chunk_size`} label="Chunk Size">
-                  <FormInput type="number" min={1} step={1} />
+                  <FormInputLayout suffix="Tokens">
+                    <FormInput type="number" min={1} step={1} />
+                  </FormInputLayout>
                 </advancedFieldLayout.Basic>
                 <advancedFieldLayout.Basic name={`value.rules.${rule}.splitter_config.chunk_overlap`} label="Chunk Overlap">
-                  <FormInput type="number" min={0} step={1} />
+                  <FormInputLayout suffix="Tokens">
+                    <FormInput type="number" min={0} step={1} />
+                  </FormInputLayout>
                 </advancedFieldLayout.Basic>
                 <advancedFieldLayout.Basic name={`value.rules.${rule}.splitter_config.paragraph_separator`} label="Paragraph Separator">
                   <FormInput />
@@ -137,7 +147,9 @@ function SplitterRuleConfig ({ rule }: { rule: keyof KnowledgeBaseChunkingConfig
             {field.state.value.splitter === 'MarkdownSplitter' && (
               <div className="pl-4 grid grid-cols-3 gap-4">
                 <advancedFieldLayout.Basic name={`value.rules.${rule}.splitter_config.chunk_size`} label="Chunk Size">
-                  <FormInput type="number" min={1} step={1} />
+                  <FormInputLayout suffix="Tokens">
+                    <FormInput type="number" min={1} step={1} />
+                  </FormInputLayout>
                 </advancedFieldLayout.Basic>
                 <advancedFieldLayout.Basic name={`value.rules.${rule}.splitter_config.chunk_header_level`} label="Chunk Header Level">
                   <FormInput type="number" min={1} max={6} step={1} />
@@ -147,6 +159,20 @@ function SplitterRuleConfig ({ rule }: { rule: keyof KnowledgeBaseChunkingConfig
           </>
         )}
       />
+    </div>
+  );
+}
+
+function FormInputLayout ({ suffix, children, ...props }: { suffix: string, children: ReactElement }) {
+  return (
+    <div className="relative">
+      {cloneElement(children, {
+        className: cn((props as any).className, 'pr-14'),
+        ...props,
+      } as any)}
+      <span className="absolute h-full top-0 right-1 flex items-center px-2 text-muted-foreground text-xs font-medium select-none">
+        {suffix}
+      </span>
     </div>
   );
 }

@@ -43,6 +43,9 @@ test.describe('Chat Engine', () => {
               id: 1,
             }],
           },
+          knowledge_graph: {
+            enabled: false,
+          }
         });
         expect(chatEngine.llm_id).toBeNull();
         expect(chatEngine.fast_llm_id).toBeNull();
@@ -113,6 +116,7 @@ test.describe('Chat Engine', () => {
             }],
           },
           knowledge_graph: {
+            enabled: false,
             depth: 1,
             include_meta: true,
             using_intent_search: true,

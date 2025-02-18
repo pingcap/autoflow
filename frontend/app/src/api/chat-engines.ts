@@ -1,6 +1,6 @@
 import { authenticationHeaders, handleErrors, handleResponse, type Page, type PageParams, requestUrl, zodPage } from '@/lib/request';
 import { zodJsonDate } from '@/lib/zod';
-import { number, z, type ZodType } from 'zod';
+import { z, type ZodType } from 'zod';
 
 export interface ChatEngine {
   id: number;
@@ -37,7 +37,11 @@ export interface ChatEngineOptions {
 }
 
 export interface ChatEngineKnowledgeBaseOptions {
+  /**
+   * @deprecated
+   */
   linked_knowledge_base?: LinkedKnowledgeBaseOptions | null;
+  linked_knowledge_bases?: { id: number }[] | null;
 }
 
 export interface ChatEngineKnowledgeGraphOptions {
@@ -60,12 +64,16 @@ export type ChatEngineLLMOptions = {
   further_questions_prompt?: string | null
 }
 
+/**
+ * @deprecated
+ */
 export interface LinkedKnowledgeBaseOptions {
   id?: number | null;
 }
 
 const kbOptionsSchema = z.object({
-  linked_knowledge_base: z.object({ id: number().nullable().optional() }).nullable().optional(),
+  linked_knowledge_base: z.object({ id: z.number().nullable().optional() }).nullable().optional(),
+  linked_knowledge_bases: z.object({ id: z.number() }).array().nullable().optional(),
 }).passthrough();
 
 const kgOptionsSchema = z.object({
@@ -103,7 +111,19 @@ const chatEngineOptionsSchema = z.object({
   post_verification_url: z.string().nullable().optional(),
   post_verification_token: z.string().nullable().optional(),
   hide_sources: z.boolean().nullable().optional(),
-}).passthrough() satisfies ZodType<ChatEngineOptions, any, any>;
+}).passthrough()
+  .refine(option => {
+    if (!option.knowledge_base?.linked_knowledge_bases?.length) {
+      if (option.knowledge_base?.linked_knowledge_base?.id != null) {
+        // Frontend temporary migration. Should be removed after backend removed linked_knowledge_base field.
+        option.knowledge_base.linked_knowledge_bases = [{
+          id: option.knowledge_base.linked_knowledge_base.id,
+        }];
+        delete option.knowledge_base.linked_knowledge_base;
+      }
+    }
+    return option;
+  }) satisfies ZodType<ChatEngineOptions, any, any>;
 
 const chatEngineSchema = z.object({
   id: z.number(),

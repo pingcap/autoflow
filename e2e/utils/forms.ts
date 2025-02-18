@@ -1,9 +1,12 @@
 import { expect, type Page, test } from '@playwright/test';
 
-export async function selectOption (page: Page, name: string, value: string | RegExp) {
+export async function selectOption (page: Page, name: string, value: string | RegExp, clickWindow = false) {
   await test.step(`Select field ${name}`, async () => {
     await page.getByRole('button', { name: name, exact: true }).click();
     await page.getByRole('option', { name: value }).click();
+    if (clickWindow) {
+      await page.click('body');
+    }
     await expect(page.getByRole('button', { name: name, exact: true })).toHaveText(value);
   });
 }

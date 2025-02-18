@@ -22,7 +22,7 @@ test.describe('Chat Engine', () => {
         await page.getByRole('tab', { name: 'Retrieval' }).click();
 
         // Select default knowledge base
-        await selectOption(page, 'Select Knowledge Base', /My Knowledge Base/);
+        await selectOption(page, 'Select Linked Knowledge Bases', /My Knowledge Base/, true);
       });
 
       const chatEngineId = await test.step('Create', async () => {
@@ -39,9 +39,9 @@ test.describe('Chat Engine', () => {
         expect(chatEngine.name).toBe(name);
         expect(chatEngine.engine_options).toStrictEqual({
           knowledge_base: {
-            linked_knowledge_base: {
+            linked_knowledge_bases: [{
               id: 1,
-            },
+            }],
           },
         });
         expect(chatEngine.llm_id).toBeNull();
@@ -77,7 +77,7 @@ test.describe('Chat Engine', () => {
         await page.getByRole('tab', { name: 'Retrieval' }).click();
 
         // Select default knowledge base
-        await selectOption(page, 'Select Knowledge Base', /My Knowledge Base/);
+        await selectOption(page, 'Select Linked Knowledge Bases', /My Knowledge Base/, true);
 
         // Select Reranker
         await selectOption(page, 'Reranker', /My Reranker/);
@@ -108,9 +108,9 @@ test.describe('Chat Engine', () => {
         expect(chatEngine.name).toBe(name);
         expect(chatEngine.engine_options).toStrictEqual({
           knowledge_base: {
-            linked_knowledge_base: {
+            linked_knowledge_bases: [{
               id: 1,
-            },
+            }],
           },
           knowledge_graph: {
             depth: 1,
@@ -147,7 +147,7 @@ test.describe('Chat Engine', () => {
           await page.getByRole('tab', { name: 'Retrieval' }).click();
 
           // Select default knowledge base
-          await selectOption(page, 'Select Knowledge Base', /My Knowledge Base/);
+          await selectOption(page, 'Select Linked Knowledge Bases', /My Knowledge Base/, true);
         });
 
         const chatEngineId = await test.step('Create', async () => {

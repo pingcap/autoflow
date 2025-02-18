@@ -165,7 +165,7 @@ export function FormCombobox<T extends object, K extends KeyOfType<T, Key>> ({ r
 
 FormCombobox.displayName = 'FormCombobox';
 
-function FormComboboxClearButton ({ onClick }: { onClick?: () => void }) {
+export function FormComboboxClearButton ({ onClick }: { onClick?: () => void }) {
   return (
     <TooltipProvider delayDuration={0}>
       <Tooltip>

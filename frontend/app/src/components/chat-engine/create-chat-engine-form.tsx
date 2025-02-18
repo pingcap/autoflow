@@ -1,8 +1,9 @@
 'use client';
 
 import { type ChatEngineOptions, createChatEngine } from '@/api/chat-engines';
+import { KBListSelectForObjectValue } from '@/components/chat-engine/kb-list-select';
 import { FormSection, FormSectionsProvider, useFormSectionFields } from '@/components/form-sections';
-import { KBSelect, LLMSelect, RerankerSelect } from '@/components/form/biz';
+import { LLMSelect, RerankerSelect } from '@/components/form/biz';
 import { FormCheckbox, FormInput, FormSwitch } from '@/components/form/control-widget';
 import { formFieldLayout } from '@/components/form/field-layout';
 import { FormRootError } from '@/components/form/root-error';
@@ -27,9 +28,9 @@ const schema = z.object({
   reranker_id: z.number().optional(),
   engine_options: z.object({
     knowledge_base: z.object({
-      linked_knowledge_base: z.object({
+      linked_knowledge_bases: z.object({
         id: z.number(),
-      }),
+      }).array().min(1),
     }),
     knowledge_graph: z.object({
       depth: z.number().min(1).nullable().optional(),
@@ -41,7 +42,7 @@ const schema = z.object({
 const field = formFieldLayout<typeof schema>();
 
 const nameSchema = z.string().min(1);
-const kbSchema = z.number();
+const kbSchema = z.object({ id: z.number() }).array().min(1);
 const kgGraphDepthSchema = z.number().min(1).optional();
 
 export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultChatEngineOptions: ChatEngineOptions }) {
@@ -102,8 +103,8 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
               </SubSection>
             </Section>
             <Section title="Retrieval">
-              <field.Basic required name="engine_options.knowledge_base.linked_knowledge_base.id" label="Select Knowledge Base" validators={{ onChange: kbSchema, onSubmit: kbSchema }}>
-                <KBSelect />
+              <field.Basic required name="engine_options.knowledge_base.linked_knowledge_bases" label="Select Linked Knowledge Bases" validators={{ onChange: kbSchema, onSubmit: kbSchema }}>
+                <KBListSelectForObjectValue />
               </field.Basic>
               <field.Basic name="reranker_id" label="Reranker">
                 <RerankerSelect />

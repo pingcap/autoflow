@@ -1,12 +1,13 @@
 'use client';
 
 import { type ChatEngine, type ChatEngineKnowledgeGraphOptions, type ChatEngineLLMOptions, type ChatEngineOptions, updateChatEngine } from '@/api/chat-engines';
-import { KBSelect, LLMSelect, RerankerSelect } from '@/components/form/biz';
+import { KBListSelect } from '@/components/chat-engine/kb-list-select';
+import { LLMSelect, RerankerSelect } from '@/components/form/biz';
 import { FormCheckbox, FormInput, FormSwitch } from '@/components/form/control-widget';
 import { formFieldLayout } from '@/components/form/field-layout';
 import { PromptInput } from '@/components/form/widgets/PromptInput';
 import { SecondaryNavigatorItem, SecondaryNavigatorLayout, SecondaryNavigatorList, SecondaryNavigatorMain } from '@/components/secondary-navigator-list';
-import { fieldAccessor, type GeneralSettingsFieldAccessor, GeneralSettingsField as GeneralSettingsField, GeneralSettingsForm, shallowPick } from '@/components/settings-form';
+import { fieldAccessor, GeneralSettingsField as GeneralSettingsField, type GeneralSettingsFieldAccessor, GeneralSettingsForm, shallowPick } from '@/components/settings-form';
 import type { KeyOfType } from '@/lib/typing-utils';
 import { capitalCase } from 'change-case-all';
 import { format } from 'date-fns';
@@ -14,7 +15,7 @@ import { useRouter } from 'next/navigation';
 import { type ReactNode, useTransition } from 'react';
 import { z } from 'zod';
 
-const field = formFieldLayout<{ value: any }>();
+const field = formFieldLayout<{ value: any | any[] }>();
 
 export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: { chatEngine: ChatEngine, defaultChatEngineOptions: ChatEngineOptions }) {
   const [transitioning, startTransition] = useTransition();
@@ -106,8 +107,8 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
 
         <Section title="Retrieval">
           <GeneralSettingsField accessor={kbAccessor} schema={kbSchema}>
-            <field.Basic required name="value" label="Knowledge Base">
-              <KBSelect />
+            <field.Basic required name="value" label="Linked Knowledge Bases">
+              <KBListSelect />
             </field.Basic>
           </GeneralSettingsField>
           <GeneralSettingsField accessor={rerankerIdAccessor} schema={idSchema}>
@@ -299,24 +300,26 @@ const llmIdAccessor = getIdAccessor('llm_id');
 const fastLlmIdAccessor = getIdAccessor('fast_llm_id');
 const rerankerIdAccessor = getIdAccessor('reranker_id');
 
-const kbAccessor: GeneralSettingsFieldAccessor<ChatEngine, number | null> = {
+const kbAccessor: GeneralSettingsFieldAccessor<ChatEngine, number[] | null> = {
   path: ['engine_options'],
   get (data) {
-    return data.engine_options.knowledge_base?.linked_knowledge_base?.id ?? null;
+    console.log(data.engine_options.knowledge_base?.linked_knowledge_bases?.map(kb => kb.id) ?? null);
+    return data.engine_options.knowledge_base?.linked_knowledge_bases?.map(kb => kb.id) ?? null;
   },
-  set (data, id) {
+  set (data, value) {
     return {
       ...data,
       engine_options: {
         ...data.engine_options,
         knowledge_base: {
-          linked_knowledge_base: { id },
+          linked_knowledge_base: undefined,
+          linked_knowledge_bases: value?.map(id => ({ id })) ?? null,
         },
       },
     };
   },
 };
-const kbSchema = z.number();
+const kbSchema = z.number().array().min(1);
 
 const kgEnabledAccessor = kgOptionAccessor('enabled');
 const kgEnabledSchema = z.boolean().nullable();

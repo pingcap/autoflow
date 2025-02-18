@@ -13,7 +13,7 @@
     "react-dom": "19.0.0"
   },
   "devDependencies": {
-    "@radix-ui/react-dialog": "^1.1.2",
+    "@radix-ui/react-dialog": "^1.1.6",
     "@tailwindcss/typography": "^0.5.13",
     "@thedutchcoder/postcss-rem-to-px": "^0.0.2",
     "@types/gtag.js": "^0.0.20",

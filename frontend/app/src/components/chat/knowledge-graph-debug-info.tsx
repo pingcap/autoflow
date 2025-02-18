@@ -5,8 +5,6 @@ import type { OngoingState } from '@/components/chat/chat-message-controller';
 import { AppChatStreamState, type StackVMState } from '@/components/chat/chat-stream-state';
 import { NetworkViewer } from '@/components/graph/components/NetworkViewer';
 import { useNetwork } from '@/components/graph/useNetwork';
-import { PencilIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useEffect } from 'react';
 import useSWR from 'swr';
 
@@ -14,8 +12,8 @@ export function KnowledgeGraphDebugInfo ({ group }: { group: ChatMessageGroup })
   const { engine_options } = useChatInfo(useCurrentChatController()) ?? {};
   const auth = useAuth();
   const ongoing = useChatMessageStreamState(group.assistant);
-  const kbId = engine_options?.knowledge_base?.linked_knowledge_base?.id;
-  const canEdit = !!auth.me?.is_superuser && kbId != null;
+  const kbLinked = !!engine_options?.knowledge_base?.linked_knowledge_bases?.length;
+  const canEdit = !!auth.me?.is_superuser && kbLinked;
 
   const shouldFetch = (!ongoing || ongoing.finished || couldFetchKnowledgeGraphDebugInfo(ongoing));
   const { data: span, isLoading, mutate, error } = useSWR(
@@ -42,13 +40,17 @@ export function KnowledgeGraphDebugInfo ({ group }: { group: ChatMessageGroup })
       loading={!shouldFetch || isLoading}
       loadingTitle={shouldFetch ? 'Loading knowledge graph...' : 'Waiting knowledge graph request...'}
       network={network}
-      Details={() => canEdit
-        ? (
-          <Link href={`/knowledge-bases/${kbId}/knowledge-graph-explorer?query=${encodeURIComponent(`message-subgraph:${group.user.id}`)}`} className="absolute top-2 right-2 text-xs underline">
-            <PencilIcon className="w-3 h-3 mr-1 inline-block" />
-            Edit graph
-          </Link>
-        ) : null}
+      Details={
+        () => null
+        //// TODO: Don't know which KB subgraph to edit for now.
+        // () => canEdit
+        //   ? (
+        //     <Link href={`/knowledge-bases/${kbLinked}/knowledge-graph-explorer?query=${encodeURIComponent(`message-subgraph:${group.user.id}`)}`} className="absolute top-2 right-2 text-xs underline">
+        //       <PencilIcon className="w-3 h-3 mr-1 inline-block" />
+        //       Edit graph
+        //     </Link>
+        //   ) : null
+      }
     />
   );
 }

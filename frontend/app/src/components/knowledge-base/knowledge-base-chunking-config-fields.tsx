@@ -46,13 +46,13 @@ function ModeSwitch () {
               <div className="font-semibold">
                 General
               </div>
-              <p className="text-muted-foreground text-xs">[TODO]</p>
+              <p className="text-muted-foreground text-xs">General text chunking mode, use best practices to process different types of documents.</p>
             </ToggleGroupItem>
             <ToggleGroupItem className="flex-1 border block text-left font-normal h-auto py-4 opacity-50 data-[state=on]:opacity-100 hover:opacity-100 hover:bg-transparent hover:text-foreground transition-all" value="advanced">
               <div className="font-semibold">
                 Advanced
               </div>
-              <p className="text-muted-foreground text-xs">[TODO]</p>
+              <p className="text-muted-foreground text-xs">Advanced text chunking mode, customize the processing procedures for different file types by rules.</p>
             </ToggleGroupItem>
           </ToggleGroup>
           <div className="pl-4 border-l-4">
@@ -208,14 +208,14 @@ function switchSplitter (splitter: 'SentenceSplitter' | 'MarkdownSplitter') {
   switch (splitter) {
     case 'SentenceSplitter':
       return {
-        chunk_size: 200,
+        chunk_size: 1024,
         chunk_overlap: 200,
         paragraph_separator: '\\n\\n',
       } satisfies KnowledgeBaseChunkingSentenceSplitterConfig;
     case 'MarkdownSplitter':
       return {
-        chunk_size: 200,
-        chunk_header_level: 3,
+        chunk_size: 1200,
+        chunk_header_level: 2,
       } satisfies KnowledgeBaseChunkingMarkdownSplitterConfig;
   }
 }

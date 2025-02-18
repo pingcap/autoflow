@@ -69,12 +69,12 @@ function GeneralChunkingConfig () {
   return (
     <div className="grid md:grid-cols-3 gap-4">
       <fieldLayout.Basic name="value.chunk_size" label="Chunk Size">
-        <FormInputLayout suffix="Tokens">
+        <FormInputLayout suffix="tokens">
           <FormInput type="number" />
         </FormInputLayout>
       </fieldLayout.Basic>
       <fieldLayout.Basic name="value.chunk_overlap" label="Chunk Overlap">
-        <FormInputLayout suffix="Tokens">
+        <FormInputLayout suffix="tokens">
           <FormInput type="number" />
         </FormInputLayout>
       </fieldLayout.Basic>
@@ -130,12 +130,12 @@ function SplitterRuleConfig ({ rule }: { rule: keyof KnowledgeBaseChunkingConfig
             {field.state.value.splitter === 'SentenceSplitter' && (
               <div className="pl-4 grid grid-cols-3 gap-4">
                 <advancedFieldLayout.Basic name={`value.rules.${rule}.splitter_config.chunk_size`} label="Chunk Size">
-                  <FormInputLayout suffix="Tokens">
+                  <FormInputLayout suffix="tokens">
                     <FormInput type="number" min={1} step={1} />
                   </FormInputLayout>
                 </advancedFieldLayout.Basic>
                 <advancedFieldLayout.Basic name={`value.rules.${rule}.splitter_config.chunk_overlap`} label="Chunk Overlap">
-                  <FormInputLayout suffix="Tokens">
+                  <FormInputLayout suffix="tokens">
                     <FormInput type="number" min={0} step={1} />
                   </FormInputLayout>
                 </advancedFieldLayout.Basic>
@@ -147,7 +147,7 @@ function SplitterRuleConfig ({ rule }: { rule: keyof KnowledgeBaseChunkingConfig
             {field.state.value.splitter === 'MarkdownSplitter' && (
               <div className="pl-4 grid grid-cols-3 gap-4">
                 <advancedFieldLayout.Basic name={`value.rules.${rule}.splitter_config.chunk_size`} label="Chunk Size">
-                  <FormInputLayout suffix="Tokens">
+                  <FormInputLayout suffix="tokens">
                     <FormInput type="number" min={1} step={1} />
                   </FormInputLayout>
                 </advancedFieldLayout.Basic>

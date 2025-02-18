@@ -103,7 +103,7 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
               </SubSection>
             </Section>
             <Section title="Retrieval">
-              <field.Basic required name="engine_options.knowledge_base.linked_knowledge_bases" label="Select Linked Knowledge Bases" validators={{ onChange: kbSchema, onSubmit: kbSchema }}>
+              <field.Basic required name="engine_options.knowledge_base.linked_knowledge_bases" label="Linked Knowledge Bases" validators={{ onChange: kbSchema, onSubmit: kbSchema }}>
                 <KBListSelectForObjectValue />
               </field.Basic>
               <field.Basic name="reranker_id" label="Reranker">

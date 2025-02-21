@@ -44,8 +44,8 @@ class KnowledgeGraphSimpleRetriever(BaseRetriever, KnowledgeGraphRetriever):
             dspy_lm=dspy_lm,
             session=db_session,
             embed_model=self.embed_model,
-            entity_db_model=self.entity_db_model,
-            relationship_db_model=self.relationship_db_model,
+            entity_model=self.entity_db_model,
+            relationship_model=self.relationship_db_model,
         )
 
     def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
@@ -55,7 +55,7 @@ class KnowledgeGraphSimpleRetriever(BaseRetriever, KnowledgeGraphRetriever):
 
         entities, relationships = self._kg_store.retrieve_with_weight(
             query_bundle.query_str,
-            embedding=[],
+            query_embedding=[],
             depth=self.config.depth,
             include_meta=self.config.include_meta,
             with_degree=self.config.with_degree,

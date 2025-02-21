@@ -13,6 +13,12 @@ from app.api.admin_routes.knowledge_base.routes import (
 from app.api.admin_routes.knowledge_base.graph.routes import (
     router as admin_kb_graph_router,
 )
+from app.api.admin_routes.knowledge_base.graph.entity.routes import (
+    router as admin_kb_graph_entity_router,
+)
+from app.api.admin_routes.knowledge_base.graph.relationship.routes import (
+    router as admin_kb_graph_relationship_router,
+)
 from app.api.admin_routes.knowledge_base.graph.knowledge.routes import (
     router as admin_kb_graph_knowledge_router,
 )
@@ -71,6 +77,12 @@ api_router.include_router(admin_site_settings.router, tags=["admin/site_settings
 api_router.include_router(admin_upload.router, tags=["admin/upload"])
 api_router.include_router(admin_knowledge_base_router, tags=["admin/knowledge_base"])
 api_router.include_router(admin_kb_graph_router, tags=["admin/knowledge_base/graph"])
+api_router.include_router(
+    admin_kb_graph_entity_router, tags=["admin/knowledge_base/graph/entity"]
+)
+api_router.include_router(
+    admin_kb_graph_relationship_router, tags=["admin/knowledge_base/graph/relationship"]
+)
 api_router.include_router(
     admin_kb_graph_knowledge_router, tags=["admin/knowledge_base/graph/knowledge"]
 )

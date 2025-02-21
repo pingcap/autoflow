@@ -6,7 +6,7 @@ from llama_index.core.base.embeddings.base import BaseEmbedding, Embedding
 
 # The configuration for the weight coefficient
 # format: ((min_weight, max_weight), coefficient)
-DEFAULT_WEIGHT_COEFFICIENT_CONFIG = [
+DEFAULT_WEIGHT_COEFFICIENTS = [
     ((0, 100), 0.01),
     ((100, 1000), 0.001),
     ((1000, 10000), 0.0001),
@@ -54,13 +54,13 @@ def calculate_relationship_score(
     in_degree: int,
     out_degree: int,
     alpha: float,
-    weight_coefficient_config: List[
+    weight_coefficients: List[
         Tuple[Tuple[int, int], float]
-    ] = DEFAULT_WEIGHT_COEFFICIENT_CONFIG,
+    ] = DEFAULT_WEIGHT_COEFFICIENTS,
     degree_coefficient: float = DEFAULT_DEGREE_COEFFICIENT,
     with_degree: bool = False,
 ) -> float:
-    weighted_score = get_weight_score(weight, weight_coefficient_config)
+    weighted_score = get_weight_score(weight, weight_coefficients)
     degree_score = 0
     if with_degree:
         degree_score = get_degree_score(in_degree, out_degree, degree_coefficient)
@@ -99,7 +99,7 @@ def get_entity_metadata_embedding(
 
 def get_relationship_description_embedding(
     source_entity_name: str,
-    source_entity_description,
+    source_entity_description: str,
     target_entity_name: str,
     target_entity_description: str,
     relationship_desc: str,

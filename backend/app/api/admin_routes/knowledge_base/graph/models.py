@@ -1,29 +1,9 @@
 from typing import List, Optional
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel
 
 from app.rag.retrievers.knowledge_graph.schema import (
     KnowledgeGraphRetrieverConfig,
 )
-
-
-class SynopsisEntityCreate(BaseModel):
-    name: str
-    description: str
-    topic: str
-    meta: dict
-    entities: List[int]
-
-    @model_validator(mode="after")
-    def validate_entities(self):
-        if len(self.entities) == 0:
-            raise ValueError("Entities list should not be empty")
-        return self
-
-
-class EntityUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    meta: Optional[dict] = None
 
 
 class RelationshipUpdate(BaseModel):
@@ -70,5 +50,5 @@ class KnowledgeNeighborRequest(BaseModel):
     similarity_threshold: float = 0.55
 
 
-class KnowledgeChunkRequest(BaseModel):
-    relationships_ids: List[int]
+class RelationshipBatchRequest(BaseModel):
+    relationship_ids: List[int]

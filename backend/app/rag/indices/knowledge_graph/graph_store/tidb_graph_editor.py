@@ -1,222 +1,187 @@
-from typing import Optional, Tuple, List, Type
+from typing import Optional, Type, List
+from fastapi import HTTPException
+from fastapi_pagination import Params, Page
+from sqlmodel import Session, SQLModel
 
-from llama_index.core.embeddings import resolve_embed_model
-from llama_index.core.embeddings.utils import EmbedType
-from llama_index.embeddings.openai import OpenAIEmbedding, OpenAIEmbeddingModelType
-from sqlmodel import Session, select, SQLModel
-from sqlalchemy.orm import joinedload
-from sqlalchemy.orm.attributes import flag_modified
 from app.models import EntityType
-from app.rag.indices.knowledge_graph.schema import Relationship as RelationshipAIModel
-from app.rag.indices.knowledge_graph.graph_store import TiDBGraphStore
-from app.rag.indices.knowledge_graph.graph_store.helpers import (
-    get_entity_description_embedding,
-    get_relationship_description_embedding,
-    get_entity_metadata_embedding,
-    get_query_embedding,
+from app.rag.indices.knowledge_graph.schema import (
+    EntityCreate,
+    SynopsisEntityCreate,
+    EntityUpdate,
+    EntityFilters,
+    RelationshipCreate,
+    RelationshipUpdate,
+    RelationshipFilters,
 )
+from app.rag.indices.knowledge_graph.graph_store import TiDBGraphStore
+from app.rag.retrievers.knowledge_graph.schema import RetrievedKnowledgeGraph
 from app.staff_action import create_staff_action_log
 
 
-# TODO: CRUD operations should move to TiDBGraphStore
 class TiDBGraphEditor:
-    _entity_db_model: Type[SQLModel]
-    _relationship_db_model: Type[SQLModel]
-
     def __init__(
         self,
-        knowledge_base_id: int,
-        entity_db_model: Type[SQLModel],
-        relationship_db_model: Type[SQLModel],
-        embed_model: Optional[EmbedType] = None,
+        db_session: Session,
+        graph_store: TiDBGraphStore,
     ):
-        self.knowledge_base_id = knowledge_base_id
-        self._entity_db_model = entity_db_model
-        self._relationship_db_model = relationship_db_model
+        self._db_session = db_session
+        self._graph_store = graph_store
 
-        if embed_model:
-            self._embed_model = resolve_embed_model(embed_model)
-        else:
-            self._embed_model = OpenAIEmbedding(
-                model=OpenAIEmbeddingModelType.TEXT_EMBED_3_SMALL
-            )
+    # Entities.
 
-    def get_entity(self, session: Session, entity_id: int) -> Optional[SQLModel]:
-        return session.get(self._entity_db_model, entity_id)
+    def query_entities(
+        self,
+        filters: Optional[EntityFilters] = EntityFilters(),
+        params: Params = Params(),
+    ) -> Page[SQLModel]:
+        return self._graph_store.fetch_entities_page(filters, params)
 
-    def update_entity(
-        self, session: Session, entity: SQLModel, new_entity: dict
-    ) -> SQLModel:
-        old_entity_dict = entity.screenshot()
-        for key, value in new_entity.items():
-            if value is not None:
-                setattr(entity, key, value)
-                flag_modified(entity, key)
-        entity.description_vec = get_entity_description_embedding(
-            entity.name, entity.description, self._embed_model
-        )
-        entity.meta_vec = get_entity_metadata_embedding(entity.meta, self._embed_model)
-        for relationship in session.exec(
-            select(self._relationship_db_model)
-            .options(
-                joinedload(self._relationship_db_model.source_entity),
-                joinedload(self._relationship_db_model.target_entity),
-            )
-            .where(
-                (self._relationship_db_model.source_entity_id == entity.id)
-                | (self._relationship_db_model.target_entity_id == entity.id)
-            )
-        ):
-            relationship.description_vec = get_relationship_description_embedding(
-                relationship.source_entity.name,
-                relationship.source_entity.description,
-                relationship.target_entity.name,
-                relationship.target_entity.description,
-                relationship.description,
-                self._embed_model,
-            )
-            session.add(relationship)
-        session.commit()
-        session.refresh(entity)
-        new_entity_dict = entity.screenshot()
+    def create_entity(self, create: EntityCreate) -> SQLModel:
+        entity = self._graph_store.create_entity(create, commit=True)
         create_staff_action_log(
-            session, "update", "entity", entity.id, old_entity_dict, new_entity_dict
+            self._db_session,
+            "create_original_entity",
+            "entity",
+            entity.id,
+            {},
+            entity.screenshot(),
+            commit=True,
         )
         return entity
 
-    def get_entity_subgraph(
-        self, session: Session, entity: SQLModel
-    ) -> Tuple[list, list]:
-        """
-        Get the subgraph of an entity, including all related relationships and entities.
-        """
-        relationships_queryset = session.exec(
-            select(self._relationship_db_model)
-            .options(
-                joinedload(self._relationship_db_model.source_entity),
-                joinedload(self._relationship_db_model.target_entity),
-            )
-            .where(
-                (self._relationship_db_model.source_entity_id == entity.id)
-                | (self._relationship_db_model.target_entity_id == entity.id)
-            )
+    def create_synopsis_entity(self, create: SynopsisEntityCreate) -> SQLModel:
+        synopsis_entity = self._graph_store.create_entity(create, commit=False)
+
+        # Create relationships between synopsis entity and related entities.
+        related_entities = self._graph_store.list_entities(
+            EntityFilters(entity_ids=create.entities)
         )
-        relationships = []
-        entities = []
-        entities_set = set()
-        for relationship in relationships_queryset:
-            entities_set.add(relationship.source_entity)
-            entities_set.add(relationship.target_entity)
-            relationships.append(relationship.screenshot())
-
-        for entity in entities_set:
-            entities.append(entity.screenshot())
-
-        return relationships, entities
-
-    def get_relationship(
-        self, session: Session, relationship_id: int
-    ) -> Optional[SQLModel]:
-        return session.get(self._relationship_db_model, relationship_id)
-
-    def update_relationship(
-        self, session: Session, relationship: SQLModel, new_relationship: dict
-    ) -> SQLModel:
-        old_relationship_dict = relationship.screenshot()
-        for key, value in new_relationship.items():
-            if value is not None:
-                setattr(relationship, key, value)
-                flag_modified(relationship, key)
-        relationship.description_vec = get_relationship_description_embedding(
-            relationship.source_entity.name,
-            relationship.source_entity.description,
-            relationship.target_entity.name,
-            relationship.target_entity.description,
-            relationship.description,
-            self._embed_model,
-        )
-        session.commit()
-        session.refresh(relationship)
-        new_relationship_dict = relationship.screenshot()
-        # FIXME: some error when create staff action log
-        create_staff_action_log(
-            session,
-            "update",
-            "relationship",
-            relationship.id,
-            old_relationship_dict,
-            new_relationship_dict,
-        )
-        return relationship
-
-    def search_similar_entities(
-        self, session: Session, query: str, top_k: int = 10
-    ) -> list:
-        embedding = get_query_embedding(query, self._embed_model)
-        return session.exec(
-            select(self._entity_db_model)
-            .where(self._entity_db_model.entity_type == EntityType.original)
-            .order_by(self._entity_db_model.description_vec.cosine_distance(embedding))
-            .limit(top_k)
-        ).all()
-
-    def create_synopsis_entity(
-        self,
-        session: Session,
-        name: str,
-        description: str,
-        topic: str,
-        meta: dict,
-        related_entities_ids: List[int],
-    ) -> SQLModel:
-        # with session.begin():
-        synopsis_entity = self._entity_db_model(
-            name=name,
-            description=description,
-            description_vec=get_entity_description_embedding(
-                name, description, self._embed_model
-            ),
-            meta=meta,
-            meta_vec=get_entity_metadata_embedding(meta, self._embed_model),
-            entity_type=EntityType.synopsis,
-            synopsis_info={
-                "entities": related_entities_ids,
-                "topic": topic,
-            },
-        )
-        session.add(synopsis_entity)
-        graph_store = TiDBGraphStore(
-            knowledge_base=self.knowledge_base_id,
-            dspy_lm=None,
-            session=session,
-            embed_model=self._embed_model,
-            entity_db_model=self._entity_db_model,
-            relationship_db_model=self._relationship_db_model,
-        )
-        for related_entity in session.exec(
-            select(self._entity_db_model).where(
-                self._entity_db_model.id.in_(related_entities_ids)
-            )
-        ).all():
-            graph_store.create_relationship(
-                synopsis_entity,
-                related_entity,
-                RelationshipAIModel(
-                    source_entity=synopsis_entity.name,
-                    target_entity=related_entity.name,
-                    relationship_desc=f"{related_entity.name} is a part of synopsis entity (name={synopsis_entity.name}, topic={topic})",
-                ),
-                {"relationship_type": EntityType.synopsis.value},
+        for related_entity in related_entities:
+            self._graph_store.create_relationship(
+                source_entity=synopsis_entity,
+                target_entity=related_entity,
+                description=f"{related_entity.name} is a part of synopsis entity (name={synopsis_entity.name}, topic={create.topic})",
+                metadata={"relationship_type": EntityType.synopsis.value},
                 commit=False,
             )
-        session.commit()
+        self._db_session.commit()
+
         create_staff_action_log(
-            session,
+            self._db_session,
             "create_synopsis_entity",
             "entity",
             synopsis_entity.id,
             {},
             synopsis_entity.screenshot(),
-            commit=False,
+            commit=True,
         )
         return synopsis_entity
+
+    def must_get_entity(self, entity_id: int) -> Optional[Type[SQLModel]]:
+        entity = self._graph_store.get_entity_by_id(entity_id)
+        if entity is None:
+            raise HTTPException(
+                status_code=404, detail=f"Entity #{entity_id} is not found"
+            )
+        return entity
+
+    def update_entity(self, entity_id: int, update: EntityUpdate) -> Type[SQLModel]:
+        old_entity = self.must_get_entity(entity_id)
+        old_entity_dict = old_entity.screenshot()
+        new_entity = self._graph_store.update_entity(old_entity, update, commit=True)
+        new_entity_dict = new_entity.screenshot()
+        create_staff_action_log(
+            self._db_session,
+            "update",
+            "entity",
+            entity_id,
+            old_entity_dict,
+            new_entity_dict,
+        )
+        return new_entity
+
+    def delete_entity(self, entity_id: int) -> Optional[Type[SQLModel]]:
+        old_entity = self.must_get_entity(entity_id)
+        old_entity_dict = old_entity.screenshot()
+        self._graph_store.delete_entity(old_entity, commit=True)
+        create_staff_action_log(
+            self._db_session,
+            "delete",
+            "entity",
+            entity_id,
+            old_entity_dict,
+            {},
+            commit=True,
+        )
+        return old_entity
+
+    def get_entity_subgraph(self, entity_id: int) -> RetrievedKnowledgeGraph:
+        entity = self.must_get_entity(entity_id)
+        return self._graph_store.list_relationships_by_connected_entity(entity.id)
+
+    # Relationships.
+
+    def must_get_relationship(self, relationship_id: int) -> Optional[Type[SQLModel]]:
+        entity = self._graph_store.get_relationship_by_id(relationship_id)
+        if entity is None:
+            raise HTTPException(
+                status_code=404, detail=f"Relationship #{relationship_id} not found"
+            )
+        return entity
+
+    def create_relationship(self, create: RelationshipCreate) -> SQLModel:
+        source_entity = self.must_get_entity(create.source_entity_id)
+        target_entity = self.must_get_entity(create.target_entity_id)
+        new_relationship = self._graph_store.create_relationship(
+            source_entity=source_entity,
+            target_entity=target_entity,
+            description=create.description,
+            metadata=create.metadata,
+            commit=True,
+        )
+        new_relationship_dict = new_relationship.screenshot()
+        create_staff_action_log(
+            self._db_session,
+            "create",
+            "relationship",
+            new_relationship.id,
+            {},
+            new_relationship_dict,
+            commit=True,
+        )
+        return new_relationship
+
+    def update_relationship(
+        self, relationship_id: int, update: RelationshipUpdate
+    ) -> Type[SQLModel]:
+        old_relationship = self.must_get_relationship(relationship_id)
+        old_relationship_dict = old_relationship.screenshot()
+        new_relationship = self._graph_store.update_relationship(
+            old_relationship, update, commit=True
+        )
+        new_relationship_dict = new_relationship.screenshot()
+        create_staff_action_log(
+            self._db_session,
+            "update",
+            "relationship",
+            old_relationship.id,
+            old_relationship_dict,
+            new_relationship_dict,
+        )
+        return new_relationship
+
+    def query_relationships(
+        self,
+        filters: Optional[RelationshipFilters] = RelationshipFilters(),
+        params: Params = Params(),
+    ) -> Page[Type[SQLModel]]:
+        return self._graph_store.fetch_relationships_page(filters, params)
+
+    def delete_relationship(self, relationship_id: int) -> None:
+        relationship = self.must_get_relationship(relationship_id)
+        self._graph_store.delete_relationship(relationship, commit=True)
+
+    def batch_get_chunks_by_relationships(
+        self, relationship_ids: List[int]
+    ) -> List[Type[SQLModel]]:
+        return self._graph_store.batch_get_chunks_by_relationships(relationship_ids)

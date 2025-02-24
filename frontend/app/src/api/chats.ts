@@ -1,5 +1,5 @@
 import type { ChatEngineOptions } from '@/api/chat-engines';
-import { type KnowledgeGraph, knowledgeGraphSchema } from '@/api/graph';
+import { type KnowledgeGraph, KnowledgeGraphEntityType, knowledgeGraphSchema } from '@/api/graph';
 import { bufferedReadableStreamTransformer } from '@/lib/buffered-readable-stream';
 import { authenticationHeaders, handleErrors, handleResponse, type Page, type PageParams, requestUrl, zodPage } from '@/lib/request';
 import { zodJsonDate } from '@/lib/zod';

@@ -13,6 +13,8 @@ import { JsonField } from './JsonField';
 import { NetworkContext } from './NetworkContext';
 import { TextareaField } from './TextareaField';
 
+const loadEntity = (kbId: number, id: number) => getEntity(kbId, id).then(handleServerEntity);
+
 export function NodeDetails ({
   knowledgeBaseId,
   entity,
@@ -33,7 +35,7 @@ export function NodeDetails ({
     return Array.from(network.nodeNeighborhoods(entity.id) ?? []).map(id => network.node(id)!);
   }, [network, entity.id]);
 
-  const latestData = useRemote(entity, (kb, id) => getEntity(kb, id).then(handleServerEntity), knowledgeBaseId, Number(entity.id));
+  const latestData = useRemote(entity, loadEntity, knowledgeBaseId, Number(entity.id));
   const dirtyEntity = useDirtyEntity(knowledgeBaseId, entity.id);
 
   // dirty set

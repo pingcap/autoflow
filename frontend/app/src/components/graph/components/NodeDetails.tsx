@@ -3,10 +3,10 @@ import { Loader } from '@/components/loader';
 import { toastError, toastSuccess } from '@/lib/ui-error';
 import { cn } from '@/lib/utils';
 import { useContext, useEffect, useMemo, useState } from 'react';
-import type { Entity } from '../utils';
 import type { IdType } from '../network/Network';
 import { useRemote } from '../remote';
 import { useDirtyEntity } from '../useDirtyEntity';
+import { type Entity, handleServerEntity } from '../utils';
 import { EditingButton } from './EditingButton';
 import { InputField } from './InputField';
 import { JsonField } from './JsonField';
@@ -33,7 +33,7 @@ export function NodeDetails ({
     return Array.from(network.nodeNeighborhoods(entity.id) ?? []).map(id => network.node(id)!);
   }, [network, entity.id]);
 
-  const latestData = useRemote(entity, getEntity, knowledgeBaseId, Number(entity.id));
+  const latestData = useRemote(entity, (kb, id) => getEntity(kb, id).then(handleServerEntity), knowledgeBaseId, Number(entity.id));
   const dirtyEntity = useDirtyEntity(knowledgeBaseId, entity.id);
 
   // dirty set
@@ -75,7 +75,7 @@ export function NodeDetails ({
       </div>
       {entity.synopsis_info?.topic && <section>
         <h6 className="text-xs font-bold text-accent-foreground mb-1">Synopsis topic</h6>
-        <p className='block w-full text-xs text-accent-foreground'>
+        <p className="block w-full text-xs text-accent-foreground">
           {entity.synopsis_info.topic}
         </p>
       </section>}

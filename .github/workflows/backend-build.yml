@@ -1,0 +1,95 @@
+name: Build and Push Backend Image
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+    paths:
+      - backend/**
+      - .github/workflows/backend-build.yml
+  workflow_dispatch:
+
+
+
+env:
+  DOCKERHUB_REPO: ${{ vars.DOCKERHUB_REPO || 'tidbai/backend' }}
+
+jobs:
+  build_backend:
+    name: Build Backend Image
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+    runs-on: "${{ matrix.platform == 'linux/amd64' && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.RELEASE_DOCKERHUB_USERNAME }}
+          password: ${{ secrets.RELEASE_DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push by Digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,"name=${{ env.DOCKERHUB_REPO }}",push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Output Digest
+        id: output_digest
+        run: |
+          platform="${{ matrix.platform }}"
+          digest="${{ steps.build.outputs.digest }}"
+          echo "output_${platform//\//_}=${digest}" >> "$GITHUB_OUTPUT"
+    outputs:
+      output_linux_amd64: ${{ steps.output_digest.outputs.output_linux_amd64 }}
+      output_linux_arm64: ${{ steps.output_digest.outputs.output_linux_arm64 }}
+
+  publish_backend:
+    name: Publish Backend Image
+    runs-on: ubuntu-latest
+    needs: build_backend
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.RELEASE_DOCKERHUB_USERNAME }}
+          password: ${{ secrets.RELEASE_DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker Image Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKERHUB_REPO }}
+          tags: |
+            type=sha,format=long
+            type=ref,event=branch
+            type=ref,event=pr
+            type=pep440,value=${{ github.ref_name }},pattern={{version}}
+            type=pep440,value=${{ github.ref_name }},pattern={{major}}.{{minor}}
+
+      - name: Create Manifest List and Push
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+             '${{ env.DOCKERHUB_REPO }}@${{ needs.build_backend.outputs.output_linux_amd64 }}' \
+             '${{ env.DOCKERHUB_REPO }}@${{ needs.build_backend.outputs.output_linux_arm64 }}'

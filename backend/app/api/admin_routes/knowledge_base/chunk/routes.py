@@ -1,13 +1,13 @@
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from app.api.deps import SessionDep, CurrentSuperuserDep
 from app.rag.retrievers.chunk.simple_retriever import (
     ChunkSimpleRetriever,
 )
 from app.rag.retrievers.chunk.schema import ChunksRetrievalResult
 
-from app.exceptions import InternalServerError, KBNotFound
+from app.exceptions import InternalServerError
 from .models import KBRetrieveChunksRequest
 
 router = APIRouter()
@@ -31,7 +31,7 @@ def retrieve_chunks(
         return retriever.retrieve_chunks(
             request.query,
         )
-    except KBNotFound as e:
+    except HTTPException as e:
         raise e
     except Exception as e:
         logger.exception(e)

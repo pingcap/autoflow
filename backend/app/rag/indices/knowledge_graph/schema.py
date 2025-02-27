@@ -1,8 +1,11 @@
-from pydantic import BaseModel, Field
-from typing import Mapping, Any, List
+from typing import Mapping, Any, List, Optional
+import dspy
+from dspy import TypedPredictor
+from pydantic import BaseModel, model_validator, Field
+from app.models.entity import EntityType
 
 
-class Entity(BaseModel):
+class AIEntity(BaseModel):
     """List of entities extracted from the text to form the knowledge graph"""
 
     name: str = Field(
@@ -22,7 +25,7 @@ class Entity(BaseModel):
     )
 
 
-class EntityWithID(Entity):
+class AIEntityWithID(AIEntity):
     """Entity extracted from the text to form the knowledge graph with an ID."""
 
     id: int = Field(description="Unique identifier for the entity.")
@@ -39,7 +42,7 @@ class SynopsisInfo(BaseModel):
     )
 
 
-class SynopsisEntity(Entity):
+class SynopsisEntity(AIEntity):
     """Unified synopsis entity with comprehensive description and metadata based on the entities group."""
 
     group_info: SynopsisInfo = Field(
@@ -53,7 +56,7 @@ class ExistingSynopsisEntity(SynopsisEntity):
     id: int = Field(description="Unique identifier for the entity.")
 
 
-class Relationship(BaseModel):
+class AIRelationship(BaseModel):
     """List of relationships extracted from the text to form the knowledge graph"""
 
     source_entity: str = Field(
@@ -70,7 +73,7 @@ class Relationship(BaseModel):
     )
 
 
-class RelationshipReasoning(Relationship):
+class AIRelationshipReasoning(AIRelationship):
     """Relationship between two entities extracted from the query"""
 
     reasoning: str = Field(
@@ -80,13 +83,13 @@ class RelationshipReasoning(Relationship):
     )
 
 
-class KnowledgeGraph(BaseModel):
+class AIKnowledgeGraph(BaseModel):
     """Graph representation of the knowledge for text."""
 
-    entities: List[Entity] = Field(
+    entities: List[AIEntity] = Field(
         description="List of entities in the knowledge graph"
     )
-    relationships: List[Relationship] = Field(
+    relationships: List[AIRelationship] = Field(
         description="List of relationships in the knowledge graph"
     )
 
@@ -113,6 +116,95 @@ class EntityCovariateOutput(BaseModel):
 class DecomposedFactors(BaseModel):
     """Decomposed factors extracted from the query to form the knowledge graph"""
 
-    relationships: List[RelationshipReasoning] = Field(
+    relationships: List[AIRelationshipReasoning] = Field(
         description="List of relationships to represent critical concepts and their relationships extracted from the query."
     )
+
+
+class MergeEntities(dspy.Signature):
+    """As a knowledge expert assistant specialized in database technologies, evaluate the two provided entities. These entities have been pre-analyzed and have same name but different descriptions and metadata.
+    Please carefully review the detailed descriptions and metadata for both entities to determine if they genuinely represent the same concept or object(entity).
+    If you conclude that the entities are identical, merge the descriptions and metadata fields of the two entities into a single consolidated entity.
+    If the entities are distinct despite their same name that may be due to different contexts or perspectives, do not merge the entities and return none as the merged entity.
+
+    Considerations: Ensure your decision is based on a comprehensive analysis of the content and context provided within the entity descriptions and metadata.
+    Please only response in JSON Format.
+    """
+
+    entities: List[AIEntity] = dspy.InputField(
+        desc="List of entities identified from previous analysis."
+    )
+    merged_entity: Optional[AIEntity] = dspy.OutputField(
+        desc="Merged entity with consolidated descriptions and metadata."
+    )
+
+
+class MergeEntitiesProgram(dspy.Module):
+    def __init__(self):
+        self.prog = TypedPredictor(MergeEntities)
+
+    def forward(self, entities: List[AIEntity]):
+        if len(entities) != 2:
+            raise ValueError("The input should contain exactly two entities")
+
+        pred = self.prog(entities=entities)
+        return pred
+
+
+# Entity
+
+
+class EntityCreate(BaseModel):
+    entity_type: Optional[EntityType] = EntityType.original
+    name: Optional[str] = None
+    description: Optional[str] = None
+    meta: Optional[dict] = None
+
+
+class SynopsisEntityCreate(EntityCreate):
+    topic: str
+    entities: List[int] = Field(description="The id list of the related entities")
+
+    @model_validator(mode="after")
+    def validate_entities(self):
+        if len(self.entities) == 0:
+            raise ValueError("Entities list should not be empty")
+        return self
+
+
+class EntityFilters(BaseModel):
+    entity_ids: Optional[List[int]] = None
+    entity_type: Optional[EntityType] = None
+    search: Optional[str] = None
+
+
+class EntityUpdate(BaseModel):
+    description: Optional[str] = None
+    meta: Optional[dict] = None
+
+
+class EntityDegree(BaseModel):
+    entity_id: int
+    out_degree: int
+    in_degree: int
+    degrees: int
+
+
+# Relationship
+
+
+class RelationshipCreate(BaseModel):
+    source_entity_id: int
+    target_entity_id: int
+    description: str
+
+
+class RelationshipUpdate(BaseModel):
+    description: Optional[str] = None
+
+
+class RelationshipFilters(BaseModel):
+    target_entity_id: Optional[int] = None
+    source_entity_id: Optional[int] = None
+    relationship_ids: Optional[List[int]] = None
+    search: Optional[str] = None

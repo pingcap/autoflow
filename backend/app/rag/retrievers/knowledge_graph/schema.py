@@ -66,6 +66,9 @@ class RetrievedEntity(BaseModel):
     name: str = Field(description="Name of the entity")
     description: str = Field(description="Description of the entity")
     meta: Optional[Mapping[str, Any]] = Field(description="Metadata of the entity")
+    similarity_score: Optional[float] = Field(
+        description="Similarity score of the entity", default=None
+    )
 
     @property
     def global_id(self) -> str:
@@ -90,6 +93,9 @@ class RetrievedRelationship(BaseModel):
     weight: Optional[float] = Field(description="Weight of the relationship")
     last_modified_at: Optional[datetime.datetime] = Field(
         description="Last modified at of the relationship", default=None
+    )
+    similarity_score: Optional[float] = Field(
+        description="Similarity score of the relationship", default=None
     )
 
     @property

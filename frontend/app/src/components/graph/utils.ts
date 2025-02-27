@@ -2,6 +2,8 @@ import { type KnowledgeGraph, type KnowledgeGraphEntity, type KnowledgeGraphRela
 
 export type Entity = {
   id: number | string
+  knowledge_base_id?: number | null;
+  node_id: number;
   name: string
   description: string
   meta: any
@@ -16,6 +18,8 @@ export type Entity = {
 
 export type Relationship = {
   id: number | string
+  knowledge_base_id?: number | null;
+  relationship_id: number;
   source: number | string
   target: number | string
   meta: any
@@ -32,14 +36,20 @@ export type GraphData = {
 }
 
 export function handleServerEntity (serverEntity: KnowledgeGraphEntity): Entity {
-  return serverEntity;
+  return {
+    ...serverEntity,
+    id: `${serverEntity.knowledge_base_id ?? 0}-${serverEntity.id}`,
+    node_id: serverEntity.id,
+  };
 }
 
 export function handleServerRelationship ({ source_entity_id, target_entity_id, ...rest }: KnowledgeGraphRelationship): Relationship {
   return ({
     ...rest,
-    source: source_entity_id,
-    target: target_entity_id,
+    id: `${rest.knowledge_base_id ?? 0}-${rest.id}`,
+    relationship_id: rest.id,
+    source: `${rest.knowledge_base_id ?? 0}-${source_entity_id}`,
+    target: `${rest.knowledge_base_id ?? 0}-${target_entity_id}`,
   });
 }
 

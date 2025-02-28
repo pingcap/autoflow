@@ -36,7 +36,7 @@ from sqlmodel.main import (
     IncEx,
 )
 from typing_extensions import Literal, deprecated
-from autoflow.storage.db.sqlmodel.sql_model_metaclass import PatchSQLModelMetaclass
+from autoflow.utils.sql_model_metaclass import PatchSQLModelMetaclass
 
 
 class PatchSQLModel(

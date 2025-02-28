@@ -1,7 +1,7 @@
 from llama_index.llms.litellm import LiteLLM
 
-LLM = LiteLLM
+ChatModel = LiteLLM
 
 __all__ = [
-    "LLM",
+    "ChatModel",
 ]

@@ -21,9 +21,9 @@ from pydantic import BaseModel, model_validator, Field
 from sqlmodel import SQLModel, Session
 
 from autoflow.indices.knowledge_graph.schema import AIKnowledgeGraph
-from autoflow.models.embeddings import EmbeddingModel
-from autoflow.db_models.entity import EntityType
-from autoflow.stores.schema import QueryBundle
+from autoflow.llms import EmbeddingModel
+from autoflow.models.entity import EntityType
+from autoflow.storage.schema import QueryBundle
 
 
 # Entity
@@ -125,7 +125,7 @@ class RetrievedEntity(BaseModel):
     name: str = Field(description="Name of the entity")
     description: str = Field(description="Description of the entity")
     meta: Optional[Mapping[str, Any]] = Field(description="Metadata of the entity")
-    similarity_score: Optional[float] = Field()
+    similarity_score: Optional[float] = Field(default=None)
 
     @property
     def global_id(self) -> str:
@@ -234,6 +234,14 @@ class RetrievedKnowledgeGraph(RetrievedSubGraph):
 
 KnowledgeGraphRetrievalResult = RetrievedKnowledgeGraph
 
+# Graph Search
+
+
+class GraphSearchAlgorithm(str, Enum):
+    WEIGHTED_SEARCH = "weighted"
+
+
+# Knowledge Graph Store
 
 E = TypeVar("E", SQLModel, Type[SQLModel])
 R = TypeVar("R", SQLModel, Type[SQLModel])
@@ -264,14 +272,6 @@ class KnowledgeGraphStore(ABC, Generic[E, R, C]):
         raise NotImplementedError
 
     # Entity Basic Operations
-    # @abstractmethod
-    # def fetch_entities_page(
-    #     self,
-    #     filters: Optional[EntityFilters] = EntityFilters(),
-    #     params: Params = Params(),
-    # ) -> Page[E]:
-    #     """Fetch entities with pagination"""
-    #     raise NotImplemented
 
     @abstractmethod
     def list_entities(
@@ -383,13 +383,6 @@ class KnowledgeGraphStore(ABC, Generic[E, R, C]):
         """Get relationship by ID"""
         raise NotImplementedError
 
-    # @abstractmethod
-    # def fetch_relationships_page(
-    #     self, filters: RelationshipFilters, params: Params
-    # ) -> Page[Type[SQLModel]]:
-    #     """Fetch relationships with pagination"""
-    #     raise NotImplemented
-
     @abstractmethod
     def list_relationships(self, filters: RelationshipFilters) -> Sequence[R]:
         """List all relationships matching the filters"""
@@ -485,5 +478,76 @@ class KnowledgeGraphStore(ABC, Generic[E, R, C]):
         raise NotImplementedError
 
     # Knowledge Graph Retrieve Operations
-    def search(self, query: QueryBundle, **kwargs) -> RetrievedKnowledgeGraph:
-        pass
+    def search(
+        self,
+        query: QueryBundle,
+        depth: int = 2,
+        include_meta: bool = False,
+        metadata_filters: Optional[dict] = None,
+        search_algorithm: Optional[
+            GraphSearchAlgorithm
+        ] = GraphSearchAlgorithm.WEIGHTED_SEARCH,
+        **kwargs,
+    ) -> RetrievedKnowledgeGraph:
+        """Search the knowledge graph using configurable search algorithm
+
+        Args:
+            query: Query bundle containing search text or embedding
+            depth: Maximum search depth in the graph
+            include_meta: Whether to include metadata in results
+            metadata_filters: Filters to apply on metadata
+            search_algorithm: Algorithm class to use for graph search
+
+        Returns:
+            Retrieved subgraph containing matching entities and relationships
+
+        """
+        # Ensure query has embedding
+        if query.query_embedding is None and hasattr(self, "_embed_model"):
+            query.query_embedding = self._embed_model.get_query_embedding(
+                query.query_str
+            )
+
+        # Initialize and execute search algorithm
+        if search_algorithm is GraphSearchAlgorithm.WEIGHTED_SEARCH:
+            from autoflow.storage.graph_store.algorithms.weighted import (
+                WeightedGraphSearchRetriever,
+            )
+
+            retriever = WeightedGraphSearchRetriever(self, **kwargs)
+        else:
+            raise NotImplementedError(f"Unknown search algorithm <{search_algorithm}>")
+
+        relationships, entities = retriever.search(
+            query_embedding=query.query_embedding,
+            depth=depth,
+            metadata_filters=metadata_filters,
+        )
+
+        # Construct result graph
+        return RetrievedKnowledgeGraph(
+            relationships=[
+                RetrievedRelationship(
+                    id=r.id,
+                    source_entity_id=r.source_entity_id,
+                    target_entity_id=r.target_entity_id,
+                    description=r.description,
+                    rag_description=f"{r.source_entity.name} -> {r.description} -> {r.target_entity.name}",
+                    meta=r.meta if include_meta else None,
+                    weight=r.weight,
+                    last_modified_at=r.last_modified_at,
+                    similarity_score=r.score if hasattr(r, "score") else None,
+                )
+                for r in relationships
+            ],
+            entities=[
+                RetrievedEntity(
+                    id=e.id,
+                    entity_type=e.entity_type,
+                    name=e.name,
+                    description=e.description,
+                    meta=e.meta if include_meta else None,
+                )
+                for e in entities
+            ],
+        )

@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from markdownify import MarkdownConverter
 
 from autoflow.datasources.mime_types import SupportedMimeTypes
-from autoflow.db_models import DBDocument
+from autoflow.models import DBDocument
 
 
 logger = logging.getLogger(__name__)

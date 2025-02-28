@@ -7,20 +7,20 @@ from sqlalchemy import create_engine
 
 from autoflow.schema import DataSourceKind, IndexMethod
 from autoflow.main import Autoflow
-from autoflow.models import (
+from autoflow.llms import (
     EmbeddingModelConfig,
-    LLMConfig,
-    ModelProviders,
+    LLMProviders,
     ProviderConfig,
+    ChatModelConfig,
 )
-from autoflow.stores.document_store.base import DocumentSearchQuery
+from autoflow.storage.doc_store import DocumentSearchQuery
 
 logger = logging.getLogger(__name__)
 
 db_engine = create_engine(os.getenv("DATABASE_URL"))
 af = Autoflow(db_engine)
 af.model_manager.configure_provider(
-    name=ModelProviders.OPENAI,
+    name=LLMProviders.OPENAI,
     config=ProviderConfig(
         api_key=os.getenv("OPENAI_API_KEY"),
     ),
@@ -32,9 +32,9 @@ def test_create_knowledge_base():
         name="Test",
         description="This is a knowledge base for testing",
         index_methods=[IndexMethod.VECTOR_SEARCH, IndexMethod.KNOWLEDGE_GRAPH],
-        llm=LLMConfig(provider=ModelProviders.OPENAI, model="gpt4o-mini"),
+        chat_model=ChatModelConfig(provider=LLMProviders.OPENAI, model="gpt4o-mini"),
         embedding_model=EmbeddingModelConfig(
-            provider=ModelProviders.OPENAI,
+            provider=LLMProviders.OPENAI,
             model="text-embedding-3-small",
             dimensions=1536,
         ),
@@ -48,9 +48,9 @@ def test_import_documents_from_files():
         name="Test",
         description="This is a knowledge base for testing",
         index_methods=[IndexMethod.VECTOR_SEARCH, IndexMethod.KNOWLEDGE_GRAPH],
-        llm=LLMConfig(provider=ModelProviders.OPENAI, model="gpt-4o-mini"),
+        chat_model=ChatModelConfig(provider=LLMProviders.OPENAI, model="gpt-4o-mini"),
         embedding_model=EmbeddingModelConfig(
-            provider=ModelProviders.OPENAI,
+            provider=LLMProviders.OPENAI,
             model="text-embedding-3-small",
             dimensions=1536,
         ),
@@ -69,9 +69,9 @@ def test_import_documents_from_datasource():
         name="Test",
         description="This is a knowledge base for testing",
         index_methods=[IndexMethod.VECTOR_SEARCH],
-        llm=LLMConfig(provider=ModelProviders.OPENAI, model="gpt-4o-mini"),
+        chat_model=ChatModelConfig(provider=LLMProviders.OPENAI, model="gpt-4o-mini"),
         embedding_model=EmbeddingModelConfig(
-            provider=ModelProviders.OPENAI,
+            provider=LLMProviders.OPENAI,
             model="text-embedding-3-small",
             dimensions=1536,
         ),
@@ -89,9 +89,9 @@ def test_search_documents():
         name="Test",
         description="This is a knowledge base for testing",
         index_methods=[IndexMethod.VECTOR_SEARCH],
-        llm=LLMConfig(provider=ModelProviders.OPENAI, model="gpt-4o-mini"),
+        chat_model=ChatModelConfig(provider=LLMProviders.OPENAI, model="gpt-4o-mini"),
         embedding_model=EmbeddingModelConfig(
-            provider=ModelProviders.OPENAI,
+            provider=LLMProviders.OPENAI,
             model="text-embedding-3-small",
             dimensions=1536,
         ),
@@ -109,6 +109,33 @@ def test_search_documents():
             query_str="What is TiDB?",
             similarity_top_k=2,
         )
+    )
+    assert len(result.chunks) == 2
+
+
+def test_search_knowledge_graph():
+    kb = af.crate_knowledge_base(
+        kb_id=uuid.UUID("01973588-65aa-4954-99fd-71eb5ecce167"),
+        name="Test",
+        description="This is a knowledge base for testing",
+        index_methods=[IndexMethod.KNOWLEDGE_GRAPH],
+        chat_model=ChatModelConfig(provider=LLMProviders.OPENAI, model="gpt-4o-mini"),
+        embedding_model=EmbeddingModelConfig(
+            provider=LLMProviders.OPENAI,
+            model="text-embedding-3-small",
+            dimensions=1536,
+        ),
+    )
+
+    # kb.import_documents_from_files(
+    #     files=[
+    #         Path(__file__).parent / "fixtures" / "analyze-slow-queries.md",
+    #         Path(__file__).parent / "fixtures" / "tidb-overview.md",
+    #     ]
+    # )
+
+    result = kb.search_knowledge_graph(
+        query="What is TiDB?",
     )
     assert len(result.chunks) == 2
 

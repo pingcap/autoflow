@@ -12,7 +12,7 @@ from sqlalchemy import Index
 from sqlmodel.main import default_registry, SQLModel
 from tidb_vector.sqlalchemy import VectorType
 
-from autoflow.storage.db.sqlmodel.sql_model import PatchSQLModel
+from autoflow.utils.sql_model import PatchSQLModel
 
 
 class EntityType(str, enum.Enum):

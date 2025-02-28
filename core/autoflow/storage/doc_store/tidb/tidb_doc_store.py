@@ -14,9 +14,9 @@ from sqlmodel import (
 )
 from tidb_vector.sqlalchemy import VectorAdaptor
 
-from autoflow.models.embeddings import EmbeddingModel
-from autoflow.db_models.document import Document
-from autoflow.stores.document_store.base import (
+from autoflow.llms import EmbeddingModel
+from autoflow.models.document import Document
+from autoflow.storage.doc_store.base import (
     DocumentStore,
     DocumentSearchQuery,
     DocumentSearchResult,

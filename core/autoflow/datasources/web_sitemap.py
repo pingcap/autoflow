@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 
 from autoflow.datasources.base import DataSource
 from autoflow.datasources.web_base import load_web_documents
-from autoflow.db_models import DBDocument
+from autoflow.models import DBDocument
 
 logger = logging.getLogger(__name__)
 

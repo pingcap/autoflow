@@ -3,7 +3,7 @@ from abc import abstractmethod
 from typing import Generator, Generic, TypeVar, Optional
 from pydantic import BaseModel, Field
 
-from autoflow.db_models import DBDocument
+from autoflow.models import DBDocument
 from autoflow.schema import BaseComponent
 
 C = TypeVar("C", bound=BaseModel)

@@ -1,11 +1,13 @@
 from collections import defaultdict
-from typing import List, Set, Tuple
+from typing import List, Set, Tuple, Optional
 
-from autoflow.db_models.entity import EntityType
-from .base import GraphSearchAlgorithm, RelationshipWithScore
+from autoflow.models import EntityType
+from autoflow.storage import KnowledgeGraphStore
+from .base import KnowledgeGraphRetriever, RelationshipWithScore
 from ..base import E, R, EntityDegree
-from ... import KnowledgeGraphStore
+
 from ...schema import QueryBundle
+
 
 # The configuration for the weight coefficient
 # format: ((min_weight, max_weight), coefficient)
@@ -30,41 +32,45 @@ DEFAULT_RANGE_SEARCH_CONFIG = [
 DEFAULT_DEGREE_COEFFICIENT = 0.001
 
 
-class WeightedGraphSearch(GraphSearchAlgorithm[E, R]):
+class WeightedGraphSearchRetriever(KnowledgeGraphRetriever[E, R]):
     def __init__(
         self,
+        kg_store: KnowledgeGraphStore,
         with_degree: bool = False,
         alpha: float = 1,
         weight_coefficients: List[Tuple[float, float]] = None,
         search_range_config: List[Tuple[Tuple[float, float], float]] = None,
         degree_coefficient: float = DEFAULT_DEGREE_COEFFICIENT,
         fetch_synopsis_entities_num: int = 2,
+        max_neighbors: int = 10,
     ):
+        super().__init__(kg_store)
         self.with_degree = with_degree
         self.alpha = alpha
         self.weight_coefficients = weight_coefficients or DEFAULT_WEIGHT_COEFFICIENTS
         self.search_range_config = search_range_config or DEFAULT_RANGE_SEARCH_CONFIG
         self.degree_coefficient = degree_coefficient
         self.fetch_synopsis_entities_num = fetch_synopsis_entities_num
+        self.max_neighbors = max_neighbors
 
     def search(
         self,
-        kg_store: KnowledgeGraphStore,
         query_embedding: List[float],
         depth: int = 2,
-        metadata_filters: dict = {},
-        max_neighbors: int = 10,
+        metadata_filters: Optional[dict] = None,
     ) -> Tuple[List[RelationshipWithScore[R]], List[E]]:
         visited_relationships = set()
         visited_entities = set()
 
         new_relationships = self._weighted_search_relationships(
-            kg_store,
-            query_embedding,
-            visited_relationships,
-            visited_entities,
+            query_embedding=query_embedding,
+            visited_relationships=visited_relationships,
+            visited_entities=visited_entities,
             metadata_filters=metadata_filters,
         )
+
+        if len(new_relationships) == 0:
+            return [], []
 
         for rel, score in new_relationships:
             visited_relationships.add(
@@ -79,13 +85,13 @@ class WeightedGraphSearch(GraphSearchAlgorithm[E, R]):
             for search_config in DEFAULT_RANGE_SEARCH_CONFIG:
                 search_ratio = search_config[1]
                 search_distance_range = search_config[0]
-                remaining_number = max_neighbors - actual_number
+                remaining_number = self.max_neighbors - actual_number
                 # calculate the expected number based search progress
                 # It's an accumulative search, so the expected number should be the difference between the expected number and the actual number
                 expected_number = (
-                    int((search_ratio + progress) * max_neighbors - actual_number)
-                    if progress * max_neighbors > actual_number
-                    else int(search_ratio * max_neighbors)
+                    int((search_ratio + progress) * self.max_neighbors - actual_number)
+                    if progress * self.max_neighbors > actual_number
+                    else int(search_ratio * self.max_neighbors)
                 )
                 if expected_number > remaining_number:
                     expected_number = remaining_number
@@ -93,10 +99,9 @@ class WeightedGraphSearch(GraphSearchAlgorithm[E, R]):
                     break
 
                 new_relationships = self._weighted_search_relationships(
-                    kg_store,
-                    query_embedding,
-                    visited_relationships,
-                    visited_entities,
+                    query_embedding=query_embedding,
+                    visited_relationships=visited_relationships,
+                    visited_entities=visited_entities,
                     search_distance_range=search_distance_range,
                     top_k=expected_number,
                     metadata_filters=metadata_filters,
@@ -115,7 +120,7 @@ class WeightedGraphSearch(GraphSearchAlgorithm[E, R]):
                     progress += search_ratio
 
         # Fetch related synopsis entities.
-        synopsis_entities = kg_store.search_similar_entities(
+        synopsis_entities = self._kg_store.search_similar_entities(
             query=QueryBundle(query_embedding=query_embedding),
             entity_type=EntityType.synopsis,
             top_k=self.fetch_synopsis_entities_num,
@@ -126,17 +131,16 @@ class WeightedGraphSearch(GraphSearchAlgorithm[E, R]):
 
     def _weighted_search_relationships(
         self,
-        kg_store: KnowledgeGraphStore,
         query_embedding: List[float],
-        visited_relationships: Set[R],
+        visited_relationships: Set[RelationshipWithScore[R]],
         visited_entities: Set[E],
         search_distance_range: Tuple[float, float] = (0, 1),
         top_k: int = 10,
-        metadata_filters: dict = {},
+        metadata_filters: Optional[dict] = None,
     ) -> List[Tuple[R, float]]:
         visited_entity_ids = [e.id for e in visited_entities]
-        visited_relationship_ids = [r.id for r in visited_relationships]
-        relationships_with_score = kg_store.search_similar_relationships(
+        visited_relationship_ids = [r.relationship.id for r in visited_relationships]
+        relationships_with_score = self._kg_store.search_similar_relationships(
             query=QueryBundle(query_embedding=query_embedding),
             distance_range=search_distance_range,
             source_entity_ids=visited_entity_ids,
@@ -144,14 +148,12 @@ class WeightedGraphSearch(GraphSearchAlgorithm[E, R]):
             metadata_filters=metadata_filters,
         )
         return self._rerank_relationships(
-            kg_store=kg_store,
             relationships_with_score=relationships_with_score,
             top_k=top_k,
         )
 
     def _rerank_relationships(
         self,
-        kg_store: KnowledgeGraphStore,
         relationships_with_score: List[Tuple[R, float]],
         top_k: int = 10,
     ) -> List[Tuple[R, float]]:
@@ -164,7 +166,7 @@ class WeightedGraphSearch(GraphSearchAlgorithm[E, R]):
             for r, _ in relationships_with_score:
                 entity_ids.add(r.source_entity_id)
                 entity_ids.add(r.target_entity_id)
-            entity_degrees = kg_store.bulk_calc_entities_degrees(entity_ids)
+            entity_degrees = self._kg_store.bulk_calc_entities_degrees(entity_ids)
         else:
             entity_degrees = defaultdict(EntityDegree)
 
@@ -173,7 +175,7 @@ class WeightedGraphSearch(GraphSearchAlgorithm[E, R]):
             embedding_distance = 1 - similarity_score
             source_in_degree = entity_degrees[r.source_entity_id].in_degree
             target_out_degree = entity_degrees[r.target_entity_id].out_degree
-            final_score = self._calc_final_score(
+            final_score = self._calc_relationship_weighted_score(
                 embedding_distance,
                 r.weight,
                 source_in_degree,
@@ -184,6 +186,15 @@ class WeightedGraphSearch(GraphSearchAlgorithm[E, R]):
         # Rerank relationships based on the calculated score.
         reranked_relationships.sort(key=lambda x: x[1], reverse=True)
         return reranked_relationships[:top_k]
+
+    def _calc_relationship_weighted_score(
+        self, embedding_distance: float, weight: int, in_degree: int, out_degree: int
+    ) -> float:
+        weighted_score = self._calc_weight_score(weight)
+        degree_score = 0
+        if self.with_degree:
+            degree_score = self._calc_degree_score(in_degree, out_degree)
+        return self.alpha * (1 / embedding_distance) + weighted_score + degree_score
 
     def _calc_weight_score(self, weight: float) -> float:
         weight_score = 0.0
@@ -201,12 +212,3 @@ class WeightedGraphSearch(GraphSearchAlgorithm[E, R]):
 
     def _calc_degree_score(self, in_degree: int, out_degree: int) -> float:
         return (in_degree - out_degree) * self.degree_coefficient
-
-    def _calc_final_score(
-        self, embedding_distance: float, weight: int, in_degree: int, out_degree: int
-    ) -> float:
-        weighted_score = self._calc_weight_score(weight)
-        degree_score = 0
-        if self.with_degree:
-            degree_score = self._calc_degree_score(in_degree, out_degree)
-        return self.alpha * (1 / embedding_distance) + weighted_score + degree_score

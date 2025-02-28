@@ -22,11 +22,10 @@ from autoflow.indices.knowledge_graph.schema import (
     AIRelationshipWithEntityDesc,
     AIEntity,
 )
-from autoflow.models.embeddings import EmbeddingModel
-from autoflow.db_models.entity import EntityType
-from autoflow.stores.knowledge_graph_store import KnowledgeGraphStore
-from autoflow.stores.knowledge_graph_store.algorithms.base import GraphSearchAlgorithm
-from autoflow.stores.knowledge_graph_store.base import (
+from autoflow.llms import EmbeddingModel
+from autoflow.models.entity import EntityType
+from autoflow.storage.graph_store import KnowledgeGraphStore
+from autoflow.storage.graph_store.base import (
     EntityFilters,
     EntityCreate,
     EntityUpdate,
@@ -38,9 +37,8 @@ from autoflow.stores.knowledge_graph_store.base import (
     E,
     R,
     C,
-    RetrievedKnowledgeGraph,
 )
-from autoflow.stores.schema import QueryBundle
+from autoflow.storage.schema import QueryBundle
 
 logger = logging.getLogger(__name__)
 
@@ -902,22 +900,22 @@ class TiDBKnowledgeGraphStore(KnowledgeGraphStore[E, R, C]):
         if weight_threshold is not None:
             query = query.where(subquery.c.similarity_score >= weight_threshold)
 
-        if exclude_relationship_ids is not None:
+        if exclude_relationship_ids is not None and len(exclude_relationship_ids) > 0:
             query = query.where(
                 self._relationship_db_model.id.notin_(exclude_relationship_ids)
             )
 
-        if source_entity_ids is not None:
+        if source_entity_ids is not None and len(source_entity_ids) > 0:
             query = query.where(
                 self._relationship_db_model.source_entity_id.in_(source_entity_ids)
             )
 
-        if target_entity_ids is not None:
+        if target_entity_ids is not None and len(target_entity_ids) > 0:
             query = query.where(
                 self._relationship_db_model.target_entity_id.in_(target_entity_ids)
             )
 
-        if metadata_filters:
+        if metadata_filters is not None and len(metadata_filters) > 0:
             for key, value in metadata_filters.items():
                 json_path = f"$.{key}"
                 if isinstance(value, (list, tuple, set)):
@@ -929,6 +927,16 @@ class TiDBKnowledgeGraphStore(KnowledgeGraphStore[E, R, C]):
                     query = query.where(
                         text("JSON_EXTRACT(meta, :path) = :value")
                     ).params(path=json_path, value=json.dumps(value))
+
+        # Debug: Print the SQL query
+        # """
+        from sqlalchemy.dialects import mysql
+
+        compiled_query = query.compile(
+            dialect=mysql.dialect(),
+        )
+        logger.info(f"Debug - SQL Query: \n{compiled_query}")
+        # """
 
         with self._session_scope(db_session) as session:
             rows = session.exec(query).all()
@@ -954,66 +962,3 @@ class TiDBKnowledgeGraphStore(KnowledgeGraphStore[E, R, C]):
         )
         with self._session_scope(db_session) as session:
             return session.exec(stmt).all()
-
-    def search(
-        self,
-        query: QueryBundle,
-        depth: int = 2,
-        include_meta: bool = False,
-        meta_filters: dict = {},
-        search_algorithm: GraphSearchAlgorithm = None,
-    ) -> RetrievedKnowledgeGraph:
-        """Search the knowledge graph using configurable search algorithm
-
-        Args:
-            query: Query bundle containing search text or embedding
-            depth: Maximum search depth in the graph
-            include_meta: Whether to include metadata in results
-            meta_filters: Filters to apply on metadata
-            search_algorithm: Algorithm class to use for graph search
-
-        Returns:
-            Retrieved subgraph containing matching entities and relationships
-        """
-        # Ensure query has embedding
-        if query.query_embedding is None and hasattr(self, "_embed_model"):
-            query.query_embedding = self._embed_model.get_query_embedding(
-                query.query_str
-            )
-
-        # Initialize and execute search algorithm
-        algorithm = search_algorithm()
-        relationships, entities = algorithm.search(
-            self,
-            query=query,
-            depth=depth,
-            meta_filters=meta_filters,
-        )
-
-        # Construct result graph
-        return RetrievedKnowledgeGraph(
-            relationships=[
-                RetrievedRelationship(
-                    id=r.id,
-                    source_entity_id=r.source_entity_id,
-                    target_entity_id=r.target_entity_id,
-                    description=r.description,
-                    rag_description=f"{r.source_entity.name} -> {r.description} -> {r.target_entity.name}",
-                    meta=r.meta if include_meta else None,
-                    weight=r.weight,
-                    last_modified_at=r.last_modified_at,
-                    similarity_score=r.score if hasattr(r, "score") else None,
-                )
-                for r in relationships
-            ],
-            entities=[
-                RetrievedEntity(
-                    id=e.id,
-                    entity_type=e.entity_type,
-                    name=e.name,
-                    description=e.description,
-                    meta=e.meta if include_meta else None,
-                )
-                for e in entities
-            ],
-        )

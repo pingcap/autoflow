@@ -31,7 +31,7 @@ model_manager.configure_provider(
 
 
 def test_llm():
-    llm = model_manager.resolve_llm(
+    llm = model_manager.resolve_chat_model(
         LLMConfig(provider=ModelProviders.OPENAI, model="gpt-4o")
     )
 

@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from .base import DataSource, C
 from .mime_types import SupportedMimeTypes
-from autoflow.db_models import DBDocument
+from autoflow.models import DBDocument
 
 logger = logging.getLogger(__name__)
 

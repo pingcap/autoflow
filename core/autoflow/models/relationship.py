@@ -11,7 +11,7 @@ from sqlmodel import (
 from sqlmodel.main import default_registry
 from tidb_vector.sqlalchemy import VectorType
 
-from autoflow.storage.db.sqlmodel.sql_model import PatchSQLModel
+from autoflow.utils.sql_model import PatchSQLModel
 
 
 def get_relationship_model(

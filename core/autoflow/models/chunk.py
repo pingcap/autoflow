@@ -9,7 +9,7 @@ from sqlmodel import Field, SQLModel
 from sqlmodel.main import default_registry, Relationship as SQLRelationship
 from tidb_vector.sqlalchemy import VectorType
 
-from autoflow.storage.db.sqlmodel.sql_model import PatchSQLModel
+from autoflow.utils.sql_model import PatchSQLModel
 from autoflow.utils.uuid6 import uuid7
 
 

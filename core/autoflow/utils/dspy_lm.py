@@ -1,11 +1,11 @@
 import dspy
 
-from autoflow.models.llms import LLM
+from autoflow.llms import ChatModel
 
 
-def get_dspy_lm_by_llm(llm: LLM) -> dspy.LM:
+def get_dspy_lm_by_chat_model(chat_model: ChatModel) -> dspy.LM:
     return dspy.LM(
-        model=llm.model,
-        max_tokens=llm.max_tokens,
-        api_key=llm.additional_kwargs["api_key"],
+        model=chat_model.model,
+        max_tokens=chat_model.max_tokens,
+        api_key=chat_model.additional_kwargs["api_key"],
     )

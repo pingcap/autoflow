@@ -1,7 +1,7 @@
 from typing import List
 from sqlmodel import SQLModel
 
-from autoflow.storage.db.table import Table
+from autoflow.storage.table import Table
 
 
 class Database:

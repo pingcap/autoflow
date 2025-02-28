@@ -14,13 +14,13 @@ from autoflow.datasources.mime_types import SupportedMimeTypes
 from autoflow.indices.knowledge_graph.base import KnowledgeGraphIndex
 from autoflow.indices.knowledge_graph.extractor import KnowledgeGraphExtractor
 from autoflow.indices.vector_search.base import VectorSearchIndex
-from autoflow.node_parser.file.markdown import MarkdownNodeParser
+from autoflow.transformers.markdown import MarkdownNodeParser
 from autoflow.schema import DataSourceKind, IndexMethod, BaseComponent
-from autoflow.db_models.chunk import get_chunk_model
-from autoflow.db_models.entity import get_entity_model
-from autoflow.db_models.relationship import get_relationship_model
+from autoflow.models.chunk import get_chunk_model
+from autoflow.models.entity import get_entity_model
+from autoflow.models.relationship import get_relationship_model
 from autoflow.knowledge_base.config import (
-    LLMConfig,
+    ChatModelConfig,
     EmbeddingModelConfig,
     ChunkingMode,
     GeneralChunkingConfig,
@@ -30,15 +30,17 @@ from autoflow.knowledge_base.config import (
     MarkdownNodeParserOptions,
     ChunkingConfig,
 )
-from autoflow.db_models.document import Document
+from autoflow.models.document import Document
 from autoflow.knowledge_base.datasource import get_datasource_by_kind
-from autoflow.models import default_model_manager, ModelManager
-from autoflow.stores import TiDBDocumentStore, TiDBKnowledgeGraphStore
-from autoflow.stores.document_store.base import (
+from autoflow.llms import default_llm_manager, LLMManager
+from autoflow.storage import TiDBDocumentStore, TiDBKnowledgeGraphStore
+from autoflow.storage.doc_store import (
     DocumentSearchResult,
     DocumentSearchQuery,
 )
-from autoflow.utils.dspy_lm import get_dspy_lm_by_llm
+from autoflow.storage.graph_store.base import GraphSearchAlgorithm
+from autoflow.storage.schema import QueryBundle
+from autoflow.utils.dspy_lm import get_dspy_lm_by_chat_model
 
 
 class KnowledgeBase(BaseComponent):
@@ -51,7 +53,7 @@ class KnowledgeBase(BaseComponent):
     chunking_config: Optional[ChunkingConfig] = Field(
         default_factory=GeneralChunkingConfig
     )
-    llm_config: LLMConfig = Field()
+    chat_model_config: ChatModelConfig = Field()
     embedding_model_config: EmbeddingModelConfig = Field()
     data_sources: List[DataSource] = Field(default_factory=list)
 
@@ -61,10 +63,10 @@ class KnowledgeBase(BaseComponent):
         description: Optional[str] = None,
         index_methods: Optional[List[IndexMethod]] = None,
         chunking_config: Optional[ChunkingConfig] = None,
-        llm: LLMConfig = None,
+        chat_model: ChatModelConfig = None,
         embedding_model: EmbeddingModelConfig = None,
         db_engine: Engine = None,
-        model_manager: Optional[ModelManager] = None,
+        llm_manager: Optional[LLMManager] = None,
         kb_id: Optional[uuid.UUID] = None,
     ):
         super().__init__(
@@ -73,13 +75,13 @@ class KnowledgeBase(BaseComponent):
             description=description,
             index_methods=index_methods or [IndexMethod.VECTOR_SEARCH],
             chunking_config=chunking_config or GeneralChunkingConfig(),
-            llm_config=llm,
+            chat_model_config=chat_model,
             embedding_model_config=embedding_model,
         )
         self._db_engine = db_engine
-        self._model_manager = model_manager or default_model_manager
-        self._llm = self._model_manager.resolve_llm(llm)
-        self._dspy_lm = get_dspy_lm_by_llm(self._llm)
+        self._model_manager = llm_manager or default_llm_manager
+        self._chat_model = self._model_manager.resolve_chat_model(chat_model)
+        self._dspy_lm = get_dspy_lm_by_chat_model(self._chat_model)
         self._graph_extractor = KnowledgeGraphExtractor(dspy_lm=self._dspy_lm)
         self._embedding_model = self._model_manager.resolve_embedding_model(
             embedding_model
@@ -253,3 +255,23 @@ class KnowledgeBase(BaseComponent):
 
     def search_documents(self, query: DocumentSearchQuery) -> DocumentSearchResult:
         return self._doc_store.search(query)
+
+    def search_knowledge_graph(
+        self,
+        query: str,
+        depth: int = 2,
+        include_meta: bool = False,
+        metadata_filters: Optional[dict] = None,
+        search_algorithm: Optional[
+            GraphSearchAlgorithm
+        ] = GraphSearchAlgorithm.WEIGHTED_SEARCH,
+        **kwargs,
+    ):
+        return self._kg_store.search(
+            query=QueryBundle(query_str=query),
+            depth=depth,
+            include_meta=include_meta,
+            metadata_filters=metadata_filters,
+            search_algorithm=search_algorithm,
+            **kwargs,
+        )

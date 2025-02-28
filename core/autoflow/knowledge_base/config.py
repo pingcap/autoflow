@@ -3,7 +3,7 @@ from typing import Union, Dict
 from pydantic import BaseModel
 from sqlmodel import Field
 from autoflow.datasources.mime_types import SupportedMimeTypes
-from autoflow.models import EmbeddingModelConfig, LLMConfig
+from autoflow.llms import EmbeddingModelConfig, ChatModelConfig
 from autoflow.schema import IndexMethod
 
 # Index Methods
@@ -89,6 +89,6 @@ ChunkingConfig = Union[GeneralChunkingConfig | AdvancedChunkingConfig]
 
 
 class KnowledgeBaseConfig(BaseModel):
-    llm: LLMConfig = None
+    chat_model: ChatModelConfig = None
     embedding_model: EmbeddingModelConfig = None
     chunking_config: ChunkingConfig = GeneralChunkingConfig()

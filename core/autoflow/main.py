@@ -5,9 +5,9 @@ from sqlalchemy import Engine
 from sqlmodel import SQLModel
 
 from autoflow.knowledge_base import KnowledgeBase
-from autoflow.knowledge_base.config import EmbeddingModelConfig, LLMConfig
+from autoflow.llms import EmbeddingModelConfig, ChatModelConfig
 from autoflow.schema import IndexMethod
-from autoflow.models import ModelManager, default_model_manager
+from autoflow.llms import LLMManager, default_llm_manager
 
 
 class Autoflow:
@@ -15,7 +15,7 @@ class Autoflow:
     _model_manager = None
 
     def __init__(
-        self, db_engine: Engine, model_manager: ModelManager = default_model_manager
+        self, db_engine: Engine, model_manager: LLMManager = default_llm_manager
     ):
         self._db_engine = db_engine
         self._model_manager = model_manager
@@ -29,7 +29,7 @@ class Autoflow:
         return self._db_engine
 
     @property
-    def model_manager(self) -> ModelManager:
+    def model_manager(self) -> LLMManager:
         return self._model_manager
 
     def crate_knowledge_base(
@@ -37,7 +37,7 @@ class Autoflow:
         name: str,
         description: Optional[str] = None,
         index_methods: Optional[List[IndexMethod]] = None,
-        llm: LLMConfig = None,
+        chat_model: ChatModelConfig = None,
         embedding_model: EmbeddingModelConfig = None,
         kb_id: Optional[uuid.UUID] = None,
     ) -> KnowledgeBase:
@@ -45,7 +45,7 @@ class Autoflow:
             name=name,
             description=description,
             index_methods=index_methods,
-            llm=llm,
+            chat_model=chat_model,
             embedding_model=embedding_model,
             kb_id=kb_id,
             db_engine=self._db_engine,

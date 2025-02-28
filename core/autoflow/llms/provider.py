@@ -4,12 +4,12 @@ from litellm.types.utils import LlmProviders
 from llama_index.core.constants import DEFAULT_TEMPERATURE
 from pydantic import BaseModel
 
-from autoflow.models.embeddings import EmbeddingModel
-from autoflow.models.llms import LLM
-from autoflow.models.rerankers import RerankerModel
+from autoflow.llms.embeddings import EmbeddingModel
+from autoflow.llms.chat_models import ChatModel
+from autoflow.llms.rerankers import RerankerModel
 
 
-ModelProviders = LlmProviders
+LLMProviders = LlmProviders
 
 
 class ProviderConfig(BaseModel):
@@ -18,8 +18,8 @@ class ProviderConfig(BaseModel):
     # TODO: Support Bedrock authenticate.
 
 
-class LLMConfig(BaseModel):
-    provider: str or ModelProviders
+class ChatModelConfig(BaseModel):
+    provider: str or LLMProviders
     model: str
     max_tokens: Optional[int] = None
     temperature: float = DEFAULT_TEMPERATURE
@@ -27,32 +27,32 @@ class LLMConfig(BaseModel):
 
 
 class EmbeddingModelConfig(BaseModel):
-    provider: str or ModelProviders
+    provider: str or LLMProviders
     model: str
     dimensions: int
 
 
 class RerankerModelConfig(BaseModel):
-    provider: str or ModelProviders
+    provider: str or LLMProviders
     model: str
     top_n: Optional[int] = 5
 
 
-class ModelManager:
+class LLMManager:
     _registry: Dict[str, ProviderConfig] = {}
 
-    def configure_provider(self, name: ModelProviders, config: ProviderConfig):
+    def configure_provider(self, name: LLMProviders, config: ProviderConfig):
         self._registry[name] = config
 
-    def get_provider(self, name: str or ModelProviders) -> Optional[ProviderConfig]:
+    def get_provider(self, name: str or LLMProviders) -> Optional[ProviderConfig]:
         provider = self._registry.get(name)
         if provider is None:
             raise ValueError('Provider "{}" is not found.'.format(name))
         return provider
 
-    def resolve_llm(self, config: LLMConfig) -> Optional[LLM]:
+    def resolve_chat_model(self, config: ChatModelConfig) -> Optional[ChatModel]:
         model_provider = self.get_provider(config.provider)
-        return LLM(
+        return ChatModel(
             model=f"{config.provider}/{config.model}",
             api_base=model_provider.api_base,
             api_key=model_provider.api_key,
@@ -84,4 +84,4 @@ class ModelManager:
         )
 
 
-default_model_manager: ModelManager = ModelManager()
+default_llm_manager: LLMManager = LLMManager()

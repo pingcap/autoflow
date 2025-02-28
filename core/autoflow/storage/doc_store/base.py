@@ -3,8 +3,8 @@ from enum import Enum
 from typing import List, Optional, Generic, TypeVar, Type
 
 from pydantic import BaseModel
-from autoflow.db_models.document import Document
-from autoflow.stores.schema import QueryBundle
+from autoflow.models.document import Document
+from autoflow.storage.schema import QueryBundle
 
 D = TypeVar("D", bound=Type[Document])
 C = TypeVar("C")

@@ -5,6 +5,7 @@ from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 from markdownify import MarkdownConverter
 
+from autoflow.datasources.mime_types import SupportedMimeTypes
 from autoflow.db_models import DBDocument
 
 
@@ -58,7 +59,7 @@ def load_web_documents(urls: list[str]) -> Generator[DBDocument, None, None]:
                 name=title,
                 hash=hash(content),
                 content=content,
-                mime_type="text/plain",
+                mime_type=SupportedMimeTypes.PLAIN_TXT,
                 source_uri=final_url,
                 last_modified_at=datetime.now(UTC),
             )

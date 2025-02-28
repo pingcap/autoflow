@@ -3,8 +3,9 @@ from typing import List
 
 import dspy
 from dspy import Predict
+
 from autoflow.indices.knowledge_graph.schema import (
-    KnowledgeGraph,
+    AIKnowledgeGraph,
     EntityCovariateInput,
     EntityCovariateOutput,
 )
@@ -47,7 +48,7 @@ class ExtractGraphTriplet(dspy.Signature):
     text = dspy.InputField(
         desc="a paragraph of text to extract entities and relationships to form a knowledge graph"
     )
-    knowledge: KnowledgeGraph = dspy.OutputField(
+    knowledge: AIKnowledgeGraph = dspy.OutputField(
         desc="Graph representation of the knowledge extracted from the text."
     )
 
@@ -74,14 +75,14 @@ class ExtractCovariate(dspy.Signature):
     )
 
 
-class Extractor(dspy.Module):
+class KnowledgeGraphExtractor(dspy.Module):
     def __init__(self, dspy_lm: dspy.LM):
         super().__init__()
         self.dspy_lm = dspy_lm
         self.prog_graph = Predict(ExtractGraphTriplet)
         self.prog_covariates = Predict(ExtractCovariate)
 
-    def forward(self, text: str) -> KnowledgeGraph:
+    def forward(self, text: str) -> AIKnowledgeGraph:
         with dspy.settings.context(lm=self.dspy_lm):
             pred_graph = self.prog_graph(
                 text=text,

@@ -1,13 +1,15 @@
 import enum
 from typing import Optional, Dict
 from datetime import datetime
+from uuid import UUID
+
+from llama_index.core.schema import Document as LlamaDocument
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlmodel import (
     Field,
     Column,
     DateTime,
     JSON,
-    Relationship as SQLRelationship,
     SQLModel,
 )
 
@@ -43,25 +45,19 @@ class Document(SQLModel, table=True):
     hash: str = Field(max_length=32)
     name: str = Field(max_length=256)
     content: str = Field(sa_column=Column(MEDIUMTEXT))
+    mime_type: str = Field(max_length=100)
     meta: Optional[Dict] = Field(default={}, sa_column=Column(JSON))
-
-    # Data source.
-    data_source_id: int = Field(foreign_key="data_sources.id", nullable=True)
-    data_source: "DataSource" = SQLRelationship(  # noqa:F821
-        sa_relationship_kwargs={
-            "lazy": "joined",
-            "primaryjoin": "Document.data_source_id == DataSource.id",
-        },
-    )
-
-    # Knowledge Base.
-    knowledge_base_id: int = Field(foreign_key="knowledge_bases.id", nullable=True)
-    knowledge_base: "KnowledgeBase" = SQLRelationship(  # noqa:F821
-        sa_relationship_kwargs={
-            "lazy": "joined",
-            "primaryjoin": "Document.knowledge_base_id == KnowledgeBase.id",
-        },
-    )
-
+    data_source_id: UUID = Field(nullable=True)
+    knowledge_base_id: UUID = Field(nullable=True)
     created_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime))
     updated_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime))
+
+    def __hash__(self) -> int:
+        return hash(self.hash)
+
+    def to_llama_document(self) -> LlamaDocument:
+        return LlamaDocument(
+            id_=str(self.id),
+            text=self.content,
+            metadata=self.meta,
+        )

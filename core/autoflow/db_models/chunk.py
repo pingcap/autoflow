@@ -38,7 +38,7 @@ def get_chunk_model(
         text_vec: list[float] = Field(sa_column=Column(VectorType(vector_dimension)))
         meta: dict = Field(default={}, sa_column=Column(JSON))
         document_id: int = Field(foreign_key=f"{document_table_name}.id", nullable=True)
-        document: "document_db_model" = SQLRelationship()
+        document: document_db_model = SQLRelationship()
         source_uri: str = Field(max_length=512, nullable=True)
 
         kg_index_status: KgIndexStatus = KgIndexStatus.NOT_STARTED

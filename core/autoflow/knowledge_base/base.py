@@ -1,70 +1,99 @@
+import uuid
 from pathlib import Path
-from typing import List, Optional, Dict, Any, Generator
+from typing import List, Optional, Dict, Any
 
 from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core.schema import TransformComponent
+from pydantic import PrivateAttr
 from sqlalchemy import Engine
 from sqlalchemy.orm.decl_api import RegistryType
-from sqlmodel import Session
-from sqlmodel.main import default_registry
+from sqlmodel.main import default_registry, Field
 
 from autoflow.datasources import DataSource
+from autoflow.datasources.mime_types import SupportedMimeTypes
+from autoflow.indices.knowledge_graph.base import KnowledgeGraphIndex
+from autoflow.indices.knowledge_graph.extractor import KnowledgeGraphExtractor
+from autoflow.indices.vector_search.base import VectorSearchIndex
+from autoflow.node_parser.file.markdown import MarkdownNodeParser
+from autoflow.schema import DataSourceKind, IndexMethod, BaseComponent
 from autoflow.db_models.chunk import get_chunk_model
-from autoflow.db_models import DataSourceKind
 from autoflow.db_models.entity import get_entity_model
 from autoflow.db_models.relationship import get_relationship_model
 from autoflow.knowledge_base.config import (
-    IndexMethod,
     LLMConfig,
     EmbeddingModelConfig,
-    DEFAULT_INDEX_METHODS,
+    ChunkingMode,
+    GeneralChunkingConfig,
+    ChunkSplitterConfig,
+    ChunkSplitter,
+    SentenceSplitterOptions,
+    MarkdownNodeParserOptions,
+    ChunkingConfig,
 )
 from autoflow.db_models.document import Document
 from autoflow.knowledge_base.datasource import get_datasource_by_kind
 from autoflow.models import default_model_manager, ModelManager
 from autoflow.stores import TiDBDocumentStore, TiDBKnowledgeGraphStore
-from autoflow.db_models import DBKnowledgeBase
-from autoflow.stores.document_store.base import DocumentSearchResult
+from autoflow.stores.document_store.base import (
+    DocumentSearchResult,
+    DocumentSearchQuery,
+)
+from autoflow.utils.dspy_lm import get_dspy_lm_by_llm
 
 
-class KnowledgeBase:
-    _kb: Optional[DBKnowledgeBase] = None
-    _registry: RegistryType
+class KnowledgeBase(BaseComponent):
+    _registry: RegistryType = PrivateAttr()
+
+    id: uuid.UUID
+    name: str = Field()
+    index_methods: List[IndexMethod]
+    description: Optional[str] = Field(default=None)
+    chunking_config: Optional[ChunkingConfig] = Field(
+        default_factory=GeneralChunkingConfig
+    )
+    llm_config: LLMConfig = Field()
+    embedding_model_config: EmbeddingModelConfig = Field()
+    data_sources: List[DataSource] = Field(default_factory=list)
 
     def __init__(
         self,
         name: str,
         description: Optional[str] = None,
         index_methods: Optional[List[IndexMethod]] = None,
+        chunking_config: Optional[ChunkingConfig] = None,
         llm: LLMConfig = None,
         embedding_model: EmbeddingModelConfig = None,
         db_engine: Engine = None,
         model_manager: Optional[ModelManager] = None,
-        kb: Optional[DBKnowledgeBase] = None,
+        kb_id: Optional[uuid.UUID] = None,
     ):
+        super().__init__(
+            id=kb_id or uuid.uuid4(),
+            name=name,
+            description=description,
+            index_methods=index_methods or [IndexMethod.VECTOR_SEARCH],
+            chunking_config=chunking_config or GeneralChunkingConfig(),
+            llm_config=llm,
+            embedding_model_config=embedding_model,
+        )
         self._db_engine = db_engine
-        if model_manager is None:
-            model_manager = default_model_manager
-
-        if kb is None:
-            with Session(db_engine) as db_session:
-                kb = DBKnowledgeBase(
-                    name=name,
-                    description=description,
-                    index_methods=index_methods or DEFAULT_INDEX_METHODS,
-                    llm=llm,
-                    embedding_model=embedding_model,
-                )
-                db_session.add(kb)
-                db_session.commit()
-                db_session.refresh(kb)
-
-        self._kb = kb
-        self._llm = model_manager.resolve_llm(llm)
-        self._embedding_model = model_manager.resolve_embedding_model(embedding_model)
+        self._model_manager = model_manager or default_model_manager
+        self._llm = self._model_manager.resolve_llm(llm)
+        self._dspy_lm = get_dspy_lm_by_llm(self._llm)
+        self._graph_extractor = KnowledgeGraphExtractor(dspy_lm=self._dspy_lm)
+        self._embedding_model = self._model_manager.resolve_embedding_model(
+            embedding_model
+        )
         self._init_stores()
+        self._vector_search_index = VectorSearchIndex(
+            doc_store=self._doc_store,
+        )
+        self._knowledge_graph_index = KnowledgeGraphIndex(
+            dspy_lm=self._dspy_lm, kg_store=self._kg_store
+        )
 
     def _init_stores(self):
-        namespace_id = f"{self._kb.id}"
+        namespace_id = f"{self.id}"
         vector_dimension = self._embedding_model.dimensions
 
         self._registry = RegistryType(
@@ -100,100 +129,70 @@ class KnowledgeBase:
             registry=self._registry,
         )
 
-        self._doc_store = TiDBDocumentStore(
+        self._doc_store = TiDBDocumentStore[Document, self._chunk_db_model](
             db_engine=self._db_engine,
             embedding_model=self._embedding_model,
             document_db_model=Document,
             chunk_db_model=self._chunk_db_model,
         )
+        self._doc_store.ensure_table_schema()
 
-        self._graph_store = TiDBKnowledgeGraphStore(
+        self._kg_store = TiDBKnowledgeGraphStore(
             db_engine=self._db_engine,
             embedding_model=self._embedding_model,
             entity_db_model=self._entity_db_model,
             relationship_db_model=self._relationship_db_model,
         )
+        self._kg_store.ensure_table_schema()
 
-    @property
-    def id(self) -> int:
-        return self._kb.id
-
-    @property
-    def name(self):
-        return self._kb.name
-
-    @property
-    def description(self):
-        return self._kb.description
-
-    @property
-    def index_methods(self):
-        return self._kb.index_methods
-
-    @property
-    def registry(self):
-        return self._registry
-
-    @property
-    def llm(self):
-        return self._llm
-
-    @property
-    def embedding_model(self):
-        return self._embedding_model
-
-    def create_datasource(
+    def import_documents_from_datasource(
         self,
         kind: DataSourceKind,
-        name: str,
-        config: Dict[str, Any],
-        load_documents: bool = True,
-        build_index: bool = True,
+        config: Dict[str, Any] = None,
         # TODO: Metadata Extractor
     ) -> DataSource:
-        with Session(self._db_engine) as db_session:
-            ds = DataSource(kind=kind, name=name, config=config)
-            db_session.add(ds)
-            self._kb.datasources.append(ds)
-            db_session.commit()
         datasource = get_datasource_by_kind(kind, config)
-
-        if load_documents:
-            for doc in datasource.load_documents():
-                if build_index:
-                    self.build_index_for_document(doc)
-
+        for doc in datasource.load_documents():
+            doc.data_source_id = datasource.id
+            doc.knowledge_base_id = self.id
+            self.add_document(doc)
+            self.build_index_for_document(doc)
         return datasource
 
-    def build_index_for_datasource(self, doc: Document):
-        pass
-
-    def delete_datasource(self, datasource_id: int):
-        with Session(self._db_engine) as db_session:
-            self._kb.datasources.remove(datasource_id)
-            # TODO: Remove documents.
-            db_session.commit()
-
-    def list_datasources(self) -> List[DataSource]:
-        with Session(self._db_engine, expire_on_commit=False) as db_session:
-            db_session.refresh(self._kb)
-            return [DataSource.from_db(ds) for ds in self._kb.datasources]
-
-    def import_document_from_file(
-        self, file: Path, build_index: bool = True
-    ) -> List[Document]:
-        data_source = self.create_datasource(
-            kind=DataSourceKind.FILE,
-            name=f"Local File: {file.name}",
-            config={"files": [{"file": file.as_uri()}]},
+    def import_documents_from_files(self, files: List[Path]) -> List[Document]:
+        datasource = get_datasource_by_kind(
+            DataSourceKind.FILE, {"files": [{"path": file.as_uri()} for file in files]}
         )
         documents = []
-        for doc in data_source.load_documents():
-            if build_index:
-                documents.append(self.build_index_for_document(doc))
-            else:
-                documents.append(doc)
+        for doc in datasource.load_documents():
+            self.add_document(doc)
+            self.build_index_for_document(doc)
         return documents
+
+    def build_index_for_document(self, doc: Document):
+        # Chunking
+        chunks = self._chunking(doc)
+
+        # Build Vector Search Index.
+        if IndexMethod.VECTOR_SEARCH in self.index_methods:
+            self._vector_search_index.build_index_for_chunks(chunks)
+
+        # Build Knowledge Graph Index.
+        if IndexMethod.KNOWLEDGE_GRAPH in self.index_methods:
+            self._knowledge_graph_index.build_index_for_chunks(chunks)
+
+    def _chunking(self, doc: Document):
+        text_splitter = self._get_text_splitter(doc)
+        nodes = text_splitter.get_nodes_from_documents([doc.to_llama_document()])
+        return [
+            self._chunk_db_model(
+                hash=node.hash,
+                text=node.text,
+                meta={},
+                document_id=doc.id,
+            )
+            for node in nodes
+        ]
 
     def add_document(self, document: Document):
         return self._doc_store.add([document])
@@ -210,44 +209,47 @@ class KnowledgeBase:
     def delete_document(self, doc_id: int) -> None:
         return self._doc_store.delete(doc_id)
 
-    def build_index_for_document(self, document: Document):
-        pass
+    def _get_text_splitter(self, db_document: Document) -> TransformComponent:
+        chunking_config = self.chunking_config
+        if chunking_config.mode == ChunkingMode.ADVANCED:
+            rules = chunking_config.rules
+        else:
+            rules = {
+                SupportedMimeTypes.PLAIN_TXT: ChunkSplitterConfig(
+                    splitter=ChunkSplitter.SENTENCE_SPLITTER,
+                    splitter_options=SentenceSplitterOptions(
+                        chunk_size=chunking_config.chunk_size,
+                        chunk_overlap=chunking_config.chunk_overlap,
+                        paragraph_separator=chunking_config.paragraph_separator,
+                    ),
+                ),
+                SupportedMimeTypes.MARKDOWN: ChunkSplitterConfig(
+                    splitter=ChunkSplitter.MARKDOWN_NODE_PARSER,
+                    splitter_options=MarkdownNodeParserOptions(
+                        chunk_size=chunking_config.chunk_size,
+                    ),
+                ),
+            }
 
-    def _document_pipeline(self, documents: List[Document]):
-        pass
+        # Chunking
+        mime_type = db_document.mime_type
+        if mime_type not in rules:
+            raise RuntimeError(
+                f"Can not chunking for the document in {db_document.mime_type} format"
+            )
 
-    def _document_text_split(
-        self, documents: Generator[Document, Any, None]
-    ) -> Generator[Document, Any, None]:
-        # TODO: Support more text splitter.
-        text_splitter = SentenceSplitter()
-        for doc in documents:
-            chunk_texts = text_splitter.split_text(doc.content)
-            chunks = [
-                self._chunk_db_model(
-                    text=chunk_text,
+        rule = rules[mime_type]
+        match rule.splitter:
+            case ChunkSplitter.MARKDOWN_NODE_PARSER:
+                options = MarkdownNodeParserOptions.model_validate(
+                    rule.splitter_options
                 )
-                for chunk_text in chunk_texts
-            ]
-            doc.chunks = chunks
-            yield doc
+                return MarkdownNodeParser(**options.model_dump())
+            case ChunkSplitter.SENTENCE_SPLITTER:
+                options = SentenceSplitterOptions.model_validate(rule.splitter_options)
+                return SentenceSplitter(**options.model_dump())
+            case _:
+                raise ValueError(f"Unsupported chunking splitter type: {rule.splitter}")
 
-    def _document_build_index(
-        self, documents: Generator[Document, Any, None]
-    ) -> Generator[Document, Any, None]:
-        pass
-        # extractor = SimpleGraphExtractor(dspy_lm=self._dspy_lm)
-        # for node in nodes:
-        #     entities_df, rel_df = extractor.extract(
-        #         text=node.get_content(),
-        #         node=node,
-        #     )
-
-    def _build_vector_search_index(self, document: Document):
-        pass
-
-    def _build_knowledge_graph_index(self, document: Document):
-        pass
-
-    def search_document(self, **kwargs) -> DocumentSearchResult:
-        return self._doc_store.search(**kwargs)
+    def search_documents(self, query: DocumentSearchQuery) -> DocumentSearchResult:
+        return self._doc_store.search(query)

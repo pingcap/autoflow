@@ -1,35 +1,21 @@
-from abc import ABC, abstractmethod
+import uuid
+from abc import abstractmethod
 from typing import Generator, Generic, TypeVar, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from autoflow.db_models import DBDataSource, DBDocument
+from autoflow.db_models import DBDocument
+from autoflow.schema import BaseComponent
 
 C = TypeVar("C", bound=BaseModel)
 
 
-class DataSource(ABC, Generic[C]):
-    _ds: Optional[DBDataSource] = None
-    config: C
+class DataSource(BaseComponent, Generic[C]):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    config: Optional[C] = Field(default=None)
 
-    def __init__(
-        self,
-        config: dict,
-        ds: Optional[DBDataSource],
-    ):
-        self._ds = ds
-        self.config = self.validate_config(config)
-
-    @classmethod
-    def from_db(cls, ds: DBDataSource):
-        return cls(ds.config, ds)
-
-    @property
-    def id(self):
-        return self._ds.id
-
-    @property
-    def name(self):
-        return self._ds.name
+    def __init__(self, config: dict):
+        config = self.validate_config(config)
+        super().__init__(config=config)
 
     @abstractmethod
     def validate_config(self, config: dict) -> C:

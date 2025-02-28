@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Mapping, Any, List
 
 
-class Entity(BaseModel):
+class AIEntity(BaseModel):
     """List of entities extracted from the text to form the knowledge graph"""
 
     name: str = Field(
@@ -22,7 +22,7 @@ class Entity(BaseModel):
     )
 
 
-class EntityWithID(Entity):
+class AIEntityWithID(AIEntity):
     """Entity extracted from the text to form the knowledge graph with an ID."""
 
     id: int = Field(description="Unique identifier for the entity.")
@@ -39,7 +39,7 @@ class SynopsisInfo(BaseModel):
     )
 
 
-class SynopsisEntity(Entity):
+class AISynopsisEntity(AIEntity):
     """Unified synopsis entity with comprehensive description and metadata based on the entities group."""
 
     group_info: SynopsisInfo = Field(
@@ -47,13 +47,13 @@ class SynopsisEntity(Entity):
     )
 
 
-class ExistingSynopsisEntity(SynopsisEntity):
+class ExistingSynopsisEntity(AISynopsisEntity):
     """Unified synopsis entity with comprehensive description and metadata based on the entities group."""
 
     id: int = Field(description="Unique identifier for the entity.")
 
 
-class Relationship(BaseModel):
+class AIRelationship(BaseModel):
     """List of relationships extracted from the text to form the knowledge graph"""
 
     source_entity: str = Field(
@@ -70,7 +70,13 @@ class Relationship(BaseModel):
     )
 
 
-class RelationshipReasoning(Relationship):
+class AIRelationshipWithEntityDesc(AIRelationship):
+    source_entity_description: str = Field()
+    target_entity_description: str = Field()
+    meta: Mapping[str, Any] = Field()
+
+
+class AIRelationshipReasoning(AIRelationship):
     """Relationship between two entities extracted from the query"""
 
     reasoning: str = Field(
@@ -80,15 +86,20 @@ class RelationshipReasoning(Relationship):
     )
 
 
-class KnowledgeGraph(BaseModel):
+class AIKnowledgeGraph(BaseModel):
     """Graph representation of the knowledge for text."""
 
-    entities: List[Entity] = Field(
+    entities: List[AIEntity] = Field(
         description="List of entities in the knowledge graph"
     )
-    relationships: List[Relationship] = Field(
+    relationships: List[AIRelationship] = Field(
         description="List of relationships in the knowledge graph"
     )
+
+
+class ProcessedAIKnowledgeGraph(BaseModel):
+    entities: List[AIEntity]
+    relationships: List[AIRelationshipWithEntityDesc]
 
 
 class EntityCovariateInput(BaseModel):
@@ -113,6 +124,6 @@ class EntityCovariateOutput(BaseModel):
 class DecomposedFactors(BaseModel):
     """Decomposed factors extracted from the query to form the knowledge graph"""
 
-    relationships: List[RelationshipReasoning] = Field(
+    relationships: List[AIRelationshipReasoning] = Field(
         description="List of relationships to represent critical concepts and their relationships extracted from the query."
     )

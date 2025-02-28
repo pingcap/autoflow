@@ -1,6 +1,4 @@
-from typing import Any, Dict
-
-from pydantic import field_validator, BaseModel
+from typing import Any
 
 from autoflow.datasources import (
     DataSource,
@@ -8,25 +6,7 @@ from autoflow.datasources import (
     WebSitemapDataSource,
     WebSinglePageDataSource,
 )
-from autoflow.db_models import DataSourceKind
-
-
-class DataSourceMutable(BaseModel):
-    name: str
-
-    @field_validator("name")
-    def name_must_not_be_blank(cls, v: str) -> str:
-        if not v.strip():
-            raise ValueError("Please provide a name for the data source")
-        return v
-
-
-class DataSourceCreate(DataSourceMutable):
-    kind: DataSourceKind
-    config: Dict
-
-
-DataSourceUpdate = DataSourceCreate
+from autoflow.schema import DataSourceKind
 
 
 def get_datasource_by_kind(kind: DataSourceKind, config: Any) -> DataSource:

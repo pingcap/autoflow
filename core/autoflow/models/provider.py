@@ -29,7 +29,7 @@ class LLMConfig(BaseModel):
 class EmbeddingModelConfig(BaseModel):
     provider: str or ModelProviders
     model: str
-    dimensions: Optional[int] = None
+    dimensions: int
 
 
 class RerankerModelConfig(BaseModel):

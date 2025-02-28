@@ -1,20 +1,12 @@
 import enum
-from enum import Enum
 from typing import Union, Dict
 from pydantic import BaseModel
 from sqlmodel import Field
 from autoflow.datasources.mime_types import SupportedMimeTypes
 from autoflow.models import EmbeddingModelConfig, LLMConfig
-
+from autoflow.schema import IndexMethod
 
 # Index Methods
-
-
-class IndexMethod(str, Enum):
-    VECTOR_SEARCH = "VECTOR_SEARCH"
-    FULLTEXT_SEARCH = "FULLTEXT_SEARCH"
-    KNOWLEDGE_GRAPH = "KNOWLEDGE_GRAPH"
-
 
 DEFAULT_INDEX_METHODS = [IndexMethod.VECTOR_SEARCH]
 

@@ -18,4 +18,6 @@ class WebSinglePageDataSource(DataSource[WebSinglePageDataSourceConfig]):
         return WebSinglePageDataSourceConfig.model_validate(config)
 
     def load_documents(self) -> Generator[DBDocument, None, None]:
-        yield from load_web_documents(self.config.urls)
+        for doc in load_web_documents(self.config.urls):
+            doc.data_source_id = self.id
+            yield doc

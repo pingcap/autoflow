@@ -24,9 +24,9 @@ class DocumentSearchQuery(QueryBundle):
 
     # Vector Search
     similarity_threshold: Optional[float] = None
-    similarity_weight: Optional[float] = None
+    # similarity_weight: Optional[float] = None
     similarity_nprobe: Optional[int] = None
-    similarity_top_k: Optional[int] = None
+    similarity_top_k: Optional[int] = 5
 
     # Full Text Search
     # TODO: Support Full Text Search.
@@ -43,7 +43,7 @@ class ChunkWithScore(BaseModel, Generic[C]):
 
 class DocumentSearchResult(BaseModel, Generic[D, C]):
     chunks: List[ChunkWithScore[C]]
-    documents: List[D]
+    documents: List[Document]
 
 
 class DocumentStore(ABC, Generic[D, C]):
@@ -61,4 +61,8 @@ class DocumentStore(ABC, Generic[D, C]):
 
     @abstractmethod
     def get(self, document_id: int) -> D:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def add_doc_chunks(self, chunks: List[C]) -> List[C]:
         raise NotImplementedError()

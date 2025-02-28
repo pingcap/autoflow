@@ -1,11 +1,12 @@
+import uuid
 from typing import Optional, List
 
 from sqlalchemy import Engine
-from sqlmodel import SQLModel, Session
+from sqlmodel import SQLModel
 
 from autoflow.knowledge_base import KnowledgeBase
-from autoflow.knowledge_base.config import IndexMethod, EmbeddingModelConfig, LLMConfig
-from autoflow.db_models import DBKnowledgeBase
+from autoflow.knowledge_base.config import EmbeddingModelConfig, LLMConfig
+from autoflow.schema import IndexMethod
 from autoflow.models import ModelManager, default_model_manager
 
 
@@ -38,6 +39,7 @@ class Autoflow:
         index_methods: Optional[List[IndexMethod]] = None,
         llm: LLMConfig = None,
         embedding_model: EmbeddingModelConfig = None,
+        kb_id: Optional[uuid.UUID] = None,
     ) -> KnowledgeBase:
         return KnowledgeBase(
             name=name,
@@ -45,19 +47,6 @@ class Autoflow:
             index_methods=index_methods,
             llm=llm,
             embedding_model=embedding_model,
+            kb_id=kb_id,
             db_engine=self._db_engine,
         )
-
-    def get_knowledge_base(self, kb_id: int) -> KnowledgeBase:
-        with Session(self._db_engine, expire_on_commit=False) as db_session:
-            kb = db_session.get(DBKnowledgeBase, kb_id)
-            return KnowledgeBase(
-                name=kb.name,
-                description=kb.description,
-                index_methods=kb.index_methods,
-                llm=kb.llm,
-                embedding_model=kb.embedding_model,
-                db_engine=kb.db_engine,
-                model_manager=kb.model_manager,
-                kb=kb,
-            )

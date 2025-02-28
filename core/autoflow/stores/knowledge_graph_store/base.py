@@ -15,10 +15,12 @@ from typing import (
     Collection,
     Dict,
 )
+from uuid import UUID
 
 from pydantic import BaseModel, model_validator, Field
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, Session
 
+from autoflow.indices.knowledge_graph.schema import AIKnowledgeGraph
 from autoflow.models.embeddings import EmbeddingModel
 from autoflow.db_models.entity import EntityType
 from autoflow.stores.schema import QueryBundle
@@ -78,6 +80,7 @@ class RelationshipUpdate(BaseModel):
 class RelationshipFilters(BaseModel):
     target_entity_id: Optional[int] = None
     source_entity_id: Optional[int] = None
+    chunk_ids: Optional[List[UUID]] = None
     relationship_ids: Optional[List[int]] = None
     search: Optional[str] = None
 
@@ -254,6 +257,12 @@ class KnowledgeGraphStore(ABC, Generic[E, R, C]):
         """Drop database table schema"""
         raise NotImplementedError
 
+    @abstractmethod
+    def save_knowledge_graph(
+        self, knowledge_graph: AIKnowledgeGraph, chunk: SQLModel
+    ) -> None:
+        raise NotImplementedError
+
     # Entity Basic Operations
     # @abstractmethod
     # def fetch_entities_page(
@@ -266,7 +275,9 @@ class KnowledgeGraphStore(ABC, Generic[E, R, C]):
 
     @abstractmethod
     def list_entities(
-        self, filters: Optional[EntityFilters] = EntityFilters()
+        self,
+        filters: Optional[EntityFilters] = EntityFilters(),
+        db_session: Session = None,
     ) -> Sequence[E]:
         """List all entities matching the filters"""
         raise NotImplementedError
@@ -282,24 +293,34 @@ class KnowledgeGraphStore(ABC, Generic[E, R, C]):
         raise NotImplementedError
 
     @abstractmethod
-    def create_entity(self, create: EntityCreate, commit: bool = True) -> E:
+    def create_entity(
+        self, create: EntityCreate, commit: bool = True, db_session: Session = None
+    ) -> E:
         """Create a new entity"""
         raise NotImplementedError
 
     @abstractmethod
-    def find_or_create_entity(self, create: EntityCreate, commit: bool = True) -> E:
+    def find_or_create_entity(
+        self, create: EntityCreate, commit: bool = True, db_session: Session = None
+    ) -> E:
         """Find existing entity or create new one"""
         raise NotImplementedError
 
     @abstractmethod
     def update_entity(
-        self, entity: Type[E], update: EntityUpdate, commit: bool = True
+        self,
+        entity: Type[E],
+        update: EntityUpdate,
+        commit: bool = True,
+        db_session: Session = None,
     ) -> Type[E]:
         """Update an existing entity"""
         raise NotImplementedError
 
     @abstractmethod
-    def delete_entity(self, entity: Type[E], commit: bool = True) -> None:
+    def delete_entity(
+        self, entity: Type[E], commit: bool = True, db_session: Session = None
+    ) -> None:
         """Delete an entity"""
         raise NotImplementedError
 
@@ -382,6 +403,7 @@ class KnowledgeGraphStore(ABC, Generic[E, R, C]):
         description: Optional[str] = None,
         metadata: Optional[dict] = {},
         commit: bool = True,
+        db_session: Session = None,
     ) -> R:
         """Create a new relationship between entities"""
         raise NotImplementedError
@@ -392,17 +414,20 @@ class KnowledgeGraphStore(ABC, Generic[E, R, C]):
         relationship: R,
         update: RelationshipUpdate,
         commit: bool = True,
+        db_session: Session = None,
     ) -> R:
         """Update an existing relationship"""
         raise NotImplementedError
 
     @abstractmethod
-    def delete_relationship(self, relationship: R, commit: bool = True):
+    def delete_relationship(
+        self, relationship: R, commit: bool = True, db_session: Session = None
+    ):
         """Delete a relationship"""
         raise NotImplementedError
 
     @abstractmethod
-    def clear_orphan_entities(self):
+    def clear_orphan_entities(self, db_session: Session = None):
         """Remove entities that have no relationships"""
         raise NotImplementedError
 

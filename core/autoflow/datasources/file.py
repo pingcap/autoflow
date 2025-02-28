@@ -55,12 +55,18 @@ class FileDataSource(DataSource[FileDataSourceConfigConfig]):
             filepath = Path(fc.path)
             filename = filepath.name
             mime_type = mimetypes.guess_type(fc.path)[0]
+            if mime_type is None:
+                if fc.path.endswith(".md"):
+                    mime_type = SupportedMimeTypes.MARKDOWN
             reader = get_file_reader_by_mime_type(mime_type)
             docs = reader.load_data(filepath)
             for doc in docs:
                 document = DBDocument(
                     name=filename,
                     hash=hash(doc.text),
+                    mime_type=SupportedMimeTypes.MARKDOWN
+                    if mime_type == SupportedMimeTypes.MARKDOWN
+                    else SupportedMimeTypes.PLAIN_TXT,
                     content=doc.text,
                 )
                 yield document

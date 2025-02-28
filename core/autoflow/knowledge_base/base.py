@@ -14,14 +14,13 @@ from autoflow.datasources.mime_types import SupportedMimeTypes
 from autoflow.indices.knowledge_graph.base import KnowledgeGraphIndex
 from autoflow.indices.knowledge_graph.extractor import KnowledgeGraphExtractor
 from autoflow.indices.vector_search.base import VectorSearchIndex
+from autoflow.storage.doc_store.base import DocumentSearchMethod
 from autoflow.transformers.markdown import MarkdownNodeParser
-from autoflow.schema import DataSourceKind, IndexMethod, BaseComponent
+from autoflow.schema import DataSourceType, IndexMethod, BaseComponent
 from autoflow.models.chunk import get_chunk_model
 from autoflow.models.entity import get_entity_model
 from autoflow.models.relationship import get_relationship_model
 from autoflow.knowledge_base.config import (
-    ChatModelConfig,
-    EmbeddingModelConfig,
     ChunkingMode,
     GeneralChunkingConfig,
     ChunkSplitterConfig,
@@ -31,12 +30,11 @@ from autoflow.knowledge_base.config import (
     ChunkingConfig,
 )
 from autoflow.models.document import Document
-from autoflow.knowledge_base.datasource import get_datasource_by_kind
-from autoflow.llms import default_llm_manager, LLMManager
+from autoflow.knowledge_base.datasource import get_datasource_by_type
+from autoflow.llms import default_llm_manager, LLMManager, ChatModel, EmbeddingModel
 from autoflow.storage import TiDBDocumentStore, TiDBKnowledgeGraphStore
 from autoflow.storage.doc_store import (
     DocumentSearchResult,
-    DocumentSearchQuery,
 )
 from autoflow.storage.graph_store.base import GraphSearchAlgorithm
 from autoflow.storage.schema import QueryBundle
@@ -53,8 +51,6 @@ class KnowledgeBase(BaseComponent):
     chunking_config: Optional[ChunkingConfig] = Field(
         default_factory=GeneralChunkingConfig
     )
-    chat_model_config: ChatModelConfig = Field()
-    embedding_model_config: EmbeddingModelConfig = Field()
     data_sources: List[DataSource] = Field(default_factory=list)
 
     def __init__(
@@ -63,29 +59,25 @@ class KnowledgeBase(BaseComponent):
         description: Optional[str] = None,
         index_methods: Optional[List[IndexMethod]] = None,
         chunking_config: Optional[ChunkingConfig] = None,
-        chat_model: ChatModelConfig = None,
-        embedding_model: EmbeddingModelConfig = None,
+        chat_model: Optional[ChatModel] = None,
+        embedding_model: Optional[EmbeddingModel] = None,
         db_engine: Engine = None,
         llm_manager: Optional[LLMManager] = None,
-        kb_id: Optional[uuid.UUID] = None,
+        id: Optional[uuid.UUID] = None,
     ):
         super().__init__(
-            id=kb_id or uuid.uuid4(),
+            id=id or uuid.uuid4(),
             name=name,
             description=description,
             index_methods=index_methods or [IndexMethod.VECTOR_SEARCH],
             chunking_config=chunking_config or GeneralChunkingConfig(),
-            chat_model_config=chat_model,
-            embedding_model_config=embedding_model,
         )
         self._db_engine = db_engine
         self._model_manager = llm_manager or default_llm_manager
-        self._chat_model = self._model_manager.resolve_chat_model(chat_model)
+        self._chat_model = chat_model
         self._dspy_lm = get_dspy_lm_by_chat_model(self._chat_model)
         self._graph_extractor = KnowledgeGraphExtractor(dspy_lm=self._dspy_lm)
-        self._embedding_model = self._model_manager.resolve_embedding_model(
-            embedding_model
-        )
+        self._embedding_model = embedding_model
         self._init_stores()
         self._vector_search_index = VectorSearchIndex(
             doc_store=self._doc_store,
@@ -149,11 +141,11 @@ class KnowledgeBase(BaseComponent):
 
     def import_documents_from_datasource(
         self,
-        kind: DataSourceKind,
+        type: DataSourceType,
         config: Dict[str, Any] = None,
         # TODO: Metadata Extractor
     ) -> DataSource:
-        datasource = get_datasource_by_kind(kind, config)
+        datasource = get_datasource_by_type(type, config)
         for doc in datasource.load_documents():
             doc.data_source_id = datasource.id
             doc.knowledge_base_id = self.id
@@ -162,8 +154,8 @@ class KnowledgeBase(BaseComponent):
         return datasource
 
     def import_documents_from_files(self, files: List[Path]) -> List[Document]:
-        datasource = get_datasource_by_kind(
-            DataSourceKind.FILE, {"files": [{"path": file.as_uri()} for file in files]}
+        datasource = get_datasource_by_type(
+            DataSourceType.FILE, {"files": [{"path": file.as_uri()} for file in files]}
         )
         documents = []
         for doc in datasource.load_documents():
@@ -253,8 +245,25 @@ class KnowledgeBase(BaseComponent):
             case _:
                 raise ValueError(f"Unsupported chunking splitter type: {rule.splitter}")
 
-    def search_documents(self, query: DocumentSearchQuery) -> DocumentSearchResult:
-        return self._doc_store.search(query)
+    def search_documents(
+        self,
+        query: str,
+        search_method: Optional[List[DocumentSearchMethod]] = None,
+        top_k: Optional[int] = None,
+        similarity_threshold: Optional[float] = None,
+        similarity_nprobe: Optional[int] = None,
+        similarity_top_k: Optional[int] = 5,
+        **kwargs: Any,
+    ) -> DocumentSearchResult:
+        return self._doc_store.search(
+            query=query,
+            search_method=search_method or [DocumentSearchMethod.VECTOR_SEARCH],
+            top_k=top_k,
+            similarity_threshold=similarity_threshold,
+            similarity_nprobe=similarity_nprobe,
+            similarity_top_k=similarity_top_k,
+            **kwargs,
+        )
 
     def search_knowledge_graph(
         self,

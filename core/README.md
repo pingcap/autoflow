@@ -1,4 +1,4 @@
 # Autoflow
 
-Yet another RAG framework.
+Yet another RAG framework. (WIP)
 

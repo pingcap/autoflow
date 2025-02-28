@@ -18,11 +18,11 @@ from autoflow.llms import EmbeddingModel
 from autoflow.models.document import Document
 from autoflow.storage.doc_store.base import (
     DocumentStore,
-    DocumentSearchQuery,
     DocumentSearchResult,
     ChunkWithScore,
     D,
     C,
+    DocumentSearchMethod,
 )
 
 
@@ -176,14 +176,25 @@ class TiDBDocumentStore(DocumentStore[D, C]):
             return chunks
 
     # TODO: call the low-level database API.
-    def search(self, query: DocumentSearchQuery, **kwargs: Any) -> DocumentSearchResult:
+    def search(
+        self,
+        query: str,
+        search_method: List[DocumentSearchMethod] = [
+            DocumentSearchMethod.VECTOR_SEARCH
+        ],
+        top_k: Optional[int] = None,
+        similarity_threshold: Optional[float] = None,
+        similarity_nprobe: Optional[int] = None,
+        similarity_top_k: Optional[int] = 5,
+        **kwargs: Any,
+    ) -> DocumentSearchResult:
         # TODO: Support Hybrid search.
         with self._session_scope() as db_session:
             chunks_with_score = self._vector_search(
-                query=query.query_str,
+                query=query,
                 # metadata_filters=query.metadata_filters,
-                nprobe=query.similarity_nprobe,
-                similarity_top_k=query.similarity_top_k,
+                nprobe=similarity_nprobe,
+                similarity_top_k=similarity_top_k,
                 db_session=db_session,
             )
             # chunks_with_score = self._rerank_chunks(chunks_with_score)

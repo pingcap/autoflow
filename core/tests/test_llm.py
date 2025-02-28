@@ -3,11 +3,11 @@ import os
 
 from llama_index.core.schema import NodeWithScore, TextNode
 
-from autoflow.models import (
-    default_model_manager as model_manager,
+from autoflow.llms import (
+    default_llm_manager as model_manager,
     ProviderConfig,
-    ModelProviders,
-    LLMConfig,
+    LLMProviders,
+    ChatModelConfig,
     EmbeddingModelConfig,
     RerankerModelConfig,
 )
@@ -16,26 +16,26 @@ from autoflow.chat import ChatMessage
 logger = logging.getLogger(__name__)
 
 model_manager.configure_provider(
-    name=ModelProviders.OPENAI,
+    name=LLMProviders.OPENAI,
     config=ProviderConfig(
         api_key=os.getenv("OPENAI_API_KEY"),
     ),
 )
 
 model_manager.configure_provider(
-    name=ModelProviders.JINA_AI,
+    name=LLMProviders.JINA_AI,
     config=ProviderConfig(
         api_key=os.getenv("JINAAI_API_KEY"),
     ),
 )
 
 
-def test_llm():
-    llm = model_manager.resolve_chat_model(
-        LLMConfig(provider=ModelProviders.OPENAI, model="gpt-4o")
+def test_chat_model():
+    chat_model = model_manager.resolve_chat_model(
+        ChatModelConfig(provider=LLMProviders.OPENAI, model="gpt-4o")
     )
 
-    res = llm.chat(
+    res = chat_model.chat(
         messages=[
             ChatMessage(
                 role="user",
@@ -53,7 +53,9 @@ def test_llm():
 def test_embedding_model():
     embed_model = model_manager.resolve_embedding_model(
         EmbeddingModelConfig(
-            provider=ModelProviders.OPENAI, model="text-embedding-3-small"
+            provider=LLMProviders.OPENAI,
+            model="text-embedding-3-small",
+            dimensions=1536,
         )
     )
     vector = embed_model.get_query_embedding("What is TiDB?")
@@ -63,7 +65,7 @@ def test_embedding_model():
 def test_reranker_model():
     reranker_model = model_manager.resolve_reranker_model(
         RerankerModelConfig(
-            provider=ModelProviders.JINA_AI, model="jina-reranker-v2-base-multilingual"
+            provider=LLMProviders.JINA_AI, model="jina-reranker-v2-base-multilingual"
         )
     )
     nodes = reranker_model.postprocess_nodes(

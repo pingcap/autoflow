@@ -7,5 +7,5 @@ def get_dspy_lm_by_chat_model(chat_model: ChatModel) -> dspy.LM:
     return dspy.LM(
         model=chat_model.model,
         max_tokens=chat_model.max_tokens,
-        api_key=chat_model.additional_kwargs["api_key"],
+        **chat_model.additional_kwargs,
     )

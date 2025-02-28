@@ -1,6 +1,6 @@
 [project]
 name = "autoflow-ai"
-version = "0.0.1"
+version = "0.0.1.dev4"
 description = "Yet another RAG framework."
 authors = [
     { name = "Mini256", email = "minianter@foxmail.com" }
@@ -21,23 +21,15 @@ dependencies = [
     "dspy>=2.6.6",
     "pytest>=8.3.4",
     "pymysql>=1.1.1",
-    "fastapi-pagination>=0.12.34",
     "deepdiff>=8.2.0",
     "tokenizers>=0.21.0",
-    "langchain>=0.3.19",
-    "langchain-community>=0.3.18",
-    "langchain-openai>=0.3.7",
-    "unstructured[md]>=0.16.23",
-    "nltk>=3.9.1",
-    "libmagic>=1.0",
     "playwright>=1.50.0",
-    "pydantic-extra-types>=2.10.2",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling==1.26.3"]
 build-backend = "hatchling.build"
 
 [tool.rye]

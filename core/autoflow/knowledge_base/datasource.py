@@ -6,15 +6,15 @@ from autoflow.datasources import (
     WebSitemapDataSource,
     WebSinglePageDataSource,
 )
-from autoflow.schema import DataSourceKind
+from autoflow.schema import DataSourceType
 
 
-def get_datasource_by_kind(kind: DataSourceKind, config: Any) -> DataSource:
-    if kind == DataSourceKind.FILE:
+def get_datasource_by_type(type: DataSourceType, config: Any) -> DataSource:
+    if type == DataSourceType.FILE:
         return FileDataSource(config)
-    elif kind == DataSourceKind.WEB_SITEMAP:
+    elif type == DataSourceType.WEB_SITEMAP:
         return WebSitemapDataSource(config)
-    elif kind == DataSourceKind.WEB_SINGLE_PAGE:
+    elif type == DataSourceType.WEB_SINGLE_PAGE:
         return WebSinglePageDataSource(config)
     else:
-        raise ValueError(f"Unknown datasource kind: {kind}")
+        raise ValueError(f"Unknown datasource type: {type}")

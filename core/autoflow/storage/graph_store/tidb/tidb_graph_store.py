@@ -929,14 +929,14 @@ class TiDBKnowledgeGraphStore(KnowledgeGraphStore[E, R, C]):
                     ).params(path=json_path, value=json.dumps(value))
 
         # Debug: Print the SQL query
-        # """
+        """
         from sqlalchemy.dialects import mysql
 
         compiled_query = query.compile(
             dialect=mysql.dialect(),
         )
         logger.info(f"Debug - SQL Query: \n{compiled_query}")
-        # """
+        """
 
         with self._session_scope(db_session) as session:
             rows = session.exec(query).all()

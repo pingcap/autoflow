@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List, Dict, Type
+from typing import Optional, List, Dict, Type, Any
 from uuid import UUID
 from sqlalchemy import Column, Text, JSON, DateTime
 from sqlalchemy.orm.decl_api import RegistryType
@@ -57,6 +57,9 @@ def get_relationship_model(
 
         def __hash__(self):
             return hash(self.id)
+
+        def __eq__(self, other: Any) -> bool:
+            return self.id == other.id
 
         def screenshot(self):
             obj_dict = self.model_dump(

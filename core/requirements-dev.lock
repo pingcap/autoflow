@@ -343,11 +343,14 @@ pydantic==2.10.6
     # via llama-cloud-services
     # via llama-index-core
     # via openai
+    # via pydantic-extra-types
     # via pydantic-settings
     # via sqlmodel
     # via unstructured-client
 pydantic-core==2.27.2
     # via pydantic
+pydantic-extra-types==2.10.2
+    # via autoflow-ai
 pydantic-settings==2.8.0
     # via langchain-community
 pyee==12.1.1
@@ -469,6 +472,7 @@ typing-extensions==4.12.2
     # via openai
     # via pydantic
     # via pydantic-core
+    # via pydantic-extra-types
     # via pyee
     # via python-docx
     # via python-oxmsg

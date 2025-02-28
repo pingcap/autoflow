@@ -529,13 +529,15 @@ class KnowledgeGraphStore(ABC, Generic[E, R, C]):
             relationships=[
                 RetrievedRelationship(
                     id=r.id,
-                    source_entity_id=r.source_entity_id,
-                    target_entity_id=r.target_entity_id,
-                    description=r.description,
-                    rag_description=f"{r.source_entity.name} -> {r.description} -> {r.target_entity.name}",
-                    meta=r.meta if include_meta else None,
-                    weight=r.weight,
-                    last_modified_at=r.last_modified_at,
+                    source_entity_id=r.relationship.source_entity_id,
+                    target_entity_id=r.relationship.target_entity_id,
+                    description=r.relationship.description,
+                    rag_description=f"{r.relationship.source_entity.name} -> {r.relationship.description} -> {r.relationship.target_entity.name}",
+                    meta=r.relationship.meta if include_meta else None,
+                    weight=r.relationship.weight,
+                    last_modified_at=r.relationship.last_modified_at
+                    if hasattr(r.relationship, "last_modified_at")
+                    else None,
                     similarity_score=r.score if hasattr(r, "score") else None,
                 )
                 for r in relationships

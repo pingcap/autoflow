@@ -40,13 +40,20 @@ def get_entity_model(
         entity_type: EntityType = EntityType.original
         name: str = Field(max_length=512)
         description: str = Field(sa_column=Column(Text))
-        description_vec: Any = Field(sa_column=Column(VectorType(vector_dimension)))
+        description_vec: list[float] = Field(
+            default=None, sa_column=Column(VectorType(vector_dimension))
+        )
         meta: List | Dict = Field(default={}, sa_column=Column(JSON))
-        meta_vec: Any = Field(sa_column=Column(VectorType(vector_dimension)))
+        meta_vec: list[float] = Field(
+            default=None, sa_column=Column(VectorType(vector_dimension))
+        )
         synopsis_info: List | Dict | None = Field(default=None, sa_column=Column(JSON))
 
         def __hash__(self):
             return hash(self.id)
+
+        def __eq__(self, other: Any) -> bool:
+            return self.id == other.id
 
         def screenshot(self):
             return self.model_dump(exclude={"description_vec", "meta_vec"})

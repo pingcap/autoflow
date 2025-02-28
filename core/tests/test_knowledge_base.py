@@ -134,10 +134,11 @@ def test_search_knowledge_graph():
     #     ]
     # )
 
-    result = kb.search_knowledge_graph(
+    kg = kb.search_knowledge_graph(
         query="What is TiDB?",
     )
-    assert len(result.chunks) == 2
+    assert len(kg.entities) > 0
+    assert len(kg.relationships) > 0
 
 
 # def test_import_document_from_file():

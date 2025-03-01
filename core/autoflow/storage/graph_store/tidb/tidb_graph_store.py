@@ -928,16 +928,6 @@ class TiDBKnowledgeGraphStore(KnowledgeGraphStore[E, R, C]):
                         text("JSON_EXTRACT(meta, :path) = :value")
                     ).params(path=json_path, value=json.dumps(value))
 
-        # Debug: Print the SQL query
-        """
-        from sqlalchemy.dialects import mysql
-
-        compiled_query = query.compile(
-            dialect=mysql.dialect(),
-        )
-        logger.info(f"Debug - SQL Query: \n{compiled_query}")
-        """
-
         with self._session_scope(db_session) as session:
             rows = session.exec(query).all()
             return [(row[0], row.similarity_score) for row in rows]

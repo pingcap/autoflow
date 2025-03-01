@@ -1,6 +1,6 @@
 [project]
 name = "autoflow-ai"
-version = "0.0.1.dev4"
+version = "0.0.1.dev5"
 description = "Yet another RAG framework."
 authors = [
     { name = "Mini256", email = "minianter@foxmail.com" }
@@ -35,6 +35,12 @@ build-backend = "hatchling.build"
 [tool.rye]
 managed = true
 dev-dependencies = []
+
+[tool.hatch.build]
+exclude = [
+    "/.*",
+    "/tests",
+]
 
 [tool.hatch.metadata]
 allow-direct-references = true

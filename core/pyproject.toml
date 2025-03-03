@@ -13,7 +13,7 @@ dependencies = [
     "python-pptx>=1.0.2",
     "openpyxl>=3.1.5",
     "llama-index>=0.12.19",
-    "sqlmodel>=0.0.22",
+    "sqlmodel==0.0.22",
     "llama-index-llms-litellm>=0.3.0",
     "llama-index-embeddings-litellm>=0.3.0",
     "tidb-vector>=0.0.14",

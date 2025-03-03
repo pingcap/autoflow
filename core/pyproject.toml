@@ -1,6 +1,6 @@
 [project]
 name = "autoflow-ai"
-version = "0.0.1.dev5"
+version = "0.0.1.dev7"
 description = "Framework to index and search your vector data, make your data ready for AI apps, developed by TiDB."
 authors = [
     { name = "Mini256", email = "minianter@foxmail.com" },

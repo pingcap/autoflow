@@ -1,11 +1,9 @@
 import os
 import uuid
 
-from typing import Dict, Any, Optional, List
-
-from sqlalchemy import Text, JSON, Column, create_engine
+from typing import Dict, Any, Optional
+from sqlalchemy import Text, JSON, create_engine
 from sqlmodel import SQLModel, Field, Session
-from tidb_vector.sqlalchemy import VectorType
 
 
 class Document(SQLModel, table=True):
@@ -16,21 +14,22 @@ class Document(SQLModel, table=True):
 
 
 class Chunk(SQLModel):
-    __table_args__ = {"extend_existing": True}
+    # __table_args__ = {"extend_existing": True}
+    __abstract__ = True
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     hash: Optional[str] = Field(max_length=64)
     text: str = Field(sa_type=Text)
     meta: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_type=JSON)
-    embedding: Optional[List[float]] = Field(
-        default_factory=None, sa_column=Column(VectorType())
-    )
+    # embedding: Optional[Any] = Field(
+    #     default_factory=None, sa_column=Column(VectorType())
+    # )
     document_id: Optional[int] = Field(default=None, foreign_key="documents.id")
 
 
 def create_chunk_model(table_name: str):
     # raise error: <class 'dict'> has no matching SQLAlchemy type
-    class ChunkModel(SQLModel, table=True):
+    class ChunkModel(Chunk, table=True):
         __tablename__ = table_name
 
     return ChunkModel
@@ -44,8 +43,8 @@ def test_extend_a_base_sqlmodel():
         pool_recycle=300,
         pool_pre_ping=True,
     )
-    chunk_model_2 = create_chunk_model("chunk_2")
-    chunk_model_1 = create_chunk_model("chunk_1")
+    chunk_model_2 = create_chunk_model("chunk_test_2")
+    chunk_model_1 = create_chunk_model("chunk_test_1")
 
     SQLModel.metadata.drop_all(engine)
     SQLModel.metadata.create_all(engine)

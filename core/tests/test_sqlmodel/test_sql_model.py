@@ -6,14 +6,14 @@ from sqlalchemy import Text, JSON, create_engine
 from sqlmodel import SQLModel, Field, Session
 
 
-class Document(SQLModel, table=True):
-    __tablename__ = "documents"
+class TestDocument(SQLModel, table=True):
+    __tablename__ = "test_documents"
 
     id: int = Field(primary_key=True)
     name: str = Field(nullable=False)
 
 
-class Chunk(SQLModel):
+class TestBaseChunk(SQLModel):
     # __table_args__ = {"extend_existing": True}
     __abstract__ = True
 
@@ -29,10 +29,10 @@ class Chunk(SQLModel):
 
 def create_chunk_model(table_name: str):
     # raise error: <class 'dict'> has no matching SQLAlchemy type
-    class ChunkModel(Chunk, table=True):
+    class TestChunk(TestBaseChunk, table=True):
         __tablename__ = table_name
 
-    return ChunkModel
+    return TestChunk
 
 
 def test_extend_a_base_sqlmodel():

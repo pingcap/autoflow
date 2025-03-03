@@ -38,7 +38,7 @@ def test_create_knowledge_base():
 
 def test_import_documents_from_files():
     kb = af.create_knowledge_base(
-        kb_id=uuid.UUID("01973588-65aa-4954-99fd-71eb5ecce167"),
+        id=uuid.UUID("01973588-65aa-4954-99fd-71eb5ecce167"),
         name="Test",
         description="This is a knowledge base for testing",
         index_methods=[IndexMethod.VECTOR_SEARCH, IndexMethod.KNOWLEDGE_GRAPH],
@@ -56,7 +56,7 @@ def test_import_documents_from_files():
 
 def test_import_documents_from_datasource():
     kb = af.create_knowledge_base(
-        kb_id=uuid.UUID("01973588-65aa-4954-99fd-71eb5ecce167"),
+        id=uuid.UUID("01973588-65aa-4954-99fd-71eb5ecce167"),
         name="Test",
         description="This is a knowledge base for testing",
         index_methods=[IndexMethod.VECTOR_SEARCH],
@@ -72,7 +72,7 @@ def test_import_documents_from_datasource():
 
 def test_search_documents():
     kb = af.create_knowledge_base(
-        kb_id=uuid.UUID("01973588-65aa-4954-99fd-71eb5ecce167"),
+        id=uuid.UUID("01973588-65aa-4954-99fd-71eb5ecce167"),
         name="Test",
         description="This is a knowledge base for testing",
         index_methods=[IndexMethod.VECTOR_SEARCH],
@@ -89,7 +89,7 @@ def test_search_documents():
 
 def test_search_knowledge_graph():
     kb = af.create_knowledge_base(
-        kb_id=uuid.UUID("01973588-65aa-4954-99fd-71eb5ecce167"),
+        id=uuid.UUID("01973588-65aa-4954-99fd-71eb5ecce167"),
         name="Test",
         description="This is a knowledge base for testing",
         index_methods=[IndexMethod.KNOWLEDGE_GRAPH],

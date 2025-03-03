@@ -42,7 +42,7 @@ class Autoflow:
         embedding_model: EmbeddingModel,
         description: Optional[str] = None,
         index_methods: Optional[List[IndexMethod]] = None,
-        kb_id: Optional[uuid.UUID] = None,
+        id: Optional[uuid.UUID] = None,
     ) -> KnowledgeBase:
         return KnowledgeBase(
             name=name,
@@ -50,6 +50,6 @@ class Autoflow:
             index_methods=index_methods,
             chat_model=chat_model,
             embedding_model=embedding_model,
-            id=kb_id,
+            id=id,
             db_engine=self._db_engine,
         )

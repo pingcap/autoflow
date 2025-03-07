@@ -10,7 +10,7 @@ from tidb_vector.sqlalchemy import VectorType
 from autoflow.storage.tidb import TiDBClient, Base
 from autoflow.storage.tidb.base import TiDBModel
 from autoflow.storage.tidb.constants import DistanceMetric
-from autoflow.storage.tidb.embeddings import EmbeddingModel
+from autoflow.llms.embeddings import EmbeddingFunction
 
 logger = logging.getLogger(__name__)
 
@@ -179,24 +179,40 @@ def test_vector_search(db: TiDBClient):
 
 
 def test_auto_embedding(db: TiDBClient):
-    embed_model = EmbeddingModel("openai/text-embedding-3-small")
+    text_embed_small = EmbeddingFunction("openai/text-embedding-3-small")
 
     class Chunk(TiDBModel, table=True):
         __tablename__ = "test_auto_embedding"
-        id: int = Field(None, primary_key=True)
-        text: str = embed_model.SourceField()
-        text_vec: Optional[Any] = embed_model.VectorField()
-        user_id: int = Field(None)
+        id: int = Field(primary_key=True)
+        text: str = Field()
+        # FIXME: if using list[float], sqlmodel will report an error
+        text_vec: Optional[Any] = text_embed_small.VectorField(source_field="text")
+        user_id: int = Field()
 
-    tbl = db.create_table(schema=Chunk, embed_model=embed_model)
+    tbl = db.create_table(schema=Chunk)
     tbl.truncate()
+    tbl.insert(Chunk(id=1, text="foo", user_id=1))
     tbl.bulk_insert(
         [
-            Chunk(id=1, text="foo", user_id=1),
             Chunk(id=2, text="bar", user_id=2),
-            Chunk(id=3, text="biz", user_id=3),
+            Chunk(id=3, text="baz", user_id=3),
+            Chunk(id=4, text="qux", user_id=4),
         ]
     )
-    results = tbl.search("bar").limit(2).to_pydantic()
+    chunks = tbl.query(
+        filters={
+            "user_id": 3,
+        }
+    )
+    assert len(chunks) == 1
+    assert chunks[0].text == "baz"
+    assert len(chunks[0].text_vec) == 1536
+
+    results = tbl.search("bar").limit(1).to_pydantic()
     assert len(results) == 1
+    assert results[0].id == 2
     assert results[0].text == "bar"
+    assert results[0].similarity_score == 1
+
+
+# TODO: Reranking

@@ -149,6 +149,15 @@ class TiDBVectorQuery(TiDBQuery):
         else:
             vector_column = self._vector_column
 
+        # Auto embedding
+        if isinstance(self._query, str):
+            if vector_column.name not in self._table.vector_field_configs:
+                raise ValueError()
+
+            config = self._table.vector_field_configs[vector_column.name]
+            self._query = config["embed_fn"].get_query_embedding(self._query)
+
+        # Distance metric.
         distance_label = "_distance"
         if self._distance_metric == DistanceMetric.L2:
             distance_column = vector_column.l2_distance(self._query).label(

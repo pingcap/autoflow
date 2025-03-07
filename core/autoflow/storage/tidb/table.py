@@ -2,6 +2,7 @@ import logging
 from typing import Optional, List, Any, Dict
 
 import sqlalchemy
+from pydantic import BaseModel
 from sqlalchemy import Engine, update, text
 from sqlalchemy.orm import Session, DeclarativeMeta
 from sqlmodel.main import SQLModelMetaclass
@@ -9,7 +10,6 @@ from tidb_vector.sqlalchemy import VectorAdaptor
 
 from autoflow.storage.tidb.base import Base
 from autoflow.storage.tidb.constants import VectorDataType, TableModel, DistanceMetric
-from autoflow.storage.tidb.embeddings import EmbeddingModel
 from autoflow.storage.tidb.query import QueryType, TiDBVectorQuery
 from autoflow.storage.tidb.utils import (
     build_filter_clauses,
@@ -28,10 +28,8 @@ class Table:
         schema: Optional[TableModel] = None,
         vector_column: Optional[str] = None,
         distance_metric: Optional[DistanceMetric] = DistanceMetric.COSINE,
-        embed_model: Optional[EmbeddingModel] = None,
     ):
         self._db_engine = db_engine
-        self._embed_model = embed_model
 
         # Init table model.
         if type(schema) is SQLModelMetaclass:
@@ -41,6 +39,19 @@ class Table:
         else:
             raise TypeError(f"Invalid schema type: {type(schema)}")
         self._columns = self._table_model.__table__.columns
+
+        # Field for auto embedding.
+        self._vector_field_configs = {}
+        for name, field in schema.__pydantic_fields__.items():
+            # FIXME: using field custom attributes instead of it.
+            if "embed_fn" in field._attributes_set:
+                embed_fn = field._attributes_set["embed_fn"]
+                source_field_name = field._attributes_set["source_field"]
+                self._vector_field_configs[name] = {
+                    "embed_fn": embed_fn,
+                    "vector_field": field,
+                    "source_field_name": source_field_name,
+                }
 
         # Create table.
         Base.metadata.create_all(self._db_engine, tables=[self._table_model.__table__])
@@ -82,48 +93,60 @@ class Table:
     def vector_columns(self):
         return self._vector_columns
 
+    @property
+    def vector_field_configs(self):
+        return self._vector_field_configs
+
     def get(self, id: int):
         with Session(self._db_engine) as session:
             return session.get(self._table_model, id)
 
-    def insert(self, obj: object):
+    def insert(self, data: BaseModel):
         # Auto embedding.
-        # for vector_column in self._vector_columns:
-        #     if self._embed_model is None:
-        #         raise ValueError("please provide embed_model when table created")
-        #
-        #     embedding = self._embed_model.get_source_embedding(obj[self._vector_column.name])
-        #     obj[vector_column.name] = embedding
+        for field_name, config in self._vector_field_configs.items():
+            if getattr(data, field_name) is not None:
+                # Vector embeddings is provided.
+                continue
+
+            if not hasattr(data, config["source_field_name"]):
+                continue
+
+            embedding_source = getattr(data, config["source_field_name"])
+            vector_embedding = config["embed_fn"].get_source_embedding(embedding_source)
+            setattr(data, field_name, vector_embedding)
 
         with Session(self._db_engine) as session:
-            session.add(obj)
+            session.add(data)
             session.commit()
-            session.refresh(obj)
-            return obj
+            session.refresh(data)
+            return data
 
-    def bulk_insert(self, objs: List[object]) -> List[object]:
+    def bulk_insert(self, data: List[object]) -> List[object]:
         # Auto embedding.
-        # for vector_column in self._vector_columns:
-        #     obj_need_embedding = []
-        #     texts_need_embedding = []
-        #     for obj in objs:
-        #         if obj[vector_column.name] is None:
-        #             obj_need_embedding.append(None)
-        #             texts_need_embedding.append(obj[self._source_column.name])
-        #
-        #     if self._embed_model is None:
-        #         raise ValueError("please provide embed_model when table created")
-        #
-        #     embeddings = self._embed_model.get_source_embedding_batch(texts_need_embedding)
-        #     for (obj, embedding) in zip(obj_need_embedding, embeddings):
-        #         obj[self._vector_column.name] = embedding
+        for field_name, config in self._vector_field_configs.items():
+            items_need_embedding = []
+            sources_to_embedding = []
+            for item in data:
+                if getattr(item, field_name) is not None:
+                    continue
+                if not hasattr(item, config["source_field_name"]):
+                    continue
+                items_need_embedding.append(item)
+                embedding_source = getattr(item, config["source_field_name"])
+                sources_to_embedding.append(embedding_source)
+
+            vector_embeddings = config["embed_fn"].get_source_embedding_batch(
+                sources_to_embedding
+            )
+            for item, embedding in zip(items_need_embedding, vector_embeddings):
+                setattr(item, field_name, embedding)
 
         with Session(self._db_engine) as session:
-            session.add_all(objs)
+            session.add_all(data)
             session.commit()
-            for obj in objs:
-                session.refresh(obj)
-            return objs
+            for item in data:
+                session.refresh(item)
+            return data
 
     def update(self, values: dict, filters: Optional[Dict[str, Any]] = None) -> object:
         filter_clauses = build_filter_clauses(filters, self._columns, self._table_model)
@@ -172,13 +195,6 @@ class Table:
         query_type: QueryType = QueryType.VECTOR_SEARCH,
     ):
         if query_type == QueryType.VECTOR_SEARCH:
-            # Auto embedding
-            # if isinstance(query, str):
-            #     if self._embed_model is None:
-            #         raise ValueError("query is a string, please provide embed_model when table created")
-            #     else:
-            #         query = self._embed_model.get_query_embedding(query)
-
             return TiDBVectorQuery(
                 table=self,
                 query=query,

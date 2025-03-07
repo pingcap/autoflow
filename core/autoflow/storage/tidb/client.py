@@ -6,7 +6,6 @@ from pydantic import PrivateAttr
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session
 
-from autoflow.storage.tidb.embeddings import EmbeddingModel
 from autoflow.storage.tidb.table import Table, TableModel
 
 logger = logging.getLogger(__name__)
@@ -40,9 +39,8 @@ class TiDBClient:
         self,
         *,
         schema: Optional[TableModel] = None,
-        embed_model: Optional[EmbeddingModel] = None,
     ) -> Table:
-        table = Table(schema=schema, db_engine=self._db_engine, embed_model=embed_model)
+        table = Table(schema=schema, db_engine=self._db_engine)
         return table
 
     def open_table(self, schema: TableModel) -> Table:

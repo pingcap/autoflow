@@ -2,9 +2,10 @@ import logging
 import os
 
 from llama_index.core.schema import NodeWithScore, TextNode
+import pytest
 
 from autoflow.llms import (
-    default_llm_manager as model_manager,
+    default_llm_manager as llm_manager,
     ProviderConfig,
     LLMProviders,
     ChatModelConfig,
@@ -15,23 +16,26 @@ from autoflow.chat import ChatMessage
 
 logger = logging.getLogger(__name__)
 
-model_manager.configure_provider(
-    name=LLMProviders.OPENAI,
-    config=ProviderConfig(
-        api_key=os.getenv("OPENAI_API_KEY"),
-    ),
-)
 
-model_manager.configure_provider(
-    name=LLMProviders.JINA_AI,
-    config=ProviderConfig(
-        api_key=os.getenv("JINAAI_API_KEY"),
-    ),
-)
+@pytest.fixture(scope="module", autouse=True)
+def setup_llm_manager():
+    llm_manager.configure_provider(
+        name=LLMProviders.OPENAI,
+        config=ProviderConfig(
+            api_key=os.getenv("OPENAI_API_KEY"),
+        ),
+    )
+
+    llm_manager.configure_provider(
+        name=LLMProviders.JINA_AI,
+        config=ProviderConfig(
+            api_key=os.getenv("JINAAI_API_KEY"),
+        ),
+    )
 
 
 def test_chat_model():
-    chat_model = model_manager.resolve_chat_model(
+    chat_model = llm_manager.resolve_chat_model(
         ChatModelConfig(provider=LLMProviders.OPENAI, model="gpt-4o")
     )
 
@@ -51,7 +55,7 @@ def test_chat_model():
 
 
 def test_embedding_model():
-    embed_model = model_manager.resolve_embedding_model(
+    embed_model = llm_manager.resolve_embedding_model(
         EmbeddingModelConfig(
             provider=LLMProviders.OPENAI,
             model="text-embedding-3-small",
@@ -63,7 +67,7 @@ def test_embedding_model():
 
 
 def test_reranker_model():
-    reranker_model = model_manager.resolve_reranker_model(
+    reranker_model = llm_manager.resolve_reranker_model(
         RerankerModelConfig(
             provider=LLMProviders.JINA_AI, model="jina-reranker-v2-base-multilingual"
         )

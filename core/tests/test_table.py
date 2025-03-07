@@ -7,9 +7,7 @@ import pytest
 from sqlalchemy import JSON, Integer, Column, Text, VARCHAR
 from sqlmodel import Field
 from tidb_vector.sqlalchemy import VectorType
-from autoflow.storage.tidb import TiDBClient, Base
-from autoflow.storage.tidb.base import TiDBModel
-from autoflow.storage.tidb.constants import DistanceMetric
+from autoflow.storage.tidb import TiDBClient, Base, TiDBModel, DistanceMetric
 from autoflow.llms.embeddings import EmbeddingFunction
 
 logger = logging.getLogger(__name__)

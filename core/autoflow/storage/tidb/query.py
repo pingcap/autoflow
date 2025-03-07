@@ -10,7 +10,6 @@ from typing import (
     Union,
     Tuple,
     Sequence,
-    override,
 )
 
 import numpy as np
@@ -131,7 +130,6 @@ class TiDBVectorQuery(TiDBQuery):
         self._limit = k
         return self
 
-    @override
     def _execute(self) -> Sequence[Row]:
         num_candidate = self._num_candidate if self._num_candidate else self._limit * 10
 

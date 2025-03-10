@@ -1,7 +1,9 @@
 import re
 from typing import Dict, Optional, Any, List
+from urllib.parse import quote
 
 import sqlalchemy
+from pydantic import AnyUrl, UrlConstraints
 from sqlalchemy import BinaryExpression
 from tidb_vector.sqlalchemy import VectorType
 
@@ -22,6 +24,61 @@ from autoflow.storage.tidb.constants import (
 JSON_FIELD_PATTERN = re.compile(
     r"^(?P<column>[a-zA-Z_][a-zA-Z0-9_]*)\.(?P<json_field>[a-zA-Z_][a-zA-Z0-9_]*)$"
 )
+
+
+TIDB_SERVERLESS_HOST_PATTERN = re.compile("gateway01\.(.+)\.prod\.aws\.tidbcloud\.com")
+
+
+class TiDBDsn(AnyUrl):
+    """A type that will accept any TiDB DSN.
+
+    * User info required
+    * TLD not required
+    * Host not required
+    """
+
+    _constraints = UrlConstraints(
+        allowed_schemes=[
+            "mysql",
+            "mysql+mysqlconnector",
+            "mysql+aiomysql",
+            "mysql+asyncmy",
+            "mysql+mysqldb",
+            "mysql+pymysql",
+            "mysql+cymysql",
+            "mysql+pyodbc",
+        ],
+        default_port=4000,
+        host_required=True,
+    )
+
+
+def build_tidb_dsn(
+    schema: str = "mysql+pymysql",
+    host: str = "localhost",
+    port: int = 4000,
+    username: str = "root",
+    password: str = "",
+    database: str = "test",
+    enable_ssl: Optional[bool] = None,
+) -> TiDBDsn:
+    if enable_ssl is None:
+        if host and TIDB_SERVERLESS_HOST_PATTERN.match(host):
+            enable_ssl = True
+        else:
+            enable_ssl = None
+
+    return TiDBDsn.build(
+        scheme=schema,
+        host=host,
+        port=port,
+        username=username,
+        # TODO: remove quote after following issue is fixed:
+        # https://github.com/pydantic/pydantic/issues/8061
+        password=quote(password),
+        path=database,
+        query="ssl_verify_cert=true&ssl_verify_identity=true" if enable_ssl else None,
+    )
 
 
 def filter_vector_columns(columns: Dict):

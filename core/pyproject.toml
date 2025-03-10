@@ -1,6 +1,6 @@
 [project]
 name = "autoflow-ai"
-version = "0.0.1.dev10"
+version = "0.0.1.dev12"
 description = "Framework to index and search your vector data, make your data ready for AI apps, developed by TiDB."
 authors = [
     { name = "Mini256", email = "minianter@foxmail.com" },
@@ -26,6 +26,8 @@ dependencies = [
     "tokenizers>=0.21.0",
     "playwright>=1.50.0",
     "pytest-dotenv>=0.5.2",
+    "jupyterlab>=4.3.5",
+    "pip>=25.0.1",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
@@ -41,6 +43,8 @@ dev-dependencies = []
 [tool.hatch.build]
 exclude = [
     "/.*",
+    "/dist",
+    "/docs",
     "/tests",
 ]
 

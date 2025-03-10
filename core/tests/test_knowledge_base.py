@@ -4,7 +4,6 @@ import uuid
 from pathlib import Path
 
 import pytest
-from sqlalchemy import create_engine
 
 from autoflow.schema import DataSourceType, IndexMethod
 from autoflow.main import Autoflow
@@ -18,15 +17,18 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture(scope="module")
 def af():
-    db_engine = create_engine(os.getenv("DATABASE_URL"))
-    return Autoflow(db_engine)
+    return Autoflow.from_config(
+        db_host=os.getenv("TIDB_HOST"),
+        db_port=int(os.getenv("TIDB_PORT")),
+        db_username=os.getenv("TIDB_USER"),
+        db_password=os.getenv("TIDB_PASSWORD"),
+        db_name=os.getenv("TIDB_DATABASE"),
+    )
 
 
 @pytest.fixture(scope="module")
 def chat_model():
-    return ChatModel(
-        "openai/gpt-4o-mini",
-    )
+    return ChatModel("openai/gpt-4o-mini")
 
 
 @pytest.fixture(scope="module")
@@ -35,7 +37,7 @@ def embedding_model():
 
 
 @pytest.fixture(scope="module")
-def test_kb(af, chat_model, embedding_model):
+def kb(af, chat_model, embedding_model):
     kb = af.create_knowledge_base(
         id=uuid.UUID("438476e0-74f2-480f-b220-573e3f663d52"),
         name="Test",
@@ -48,8 +50,8 @@ def test_kb(af, chat_model, embedding_model):
     return kb
 
 
-def test_import_documents_from_files(test_kb):
-    test_kb.import_documents_from_files(
+def test_import_documents_from_files(kb):
+    kb.import_documents_from_files(
         files=[
             Path(__file__).parent / "fixtures" / "analyze-slow-queries.md",
             Path(__file__).parent / "fixtures" / "tidb-overview.md",
@@ -57,24 +59,24 @@ def test_import_documents_from_files(test_kb):
     )
 
 
-def test_import_documents_from_datasource(test_kb):
-    ds = test_kb.import_documents_from_datasource(
+def test_import_documents_from_datasource(kb):
+    ds = kb.import_documents_from_datasource(
         type=DataSourceType.WEB_SINGLE_PAGE,
         config={"urls": ["https://docs.pingcap.com/tidbcloud/tidb-cloud-intro"]},
     )
     assert ds.id is not None
 
 
-def test_search_documents(test_kb):
-    result = test_kb.search_documents(
+def test_search_documents(kb):
+    result = kb.search_documents(
         query="What is TiDB?",
         similarity_top_k=2,
     )
     assert len(result.chunks) > 0
 
 
-def test_search_knowledge_graph(test_kb):
-    knowledge_graph = test_kb.search_knowledge_graph(
+def test_search_knowledge_graph(kb):
+    knowledge_graph = kb.search_knowledge_graph(
         query="What is TiDB?",
     )
     assert len(knowledge_graph.entities) > 0

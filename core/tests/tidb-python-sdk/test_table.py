@@ -15,7 +15,12 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture(scope="module")
 def db() -> TiDBClient:
-    return TiDBClient.connect(os.getenv("DATABASE_URL"))
+    return TiDBClient.connect(
+        host=os.getenv("TIDB_HOST"),
+        port=int(os.getenv("TIDB_PORT")),
+        username=os.getenv("TIDB_USERNAME"),
+        password=os.getenv("TIDB_PASSWORD"),
+    )
 
 
 # CRUD

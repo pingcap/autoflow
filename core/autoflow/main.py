@@ -1,7 +1,8 @@
 import uuid
 from typing import Optional, List
 
-from sqlalchemy import Engine
+import sqlalchemy
+from sqlalchemy.engine import Engine
 from sqlmodel import SQLModel
 
 from autoflow.knowledge_base import KnowledgeBase
@@ -11,6 +12,7 @@ from autoflow.llms import (
 )
 from autoflow.schema import IndexMethod
 from autoflow.llms import LLMManager, default_llm_manager
+from autoflow.storage.tidb.utils import build_tidb_dsn
 
 
 class Autoflow:
@@ -23,6 +25,32 @@ class Autoflow:
         self._db_engine = db_engine
         self._model_manager = model_manager
         self._init_table_schema()
+
+    @classmethod
+    def from_config(
+        cls,
+        db_host: Optional[str] = None,
+        db_port: Optional[int] = None,
+        db_username: Optional[str] = None,
+        db_password: Optional[str] = None,
+        db_name: str = "autoflow",
+        db_enable_ssl: Optional[bool] = None,
+    ):
+        tidb_dsn = str(
+            build_tidb_dsn(
+                host=db_host,
+                port=db_port,
+                username=db_username,
+                password=db_password,
+                database=db_name,
+                enable_ssl=db_enable_ssl,
+            )
+        )
+        db_engine = sqlalchemy.create_engine(str(tidb_dsn))
+        return cls(
+            db_engine=db_engine,
+            model_manager=default_llm_manager,
+        )
 
     def _init_table_schema(self):
         SQLModel.metadata.create_all(self._db_engine)

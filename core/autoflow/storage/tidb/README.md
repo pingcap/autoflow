@@ -20,7 +20,11 @@ Go [tidbcloud.com](http://tidbcloud.com/) to create a free TiDB database cluster
 Configuration can be provided through environment variables, or using `.env`:
 
 ```dotenv
-DATABASE_URL=mysql+pymysql://<username>:<password>@<host>:4000/<database>
+TIDB_HOST=<host>
+TIDB_PORT=4000
+TIDB_USERNAME=<username>
+TIDB_PASSWORD=<password>
+TIDB_ENABLE_SSL=false
 OPENAI_API_KEY=sk-proj-****
 ```
 
@@ -160,17 +164,17 @@ results = table.search("your search text").limit(5).to_pydantic()
 
 TiDB Client supports various filter operators for flexible querying:
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `$eq` | Equal to | `{"field": {"$eq": "hello"}}` |
-| `$gt` | Greater than | `{"field": {"$gt": 1}}` |
-| `$gte` | Greater than or equal | `{"field": {"$gte": 1}}` |
-| `$lt` | Less than | `{"field": {"$lt": 1}}` |
-| `$lte` | Less than or equal | `{"field": {"$lte": 1}}` |
-| `$in` | In array | `{"field": {"$in": [1, 2, 3]}}` |
-| `$nin` | Not in array | `{"field": {"$nin": [1, 2, 3]}}` |
-| `$and` | Logical AND | `{"$and": [{"field1": 1}, {"field2": 2}]}` |
-| `$or` | Logical OR | `{"$or": [{"field1": 1}, {"field2": 2}]}` |
+| Operator | Description           | Example                                    |
+|----------|-----------------------|--------------------------------------------|
+| `$eq`    | Equal to              | `{"field": {"$eq": "hello"}}`              |
+| `$gt`    | Greater than          | `{"field": {"$gt": 1}}`                    |
+| `$gte`   | Greater than or equal | `{"field": {"$gte": 1}}`                   |
+| `$lt`    | Less than             | `{"field": {"$lt": 1}}`                    |
+| `$lte`   | Less than or equal    | `{"field": {"$lte": 1}}`                   |
+| `$in`    | In array              | `{"field": {"$in": [1, 2, 3]}}`            |
+| `$nin`   | Not in array          | `{"field": {"$nin": [1, 2, 3]}}`           |
+| `$and`   | Logical AND           | `{"$and": [{"field1": 1}, {"field2": 2}]}` |
+| `$or`    | Logical OR            | `{"$or": [{"field1": 1}, {"field2": 2}]}`  |
 
 ```python
 # Example queries using different operators

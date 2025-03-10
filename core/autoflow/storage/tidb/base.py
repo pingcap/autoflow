@@ -1,6 +1,6 @@
 from pydantic import PrivateAttr
 from sqlalchemy.orm import registry
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, Field
 
 default_registry = registry()
 
@@ -27,3 +27,6 @@ class TiDBModel(SQLModel):
     @score.setter
     def score(self, val: float):
         self._score = val
+
+
+Field = Field

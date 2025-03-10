@@ -3,10 +3,11 @@ from typing import List, Optional
 
 import sqlalchemy
 from pydantic import PrivateAttr
-from sqlalchemy import Engine, create_engine
+from sqlalchemy.engine import Engine, create_engine
 from sqlalchemy.orm import Session
 
 from autoflow.storage.tidb.table import Table, TableModel
+from autoflow.storage.tidb.utils import build_tidb_dsn
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +20,31 @@ class TiDBClient:
         self._inspector = sqlalchemy.inspect(self._db_engine)
 
     @classmethod
-    def connect(cls, database_url: str) -> "TiDBClient":
-        db_engine = create_engine(database_url)
+    def connect(
+        cls,
+        database_url: Optional[str] = None,
+        *,
+        host: Optional[str] = "localhost",
+        port: Optional[int] = 4000,
+        username: Optional[str] = "root",
+        password: Optional[str] = "",
+        database: Optional[str] = "test",
+        enable_ssl: Optional[bool] = None,
+        **kwargs,
+    ) -> "TiDBClient":
+        if database_url is None:
+            database_url = str(
+                build_tidb_dsn(
+                    host=host,
+                    port=port,
+                    username=username,
+                    password=password,
+                    database=database,
+                    enable_ssl=enable_ssl,
+                )
+            )
+
+        db_engine = create_engine(database_url, **kwargs)
         return cls(db_engine)
 
     # Notice: Since the Vector type is not in the type support list of mysql dialect, using the reflection API will cause an error.

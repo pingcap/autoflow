@@ -1,0 +1,58 @@
+[project]
+name = "autoflow-ai"
+version = "0.0.1.dev10"
+description = "Framework to index and search your vector data, make your data ready for AI apps, developed by TiDB."
+authors = [
+    { name = "Mini256", email = "minianter@foxmail.com" },
+    { name = "sykp241095", email = "sykp241095@gmail.com" },
+]
+dependencies = [
+    "litellm>=1.61.11",
+    "markdownify>=0.13.1",
+    "pypdf>=4.3.1",
+    "python-docx>=1.1.2",
+    "python-pptx>=1.0.2",
+    "openpyxl>=3.1.5",
+    "llama-index>=0.12.19",
+    "sqlmodel==0.0.22",
+    "llama-index-llms-litellm>=0.3.0",
+    "llama-index-embeddings-litellm>=0.3.0",
+    "tidb-vector>=0.0.14",
+    "opendal>=0.45.15",
+    "dspy>=2.6.6",
+    "pytest>=8.3.4",
+    "pymysql>=1.1.1",
+    "deepdiff>=8.2.0",
+    "tokenizers>=0.21.0",
+    "playwright>=1.50.0",
+    "pytest-dotenv>=0.5.2",
+]
+readme = "README.md"
+requires-python = ">= 3.8"
+
+[build-system]
+requires = ["hatchling==1.26.3"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = []
+
+[tool.hatch.build]
+exclude = [
+    "/.*",
+    "/tests",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["autoflow"]
+
+[tool.pytest.ini_options]
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+env_files = [".env"]

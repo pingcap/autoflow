@@ -15,7 +15,7 @@ from typing import (
 import numpy as np
 import pandas as pd
 from pydantic import BaseModel
-from sqlalchemy import asc, desc, Row, select
+from sqlalchemy import asc, desc, select
 from sqlalchemy.orm import Session
 
 from autoflow.storage.tidb.constants import DistanceMetric, VectorDataType
@@ -92,7 +92,7 @@ class TiDBQuery(ABC):
     def _execute(self):
         pass
 
-    def to_rows(self) -> Sequence[Row]:
+    def to_rows(self) -> Sequence[Any]:
         return self.execute()
 
     def to_pandas(self) -> pd.DataFrame:
@@ -130,7 +130,7 @@ class TiDBVectorQuery(TiDBQuery):
         self._limit = k
         return self
 
-    def _execute(self) -> Sequence[Row]:
+    def _execute(self) -> Sequence[Any]:
         num_candidate = self._num_candidate if self._num_candidate else self._limit * 10
 
         if self._vector_column is None:

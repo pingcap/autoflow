@@ -1,4 +1,4 @@
-# TiDB Vector SDK V2
+# TiDB Python SDK V2
 
 A powerful Python SDK for vector storage and retrieval operations with TiDB.
 
@@ -11,7 +11,6 @@ A powerful Python SDK for vector storage and retrieval operations with TiDB.
 
 ```bash
 pip install autoflow-ai
-# TODO: move to `pip install tidb-vector`
 ```
 
 ## Configuration

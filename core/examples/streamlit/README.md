@@ -23,4 +23,4 @@ streamlit run core/examples/streamlit/build-knowledge-search-with-autoflow-and-s
 **Step3**: Open the browser and visit `http://localhost:8501`
 
 * Input OpenAI API key in left sidebar
-* Input the TiDB Cloud connection string in left sidebar
+* Input the TiDB Cloud connection string in left sidebar, the format is `mysql+pymysql://root@localhost:4000/test`

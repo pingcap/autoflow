@@ -70,7 +70,7 @@ kb = af.create_knowledge_base(
 
 with st.form(key="file_upload_form"):
     uploaded_file = st.file_uploader(
-        "Upload a pdf, docx, or txt file",
+        "Upload a .pdf, .docx, .md or .txt file",
         type=["pdf", "docx", "txt", "md"],
         help="Scanned documents are not supported yet!",
     )

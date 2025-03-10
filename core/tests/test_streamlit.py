@@ -68,19 +68,23 @@ kb = af.create_knowledge_base(
     embedding_model=embed_model,
 )
 
-uploaded_file = st.file_uploader(
-    "Upload a pdf, docx, or txt file",
-    type=["pdf", "docx", "txt", "md"],
-    help="Scanned documents are not supported yet!",
-)
-
-if uploaded_file:
-    file_path = f"/tmp/{uploaded_file.name}"
-    with st.spinner("Indexing document... This may take a while ⏳"):
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.getvalue())
-        kb.import_documents_from_files(files=[Path(file_path),])
-        import time; time.sleep(3)
+with st.form(key="file_upload_form"):
+    uploaded_file = st.file_uploader(
+        "Upload a pdf, docx, or txt file",
+        type=["pdf", "docx", "txt", "md"],
+        help="Scanned documents are not supported yet!",
+    )
+    upload = st.form_submit_button("Upload")
+    if not uploaded_file:
+        st.error("Please upload a valid file.")
+        st.stop()
+    if upload:
+        file_path = f"/tmp/{uploaded_file.name}"
+        with st.spinner("Indexing document... This may take a while ⏳"):
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getvalue())
+            kb.import_documents_from_files(files=[Path(file_path),])
+            import time; time.sleep(3)
 
 with st.form(key="qa_form"):
     query = st.text_area("Ask a question about the document")

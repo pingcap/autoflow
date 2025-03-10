@@ -11,7 +11,7 @@
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install autoflow==0.0.1.dev12 streamlit pymysql
+pip install -r reqs.txt
 ```
 
 **Step2**: Run the Streamlit app

@@ -12,7 +12,7 @@ from autoflow.llms.chat_models import ChatModel
 from autoflow.llms.embeddings import EmbeddingModel
 from llama_index.core.llms import ChatMessage
 
-st.set_page_config(page_title="SearchGPT", page_icon="📖", layout="wide")
+st.set_page_config(page_title="Demo of Autoflow and Streamlit", page_icon="📖", layout="wide")
 st.header("📖 Knowledge base app built with Autoflow and Streamlit")
 
 with st.sidebar:
@@ -117,17 +117,18 @@ with chat_section:
                 st.write(st.session_state['past'][i])
             with st.chat_message('assistant'):
                 st.write(st.session_state['generated'][i])
+
     with st.container():
         st.chat_input("Input your question about this document here.", key="user_input", on_submit=on_submit)
+
 with corpus_section:
     st.markdown("##### Vector Search Results")
     corpus_placeholder = st.empty()
     with corpus_placeholder.container():
-        [c.chunk for c in st.session_state['corpus']]
+        [c.chunk for c in st.session_state['corpus']] if st.session_state['corpus'] else "Please input a query left."
 
     st.markdown("##### Knowledge Graph Search Results")
     kg_placeholder = st.empty()
     with kg_placeholder.container():
         kg = st.session_state['kg']
-        if kg:
-            [r.rag_description for r in kg.relationships]
+        [r.rag_description for r in kg.relationships] if kg else "Please input a query left."

@@ -215,7 +215,6 @@ class ChatRepo(BaseRepo):
                 ChatMessage.ordinal == 2,
                 ChatMessage.created_at >= cutoff
             )
-            .subquery()
         )
 
         # Then, find user questions that match our target question and belong to chats with best answers
@@ -225,9 +224,8 @@ class ChatRepo(BaseRepo):
                 ChatMessage.chat_id.in_(best_answer_chat_ids),
                 ChatMessage.role == "user",
                 ChatMessage.ordinal == 1,
-                ChatMessage.content == user_question,
+                ChatMessage.content == user_question
             )
-            .subquery()
         )
 
         # Finally, get the best answers that correspond to the matching user questions

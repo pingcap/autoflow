@@ -4,7 +4,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, UTC, date, timedelta
 from collections import defaultdict
 
-from sqlmodel import select, Session, or_, func, case, desc, col
+from sqlmodel import select, Session, or_, func, case, desc, col, and_
 from fastapi_pagination import Params, Page
 from fastapi_pagination.ext.sqlmodel import paginate
 
@@ -185,6 +185,65 @@ class ChatRepo(BaseRepo):
         # Order by created_at in descending order
         query = query.order_by(desc(ChatMessage.created_at))
 
+        return session.exec(query).all()
+
+    def find_best_answer_for_question(
+        self, session: Session, user_question: str
+    ) -> List[ChatMessage]:
+        """Find best answer messages for a specific user question.
+
+        This method finds assistant messages that:
+        1. Are marked as best answers
+        2. Are responses (ordinal=2) to the exact user question
+        3. Were created within the last 15 days
+
+        Args:
+            session: Database session
+            user_question: The exact question text to search for
+
+        Returns:
+            List of matching assistant messages marked as best answers
+        """
+        cutoff = datetime.now(UTC) - timedelta(days=15)
+
+        # First, get all best answers from assistant (using the is_best_answer index)
+        best_answer_chat_ids = (
+            select(ChatMessage.chat_id)
+            .where(
+                ChatMessage.is_best_answer == 1,  # Using the index for efficiency
+                ChatMessage.role == "assistant",
+                ChatMessage.ordinal == 2,
+                ChatMessage.created_at >= cutoff
+            )
+            .subquery()
+        )
+
+        # Then, find user questions that match our target question and belong to chats with best answers
+        matching_chat_ids = (
+            select(ChatMessage.chat_id)
+            .where(
+                ChatMessage.chat_id.in_(best_answer_chat_ids),
+                ChatMessage.role == "user",
+                ChatMessage.ordinal == 1,
+                ChatMessage.content == user_question,
+            )
+            .subquery()
+        )
+
+        # Finally, get the best answers that correspond to the matching user questions
+        query = (
+            select(ChatMessage)
+            .where(
+                ChatMessage.is_best_answer == 1,
+                ChatMessage.role == "assistant",
+                ChatMessage.ordinal == 2,
+                ChatMessage.chat_id.in_(matching_chat_ids)
+            )
+        )
+
+        query = query.order_by(desc(ChatMessage.created_at))
+
+        # Execute the query and return all results
         return session.exec(query).all()
 
     def chat_trend_by_user(

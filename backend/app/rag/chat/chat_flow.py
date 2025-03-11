@@ -261,7 +261,7 @@ class ChatFlow:
             chat_message=DBChatMessage(
                 role=MessageRole.USER.value,
                 trace_url=self._trace_manager.trace_url,
-                content=self.user_question,
+                content=self.user_question.strip(),
             ),
         )
         db_assistant_message = chat_repo.create_message(
@@ -624,7 +624,8 @@ class ChatFlow:
         db_user_message, db_assistant_message = yield from self._chat_start()
 
         cache_messages = None
-        if settings.ENABLE_QUESTION_CACHE:
+        goal, response_format = self.user_question, {}
+        if settings.ENABLE_QUESTION_CACHE and len(self.chat_history) == 0:
             try:
                 logger.info(f"start to find_best_answer_for_question with question: {self.user_question}")
                 cache_messages = chat_repo.find_best_answer_for_question(
@@ -636,7 +637,6 @@ class ChatFlow:
                 logger.error(f"Failed to find best answer for question {self.user_question}: {e}")
 
         if not cache_messages or len(cache_messages) == 0:
-            goal, response_format = self.user_question, {}
             try:
                 # 1. Generate the goal with the user question, knowledge graph and chat history.
                 goal, response_format = yield from self._generate_goal()

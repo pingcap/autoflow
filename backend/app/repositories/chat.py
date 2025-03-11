@@ -224,7 +224,7 @@ class ChatRepo(BaseRepo):
                 ChatMessage.chat_id.in_(best_answer_chat_ids),
                 ChatMessage.role == "user",
                 ChatMessage.ordinal == 1,
-                ChatMessage.content == user_question
+                ChatMessage.content == user_question.strip()
             )
         )
 

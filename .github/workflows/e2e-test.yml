@@ -1,0 +1,142 @@
+name: E2E Test
+
+on:
+  # pull_request:
+  #   branches:
+  #     - main
+  #   types:
+  #     - opened
+  #     - synchronize
+  #     - reopened
+  #     - labeled
+  #     - unlabeled
+  # push:
+  #   branches:
+  #     - main
+  #   tags:
+  #     - '*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The tag to build the image with. Format *.*.*((beta|rc)*)?"
+        required: true
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+  build_backend:
+    name: Build Backend
+    uses: ./.github/workflows/backend-build.yml
+
+  build_frontend:
+    name: Build Frontend
+    uses: ./.github/workflows/frontend-build.yml
+
+  e2e-test:
+    name: E2E Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: e2e
+    needs:
+      - build_frontend
+      - build_backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Setup Test Environment
+        run: ./prepare-test.sh
+        env:
+          E2E_DOCKER_TAG_FRONTEND: ${{needs.build_frontend.outputs.image_tag}}
+          E2E_DOCKER_TAG_BACKEND: ${{needs.build_backend.outputs.image_tag}}
+
+      - name: Run Tests
+        run: ./start-test.sh
+        env:
+          E2E_DOCKER_TAG_FRONTEND: ${{needs.docker-metadata.outputs.e2e-frontend}}
+          E2E_DOCKER_TAG_BACKEND: ${{needs.docker-metadata.outputs.e2e-backend}}
+          E2E_LLM_PROVIDER: ${{vars.E2E_LLM_PROVIDER}}
+          E2E_LLM_MODEL: ${{vars.E2E_LLM_MODEL || ''}}
+          E2E_LLM_CREDENTIALS: ${{secrets.E2E_LLM_CREDENTIALS}}
+          E2E_EMBEDDING_PROVIDER: ${{vars.E2E_EMBEDDING_PROVIDER || 'openai'}}
+          E2E_EMBEDDING_MODEL: ${{vars.E2E_EMBEDDING_MODEL || ''}}
+          E2E_EMBEDDING_CREDENTIALS: ${{secrets.E2E_EMBEDDING_CREDENTIALS}}
+          E2E_RERANKER_PROVIDER: ${{vars.E2E_RERANKER_PROVIDER || 'jinaai'}}
+          E2E_RERANKER_MODEL: ${{vars.E2E_RERANKER_MODEL || ''}}
+          E2E_RERANKER_CREDENTIALS: ${{secrets.E2E_RERANKER_CREDENTIALS}}
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: !cancelled()
+        with:
+          name: e2e-report
+          path: e2e/playwright-report/
+          retention-days: 30
+
+  e2e-test-deploy:
+    name: "Deploy E2E Test Results"
+    runs-on: ubuntu-latest
+    needs: e2e-test
+    if: |
+      always() 
+      && !contains(needs.e2e-test.result, 'skipped') 
+      && !contains(needs.e2e-test.result, 'cancelled')
+    defaults:
+      run:
+        working-directory: e2e
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: e2e-report
+          path: e2e/playwright-report/
+
+      - name: Deploy Test Results to Vercel
+        id: deploy-test-result
+        run: |
+          deploy_message=$(./deploy-test-result.sh)
+          echo "deploy-message=${deploy_message}" >> $GITHUB_OUTPUT
+        if: "!cancelled()"
+        env:
+          VERCEL_TOKEN: ${{secrets.E2E_VERCEL_TOKEN}}
+          VERCEL_ORG_ID: ${{secrets.E2E_VERCEL_ORG_ID}}
+          VERCEL_PROJECT_ID: ${{secrets.E2E_VERCEL_PROJECT_ID}}
+          VERCEL_CLI_ARGS: ${{(github.ref == 'refs/heads/main' && '--prod') || ''}}
+
+      - name: Find PR Comment
+        uses: peter-evans/find-comment@v3
+        if: github.event.pull_request.number
+        id: find-comment
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: E2E Result Deployment
+
+      - name: Upsert Comment on PR
+        uses: peter-evans/create-or-update-comment@v4
+        if: github.event.pull_request.number
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ### E2E Result Deployment
+            ${{steps.deploy-test-result.outputs.deploy-message}}
+          edit-mode: replace

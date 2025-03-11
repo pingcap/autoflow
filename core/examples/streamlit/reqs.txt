@@ -1,3 +1,4 @@
 autoflow-ai==0.0.1.dev12
 pymysql
 streamlit
+httpx[socks]

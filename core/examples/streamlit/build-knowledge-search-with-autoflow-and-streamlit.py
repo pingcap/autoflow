@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# pip install autoflow-ai==0.0.1.dev10 streamlit
 import os
 from uuid import UUID
 from pathlib import Path
@@ -11,9 +10,10 @@ from autoflow import Autoflow
 from autoflow.schema import IndexMethod
 from autoflow.llms.chat_models import ChatModel
 from autoflow.llms.embeddings import EmbeddingModel
+from llama_index.core.llms import ChatMessage
 
 st.set_page_config(page_title="SearchGPT", page_icon="📖", layout="wide")
-st.header("📖 SearchGPT")
+st.header("📖 Knowledge base app built with Autoflow and Streamlit")
 
 with st.sidebar:
     st.markdown(
@@ -31,16 +31,15 @@ with st.sidebar:
         value=os.environ.get("OPENAI_API_KEY", None)
             or st.session_state.get("OPENAI_API_KEY", ""),
     )
-
     database_url_input = st.text_input(
         "Database URL",
         type="password",
         placeholder="e.g. mysql+pymysql://root@localhost:4000/test",
+        autocomplete="off",
         help="You can get your database URL from https://tidbcloud.com",
-        value=os.environ.get("DATABASE_URL", None)
+        value=os.environ.get("DATABASE_URL", None) or "mysql+pymysql://root@localhost:4000/test"
             or st.session_state.get("DATABASE_URL", "")
     )
-
     st.session_state["OPENAI_API_KEY"] = openai_api_key_input
     st.session_state["DATABASE_URL"] = database_url_input
 
@@ -53,19 +52,18 @@ if not openai_api_key or not database_url:
 
 af = Autoflow(create_engine(database_url))
 chat_model = ChatModel("gpt-4o-mini", api_key=openai_api_key)
-embed_model = EmbeddingModel(
+embedding_model = EmbeddingModel(
     model_name="text-embedding-3-small",
     dimensions=1536,
     api_key=openai_api_key,
 )
-
 kb = af.create_knowledge_base(
-    id=UUID("655b6cf3-8b30-4839-ba8b-5ed3c502f30e"),
+    id=UUID("655b6cf3-8b30-4839-ba8b-5ed3c502f30e"),  # For not creating a new KB every time
     name="New KB",
     description="This is a knowledge base for testing",
     index_methods=[IndexMethod.VECTOR_SEARCH, IndexMethod.KNOWLEDGE_GRAPH],
     chat_model=chat_model,
-    embedding_model=embed_model,
+    embedding_model=embedding_model,
 )
 
 with st.form(key="file_upload_form"):
@@ -75,33 +73,65 @@ with st.form(key="file_upload_form"):
         help="Scanned documents are not supported yet!",
     )
     upload = st.form_submit_button("Upload")
-    if not uploaded_file:
-        st.error("Please upload a valid file.")
-        st.stop()
     if upload:
+        if not uploaded_file:
+            st.error("Please upload a valid file.")
+            st.stop()
         file_path = f"/tmp/{uploaded_file.name}"
-        with st.spinner("Indexing document... This may take a while ⏳"):
+        with st.spinner("Indexing document... This may take a while ⏳(import time; time.sleep(3))"):
             with open(file_path, "wb") as f:
                 f.write(uploaded_file.getvalue())
             kb.import_documents_from_files(files=[Path(file_path),])
             import time; time.sleep(3)
 
-with st.form(key="qa_form"):
-    query = st.text_area("Ask a question about the document")
-    submit = st.form_submit_button("Submit")
+if 'generated' not in st.session_state:
+    st.session_state['generated'] = []
 
-if submit:
-    if not query:
-        st.error("Please enter a valid query.")
-        st.stop()
-    vector_search_col, graph_search_col = st.columns(2)
-    result = kb.search_documents(query=query, similarity_top_k=3)
-    kg = kb.search_knowledge_graph(query="What is TiDB?")
+if 'past' not in st.session_state:
+    st.session_state['past'] = []
 
-    with vector_search_col:
-        st.markdown("#### Vector Search Results")
-        [(c.score, c.chunk.text) for c in result.chunks]
+if 'corpus' not in st.session_state:
+    st.session_state['corpus'] = []
 
-    with graph_search_col:
-        st.markdown("#### Graph Search Results")
-        [(r.rag_description) for r in kg.relationships]
+if 'kg' not in st.session_state:
+    st.session_state['kg'] = None
+
+def on_submit():
+    user_input = st.session_state.user_input
+    if user_input:
+        result = kb.search_documents(query=user_input, similarity_top_k=3)
+        st.session_state['corpus'] = result.chunks
+        kg = kb.search_knowledge_graph(query=user_input)
+        st.session_state['kg'] = kg
+        messages = [
+            ChatMessage(role='system', content='Here are some relevant documents about your query:\n\n' + '\n'.join(c.chunk.text for c in result.chunks)),
+            ChatMessage(role='user', content=user_input + '\n(in markdown, removed unused breaklines)'),
+        ]
+        resp = chat_model.chat(messages)
+        st.session_state['past'].append(user_input)
+        st.session_state.generated.append(str(resp.message))
+
+chat_section, corpus_section = st.columns(2)
+with chat_section:
+    st.markdown("##### Chats")
+    chat_placeholder = st.empty()
+    with chat_placeholder.container():
+        for i in range(len(st.session_state['generated'])):
+            with st.chat_message('user'):
+                st.write(st.session_state['past'][i])
+            with st.chat_message('assistant'):
+                st.write(st.session_state['generated'][i])
+    with st.container():
+        st.chat_input("You: ", key="user_input", on_submit=on_submit)
+with corpus_section:
+    st.markdown("##### Searched Docs")
+    corpus_placeholder = st.empty()
+    with corpus_placeholder.container():
+        [c.chunk for c in st.session_state['corpus']]
+
+    st.markdown("##### Knowledge Graph")
+    kg_placeholder = st.empty()
+    with kg_placeholder.container():
+        kg = st.session_state['kg']
+        if kg:
+            [r.rag_description for r in kg.relationships]

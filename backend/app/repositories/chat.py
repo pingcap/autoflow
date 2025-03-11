@@ -4,7 +4,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, UTC, date, timedelta
 from collections import defaultdict
 
-from sqlmodel import select, Session, or_, func, case, desc, col, and_
+from sqlmodel import select, Session, or_, func, case, desc, col
 from fastapi_pagination import Params, Page
 from fastapi_pagination.ext.sqlmodel import paginate
 

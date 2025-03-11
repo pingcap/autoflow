@@ -84,17 +84,13 @@ with st.form(key="file_upload_form"):
             kb.import_documents_from_files(files=[Path(file_path),])
             import time; time.sleep(3)
 
-if 'generated' not in st.session_state:
-    st.session_state['generated'] = []
+for l in ['generated', 'past', 'corpus']:
+    if l not in st.session_state:
+        st.session_state[l] = []
 
-if 'past' not in st.session_state:
-    st.session_state['past'] = []
-
-if 'corpus' not in st.session_state:
-    st.session_state['corpus'] = []
-
-if 'kg' not in st.session_state:
-    st.session_state['kg'] = None
+for o in ['kg']:
+    if o not in st.session_state:
+        st.session_state[o] = None
 
 def on_submit():
     user_input = st.session_state.user_input
@@ -122,14 +118,14 @@ with chat_section:
             with st.chat_message('assistant'):
                 st.write(st.session_state['generated'][i])
     with st.container():
-        st.chat_input("You: ", key="user_input", on_submit=on_submit)
+        st.chat_input("Input your question about this document here.", key="user_input", on_submit=on_submit)
 with corpus_section:
-    st.markdown("##### Searched Docs")
+    st.markdown("##### Vector Search Results")
     corpus_placeholder = st.empty()
     with corpus_placeholder.container():
         [c.chunk for c in st.session_state['corpus']]
 
-    st.markdown("##### Knowledge Graph")
+    st.markdown("##### Knowledge Graph Search Results")
     kg_placeholder = st.empty()
     with kg_placeholder.container():
         kg = st.session_state['kg']

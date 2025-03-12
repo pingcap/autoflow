@@ -6,6 +6,8 @@ export interface NetworkRendererOptions<Node, Link> {
   showId?: boolean;
   showLinkLabel?: boolean;
 
+  getNodeInitialAttrs?: (node: Node, index: number) => Pick<SimulationNodeDatum, 'x' | 'y'>;
+
   getNodeLabel?: (node: Node) => string | undefined;
   getNodeDetails?: (node: Node) => string | undefined;
   getNodeMeta?: (node: Node) => any;
@@ -95,6 +97,8 @@ export class NetworkRenderer<Node extends NetworkNode, Link extends NetworkLink>
         label: options.getNodeLabel?.(node),
         details: options.getNodeDetails?.(node),
         meta: options.getNodeMeta?.(node),
+        // x, y
+        ...options.getNodeInitialAttrs?.(node, index),
       };
     });
     this.links = this.network.links().map((link, index) => ({

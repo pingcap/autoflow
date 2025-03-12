@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 def db() -> TiDBClient:
     return TiDBClient.connect(
         host=os.getenv("TIDB_HOST"),
-        port=int(os.getenv("TIDB_PORT")),
+        port=int(os.getenv("TIDB_PORT", "4000")),
         username=os.getenv("TIDB_USERNAME"),
         password=os.getenv("TIDB_PASSWORD"),
     )

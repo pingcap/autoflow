@@ -1,4 +1,5 @@
-autoflow-ai==0.0.1.dev12
+autoflow-ai==0.0.1.dev14
+autoflow-ai[experiment]
 pymysql
 streamlit
 httpx[socks]

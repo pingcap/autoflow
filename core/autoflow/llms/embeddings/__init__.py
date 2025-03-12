@@ -1,7 +1,6 @@
 from typing import Optional, List
 
-from llama_index.embeddings.litellm import LiteLLMEmbedding
-
+from autoflow.llms.embeddings.litellm import LiteLLMEmbedding
 from autoflow.storage.tidb.embed_fn import BaseEmbeddingFunction
 
 EmbeddingModel = LiteLLMEmbedding

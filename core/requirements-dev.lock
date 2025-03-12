@@ -95,14 +95,10 @@ jsonschema-specifications==2024.10.1
     # via jsonschema
 litellm==1.61.11
     # via autoflow-ai
-    # via llama-index-embeddings-litellm
     # via llama-index-llms-litellm
 llama-index-core==0.12.23.post2
     # via autoflow-ai
-    # via llama-index-embeddings-litellm
     # via llama-index-llms-litellm
-llama-index-embeddings-litellm==0.3.0
-    # via autoflow-ai
 llama-index-llms-litellm==0.3.0
     # via autoflow-ai
 markupsafe==3.0.2

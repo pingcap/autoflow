@@ -29,9 +29,12 @@ from autoflow.knowledge_base.config import (
 )
 from autoflow.models.document import Document
 from autoflow.knowledge_base.datasource import get_datasource_by_type
-from autoflow.llms import default_llm_manager, LLMManager, ChatModel, EmbeddingModel
-from autoflow.storage import TiDBDocumentStore, TiDBKnowledgeGraphStore
+from autoflow.llms import default_llm_manager, LLMManager
+from autoflow.llms.chat_models import ChatModel
+from autoflow.llms.embeddings import EmbeddingModel
+from autoflow.storage.graph_store import TiDBKnowledgeGraphStore
 from autoflow.storage.doc_store import (
+    TiDBDocumentStore,
     DocumentSearchResult,
 )
 from autoflow.storage.graph_store.base import GraphSearchAlgorithm

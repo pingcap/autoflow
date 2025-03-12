@@ -28,6 +28,7 @@ class Table:
         schema: Optional[TableModel] = None,
         vector_column: Optional[str] = None,
         distance_metric: Optional[DistanceMetric] = DistanceMetric.COSINE,
+        checkfirst: bool = True,
     ):
         self._db_engine = db_engine
 
@@ -54,7 +55,9 @@ class Table:
                 }
 
         # Create table.
-        Base.metadata.create_all(self._db_engine, tables=[self._table_model.__table__])
+        Base.metadata.create_all(
+            self._db_engine, tables=[self._table_model.__table__], checkfirst=checkfirst
+        )
 
         # Create index.
         self._vector_columns = filter_vector_columns(self._columns)

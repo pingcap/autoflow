@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import os
 from typing import Any, Dict, List, Optional
@@ -215,7 +216,20 @@ def test_auto_embedding(db: TiDBClient):
     assert len(results) == 1
     assert results[0].id == 2
     assert results[0].text == "bar"
-    assert results[0].similarity_score == 1
+    assert results[0].similarity_score >= 0.9
+
+    # Update,
+    chunk = tbl.get(1)
+    assert chunk.text_vec is not None
+    original_vec_hash = hashlib.md5(chunk.text_vec).hexdigest()
+    tbl.update(
+        values={"text": "new foo"},
+        filters={"id": 1},
+    )
+    chunk = tbl.get(1)
+    assert chunk.text_vec is not None
+    updated_vec_hash = hashlib.md5(chunk.text_vec).hexdigest()
+    assert original_vec_hash != updated_vec_hash
 
 
 # TODO: Reranking

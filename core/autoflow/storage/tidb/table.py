@@ -152,6 +152,18 @@ class Table:
             return data
 
     def update(self, values: dict, filters: Optional[Dict[str, Any]] = None) -> object:
+        for field_name, config in self._vector_field_configs.items():
+            if field_name in values:
+                # Vector embeddings is provided.
+                continue
+
+            if config["source_field_name"] not in values:
+                continue
+
+            embedding_source = values[config["source_field_name"]]
+            vector_embedding = config["embed_fn"].get_source_embedding(embedding_source)
+            values[field_name] = vector_embedding
+
         filter_clauses = build_filter_clauses(filters, self._columns, self._table_model)
         with Session(self._db_engine) as session:
             stmt = update(self._table_model).filter(*filter_clauses).values(values)

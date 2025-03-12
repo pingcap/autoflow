@@ -13,7 +13,6 @@ from typing import (
 )
 
 import numpy as np
-import pandas as pd
 from pydantic import BaseModel
 from sqlalchemy import asc, desc, select
 from sqlalchemy.orm import Session
@@ -94,9 +93,6 @@ class TiDBQuery(ABC):
 
     def to_rows(self) -> Sequence[Any]:
         return self.execute()
-
-    def to_pandas(self) -> pd.DataFrame:
-        raise NotImplementedError
 
 
 class TiDBVectorQuery(TiDBQuery):

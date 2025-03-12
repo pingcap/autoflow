@@ -4,7 +4,6 @@ from urllib.parse import urlparse, urljoin
 
 import requests
 from pydantic import BaseModel
-from bs4 import BeautifulSoup
 
 from autoflow.datasources.base import DataSource
 from autoflow.datasources.web_base import load_web_documents
@@ -24,6 +23,8 @@ def _ensure_absolute_url(source_url: str, maybe_relative_url: str) -> str:
 
 
 def extract_urls_from_sitemap(sitemap_url: str) -> list[str]:
+    from bs4 import BeautifulSoup
+
     response = requests.get(sitemap_url)
     response.raise_for_status()
 

@@ -1,9 +1,6 @@
 import logging
 from datetime import datetime, UTC
 from typing import Generator
-from playwright.sync_api import sync_playwright
-from bs4 import BeautifulSoup
-from markdownify import MarkdownConverter
 
 from autoflow.datasources.mime_types import SupportedMimeTypes
 from autoflow.models import DBDocument
@@ -30,6 +27,10 @@ IGNORE_CLASSES = ["header", "footer", "sidebar"]
 
 
 def load_web_documents(urls: list[str]) -> Generator[DBDocument, None, None]:
+    from playwright.sync_api import sync_playwright
+    from bs4 import BeautifulSoup
+    from markdownify import MarkdownConverter
+
     visited = set()
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)

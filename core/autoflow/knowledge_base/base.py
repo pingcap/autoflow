@@ -11,8 +11,6 @@ from sqlmodel.main import default_registry, Field
 
 from autoflow.datasources import DataSource
 from autoflow.datasources.mime_types import SupportedMimeTypes
-from autoflow.indices.knowledge_graph.base import KnowledgeGraphIndex
-from autoflow.indices.knowledge_graph.extractor import KnowledgeGraphExtractor
 from autoflow.indices.vector_search.base import VectorSearchIndex
 from autoflow.storage.doc_store.base import DocumentSearchMethod
 from autoflow.transformers.markdown import MarkdownNodeParser
@@ -38,7 +36,6 @@ from autoflow.storage.doc_store import (
 )
 from autoflow.storage.graph_store.base import GraphSearchAlgorithm
 from autoflow.storage.schema import QueryBundle
-from autoflow.utils.dspy_lm import get_dspy_lm_by_chat_model
 
 
 class KnowledgeBase(BaseComponent):
@@ -75,13 +72,19 @@ class KnowledgeBase(BaseComponent):
         self._db_engine = db_engine
         self._model_manager = llm_manager or default_llm_manager
         self._chat_model = chat_model
+
+        from autoflow.utils.dspy_lm import get_dspy_lm_by_chat_model
+
         self._dspy_lm = get_dspy_lm_by_chat_model(self._chat_model)
-        self._graph_extractor = KnowledgeGraphExtractor(dspy_lm=self._dspy_lm)
+
         self._embedding_model = embedding_model
         self._init_stores()
         self._vector_search_index = VectorSearchIndex(
             doc_store=self._doc_store,
         )
+
+        from autoflow.indices.knowledge_graph.base import KnowledgeGraphIndex
+
         self._knowledge_graph_index = KnowledgeGraphIndex(
             dspy_lm=self._dspy_lm, kg_store=self._kg_store
         )

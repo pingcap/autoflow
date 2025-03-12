@@ -4,14 +4,6 @@ from pathlib import Path
 from typing import Generator, List, Optional
 
 from llama_index.core.readers.base import BaseReader
-from llama_index.readers.file import (
-    PDFReader,
-    DocxReader,
-    PptxReader,
-    PandasExcelReader,
-    MarkdownReader,
-    CSVReader,
-)
 from pydantic import BaseModel
 
 from .base import DataSource, C
@@ -31,16 +23,28 @@ class FileDataSourceConfigConfig(BaseModel):
 
 def get_file_reader_by_mime_type(mime_type: str) -> Optional[BaseReader]:
     if mime_type == SupportedMimeTypes.PDF:
+        from llama_index.readers.file import PDFReader
+
         return PDFReader(return_full_document=True)
     elif mime_type == SupportedMimeTypes.DOCX:
+        from llama_index.readers.file import DocxReader
+
         return DocxReader()
     elif mime_type == SupportedMimeTypes.PPTX:
+        from llama_index.readers.file import PptxReader
+
         return PptxReader()
     elif mime_type == SupportedMimeTypes.XLSX:
+        from llama_index.readers.file import PandasExcelReader
+
         return PandasExcelReader()
     elif mime_type == SupportedMimeTypes.CSV:
+        from llama_index.readers.file import CSVReader
+
         return CSVReader()
     elif mime_type == SupportedMimeTypes.MARKDOWN:
+        from llama_index.readers.file import MarkdownReader
+
         return MarkdownReader()
     else:
         return None

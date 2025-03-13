@@ -21,7 +21,7 @@ from pydantic import BaseModel, model_validator, Field
 from sqlmodel import SQLModel, Session
 
 from autoflow.indices.knowledge_graph.schema import AIKnowledgeGraph
-from autoflow.llms import EmbeddingModel
+from autoflow.llms.embeddings import EmbeddingModel
 from autoflow.models.entity import EntityType
 from autoflow.storage.schema import QueryBundle
 

@@ -1,6 +1,6 @@
 import dspy
 
-from autoflow.llms import ChatModel
+from autoflow.llms.chat_models import ChatModel
 
 
 def get_dspy_lm_by_chat_model(chat_model: ChatModel) -> dspy.LM:

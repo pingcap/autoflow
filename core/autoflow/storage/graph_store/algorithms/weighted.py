@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import List, Set, Tuple, Optional
 
 from autoflow.models import EntityType
-from autoflow.storage import KnowledgeGraphStore
+from autoflow.storage.graph_store import KnowledgeGraphStore
 from .base import KnowledgeGraphRetriever, RelationshipWithScore
 from ..base import E, R, EntityDegree
 

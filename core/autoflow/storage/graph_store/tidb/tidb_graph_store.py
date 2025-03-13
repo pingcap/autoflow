@@ -22,7 +22,7 @@ from autoflow.indices.knowledge_graph.schema import (
     AIRelationshipWithEntityDesc,
     AIEntity,
 )
-from autoflow.llms import EmbeddingModel
+from autoflow.llms.embeddings import EmbeddingModel
 from autoflow.models.entity import EntityType
 from autoflow.storage.graph_store import KnowledgeGraphStore
 from autoflow.storage.graph_store.base import (

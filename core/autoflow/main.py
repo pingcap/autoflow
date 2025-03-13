@@ -11,7 +11,6 @@ if TYPE_CHECKING:
     from autoflow.llms.chat_models import ChatModel
     from autoflow.llms.embeddings import EmbeddingModel
     from autoflow.llms import LLMManager
-    from autoflow.knowledge_base import KnowledgeBase
 
 
 class Autoflow:
@@ -71,7 +70,9 @@ class Autoflow:
         description: Optional[str] = None,
         index_methods: Optional[List[IndexMethod]] = None,
         id: Optional[uuid.UUID] = None,
-    ) -> "KnowledgeBase":
+    ):
+        from autoflow.knowledge_base import KnowledgeBase
+
         return KnowledgeBase(
             name=name,
             description=description,

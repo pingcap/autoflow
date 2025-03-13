@@ -3,7 +3,7 @@ from typing import Any, List
 
 import llama_index.core.instrumentation as instrument
 from sqlmodel import SQLModel
-from autoflow.storage import DocumentStore
+from autoflow.storage.doc_store import DocumentStore
 from autoflow.schema import BaseComponent
 
 logger = logging.getLogger(__name__)

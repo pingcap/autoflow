@@ -7,10 +7,8 @@ import pytest
 
 from autoflow.schema import DataSourceType, IndexMethod
 from autoflow.main import Autoflow
-from autoflow.llms import (
-    ChatModel,
-    EmbeddingModel,
-)
+from autoflow.llms.chat_models import ChatModel
+from autoflow.llms.embeddings import EmbeddingModel
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +18,7 @@ def af():
     return Autoflow.from_config(
         db_host=os.getenv("TIDB_HOST"),
         db_port=int(os.getenv("TIDB_PORT")),
-        db_username=os.getenv("TIDB_USER"),
+        db_username=os.getenv("TIDB_USERNAME"),
         db_password=os.getenv("TIDB_PASSWORD"),
         db_name=os.getenv("TIDB_DATABASE"),
     )

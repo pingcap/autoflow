@@ -5,7 +5,7 @@ from typing import Any, List
 import llama_index.core.instrumentation as instrument
 from sqlmodel import SQLModel
 from autoflow.indices.knowledge_graph.extractor import KnowledgeGraphExtractor
-from autoflow.storage import KnowledgeGraphStore
+from autoflow.storage.graph_store import KnowledgeGraphStore
 from autoflow.schema import BaseComponent
 
 logger = logging.getLogger(__name__)

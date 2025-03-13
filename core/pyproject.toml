@@ -1,6 +1,6 @@
 [project]
 name = "autoflow-ai"
-version = "0.0.1.dev22"
+version = "0.0.1.dev25"
 description = "Framework to index and search your vector data, make your data ready for AI apps, developed by TiDB."
 authors = [
     { name = "Mini256", email = "minianter@foxmail.com" },
@@ -14,6 +14,7 @@ dependencies = [
     "tidb-vector>=0.0.14",
     "pymysql>=1.1.1",
     "deepdiff>=8.2.0",
+    "notebook>=7.3.2",
 ]
 readme = "README.md"
 requires-python = ">= 3.9"
@@ -21,7 +22,7 @@ requires-python = ">= 3.9"
 [project.optional-dependencies]
 experiment = [
     "markdownify>=0.13.1",
-    "playwright>=1.10.0",
+    "playwright>=1.20.0",
     "dspy>=2.6.6",
     "tokenizers>=0.21.0",
     "llama-index-readers-file>=0.4.6",

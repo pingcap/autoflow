@@ -4,7 +4,7 @@ import os
 from uuid import UUID
 from pathlib import Path
 
-import streamlit as st  # type: ignore
+import streamlit as st
 from sqlalchemy import create_engine
 from autoflow import Autoflow
 from autoflow.schema import IndexMethod
@@ -125,7 +125,7 @@ def on_submit():
             ),
         ]
         resp = chat_model.chat(messages)
-        st.session_state["past"].append(user_input)
+        st.session_state.past.append(user_input)
         st.session_state.generated.append(str(resp.message))
 
 

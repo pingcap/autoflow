@@ -8,8 +8,8 @@ import pytest
 from sqlalchemy import JSON, Integer, Column, Text, VARCHAR
 from sqlmodel import Field
 from tidb_vector.sqlalchemy import VectorType
+
 from autoflow.storage.tidb import TiDBClient, Base, TiDBModel, DistanceMetric
-from autoflow.llms.embeddings import EmbeddingFunction
 
 logger = logging.getLogger(__name__)
 
@@ -183,6 +183,8 @@ def test_vector_search(db: TiDBClient):
 
 
 def test_auto_embedding(db: TiDBClient):
+    from autoflow.llms.embeddings import EmbeddingFunction
+
     text_embed_small = EmbeddingFunction("openai/text-embedding-3-small")
 
     class Chunk(TiDBModel, table=True):

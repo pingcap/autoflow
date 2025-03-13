@@ -1,7 +1,8 @@
 from typing import Optional, List
 
-from autoflow.llms.embeddings.litellm import LiteLLMEmbedding
-from autoflow.storage.tidb.embed_fn import BaseEmbeddingFunction
+from .litellm import LiteLLMEmbedding
+from ...storage.tidb.embed_fn import BaseEmbeddingFunction
+
 
 EmbeddingModel = LiteLLMEmbedding
 
@@ -27,6 +28,3 @@ class EmbeddingFunction(BaseEmbeddingFunction):
 
     def get_source_embedding_batch(self, sources: List[str]) -> list[list[float]]:
         return self.embedding_model.get_text_embedding_batch(texts=sources)
-
-
-__all__ = ["EmbeddingModel", "EmbeddingFunction"]

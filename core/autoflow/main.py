@@ -4,12 +4,12 @@ from typing import Optional, List, TYPE_CHECKING
 import sqlalchemy
 from sqlalchemy.engine import Engine
 from sqlmodel import SQLModel
-from autoflow.llms.chat_models import ChatModel
-from autoflow.llms.embeddings import EmbeddingModel
 from autoflow.schema import IndexMethod
 from autoflow.storage.tidb.utils import build_tidb_dsn
 
 if TYPE_CHECKING:
+    from autoflow.llms.chat_models import ChatModel
+    from autoflow.llms.embeddings import EmbeddingModel
     from autoflow.llms import LLMManager
     from autoflow.knowledge_base import KnowledgeBase
 
@@ -18,7 +18,9 @@ class Autoflow:
     _db_engine = None
     _model_manager = None
 
-    def __init__(self, db_engine: Engine, model_manager: Optional[LLMManager] = None):
+    def __init__(
+        self, db_engine: Engine, model_manager: Optional["TYPE_CHECKING"] = None
+    ):
         from autoflow.llms import default_llm_manager
 
         self._db_engine = db_engine
@@ -58,18 +60,18 @@ class Autoflow:
         return self._db_engine
 
     @property
-    def llm_manager(self) -> LLMManager:
+    def llm_manager(self) -> "LLMManager":
         return self._model_manager
 
     def create_knowledge_base(
         self,
         name: str,
-        chat_model: ChatModel,
-        embedding_model: EmbeddingModel,
+        chat_model: "ChatModel",
+        embedding_model: "EmbeddingModel",
         description: Optional[str] = None,
         index_methods: Optional[List[IndexMethod]] = None,
         id: Optional[uuid.UUID] = None,
-    ) -> KnowledgeBase:
+    ) -> "KnowledgeBase":
         return KnowledgeBase(
             name=name,
             description=description,

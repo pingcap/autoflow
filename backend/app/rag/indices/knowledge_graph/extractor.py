@@ -113,6 +113,13 @@ class Extractor(dspy.Module):
             # Fix: add bedrock branch to fix 'Malformed input request' error
             # subject must not be valid against schema {"required":["messages"]}: extraneous key [response_mime_type] is not permitted
             return {"max_tokens": 8192}
+        elif "giteeai" in self.dspy_lm.provider.lower() or "qwen" in self.dspy_lm.model_name.lower():
+            # For Qwen models via GiteeAI or other providers, use a simplified format
+            # to ensure proper JSON structure with metadata as a dictionary
+            return {
+                "response_format": {"type": "json_object"},
+                "max_tokens": 8192,
+            }
         else:
             return {
                 "response_mime_type": "application/json",
@@ -160,6 +167,12 @@ class SimpleGraphExtractor:
     def extract(self, text: str, node: BaseNode):
         pred = self.extract_prog(text=text)
         metadata = get_relation_metadata_from_node(node)
+        
+        # Ensure all entities have proper metadata dictionary structure
+        for entity in pred.knowledge.entities:
+            if entity.metadata is None or not isinstance(entity.metadata, dict):
+                entity.metadata = {"topic": "Unknown", "status": "auto-generated"}
+        
         return self._to_df(
             pred.knowledge.entities, pred.knowledge.relationships, metadata
         )

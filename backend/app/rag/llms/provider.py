@@ -81,7 +81,7 @@ llm_provider_options: List[LLMProviderOption] = [
         provider_display_name="Ollama",
         provider_description="Ollama is a lightweight framework for building and running large language models.",
         provider_url="https://ollama.com",
-        default_llm_model="llama3.1",
+        default_llm_model="llama3.2",
         llm_model_description="Find more in https://ollama.com/library",
         default_config={
             "base_url": "http://localhost:11434",

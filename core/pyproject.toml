@@ -1,6 +1,6 @@
 [project]
 name = "autoflow-ai"
-version = "0.0.1.dev21"
+version = "0.0.1.dev22"
 description = "Framework to index and search your vector data, make your data ready for AI apps, developed by TiDB."
 authors = [
     { name = "Mini256", email = "minianter@foxmail.com" },
@@ -16,7 +16,7 @@ dependencies = [
     "deepdiff>=8.2.0",
 ]
 readme = "README.md"
-requires-python = ">= 3.8"
+requires-python = ">= 3.9"
 
 [project.optional-dependencies]
 experiment = [
@@ -31,7 +31,7 @@ experiment = [
 requires = ["hatchling==1.26.3"]
 build-backend = "hatchling.build"
 
-[tool.rye]
+[tool.uv]
 managed = true
 dev-dependencies = [
     "pytest>=8.3.4",

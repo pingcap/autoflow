@@ -1,6 +1,6 @@
 # Streamlit Examples
 
-* Use autoflow==0.0.1.dev12 as RAG framework
+* Use autoflow as RAG framework
 * Use Streamlit as web framework
 
 

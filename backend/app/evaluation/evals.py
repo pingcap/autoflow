@@ -79,7 +79,7 @@ class Evaluation:
         if llm_provider == "openai":
             self._llama_llm = OpenAI(model="gpt-4o")
         elif llm_provider == "gemini":
-            self._llama_llm = Gemini(model="models/gemini-1.5-flash")
+            self._llama_llm = Gemini(model="models/gemini-2.0-flash")
         else:
             raise ValueError(f"Invalid LLM provider: {llm_provider}")
 

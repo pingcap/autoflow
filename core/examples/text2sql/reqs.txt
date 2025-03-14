@@ -1,0 +1,4 @@
+autoflow-ai==0.0.1.dev25
+pymysql
+streamlit
+httpx[socks]

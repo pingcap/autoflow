@@ -7,6 +7,7 @@ from pydantic import AnyUrl, UrlConstraints
 from sqlalchemy import BinaryExpression
 from tidb_vector.sqlalchemy import VectorType
 
+from autoflow.storage.tidb.schema import TableModel
 from autoflow.storage.tidb.constants import (
     AND,
     OR,
@@ -18,7 +19,6 @@ from autoflow.storage.tidb.constants import (
     LT,
     LTE,
     NE,
-    TableModel,
 )
 
 JSON_FIELD_PATTERN = re.compile(

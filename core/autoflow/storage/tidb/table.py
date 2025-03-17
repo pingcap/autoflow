@@ -1,16 +1,16 @@
 import logging
-from typing import Optional, List, Any, Dict
+from typing import Optional, List, Any, Dict, TypeVar, Type, overload
 
 import sqlalchemy
-from pydantic import BaseModel
 from sqlalchemy import Engine, update, text
 from sqlalchemy.orm import Session, DeclarativeMeta
 from sqlmodel.main import SQLModelMetaclass
 from tidb_vector.sqlalchemy import VectorAdaptor
+from typing_extensions import Generic
 
 from autoflow.storage.tidb.base import Base
-from autoflow.storage.tidb.constants import VectorDataType, TableModel, DistanceMetric
-from autoflow.storage.tidb.query import QueryType, TiDBVectorQuery
+from autoflow.storage.tidb.schema import VectorDataType, TableModel, DistanceMetric
+from autoflow.storage.tidb.search import SearchType, VectorSearchQuery, SearchQuery
 from autoflow.storage.tidb.utils import (
     build_filter_clauses,
     check_vector_column,
@@ -19,13 +19,15 @@ from autoflow.storage.tidb.utils import (
 
 logger = logging.getLogger(__name__)
 
+T = TypeVar("T", bound=Type[TableModel])
 
-class Table:
+
+class Table(Generic[T]):
     def __init__(
         self,
         *,
         db_engine: Engine,
-        schema: Optional[TableModel] = None,
+        schema: Optional[T] = None,
         vector_column: Optional[str] = None,
         distance_metric: Optional[DistanceMetric] = DistanceMetric.COSINE,
         checkfirst: bool = True,
@@ -43,16 +45,17 @@ class Table:
 
         # Field for auto embedding.
         self._vector_field_configs = {}
-        for name, field in schema.__pydantic_fields__.items():
-            # FIXME: using field custom attributes instead of it.
-            if "embed_fn" in field._attributes_set:
-                embed_fn = field._attributes_set["embed_fn"]
-                source_field_name = field._attributes_set["source_field"]
-                self._vector_field_configs[name] = {
-                    "embed_fn": embed_fn,
-                    "vector_field": field,
-                    "source_field_name": source_field_name,
-                }
+        if hasattr(schema, "__pydantic_fields__"):
+            for name, field in schema.__pydantic_fields__.items():
+                # FIXME: using field custom attributes instead of it.
+                if "embed_fn" in field._attributes_set:
+                    embed_fn = field._attributes_set["embed_fn"]
+                    source_field_name = field._attributes_set["source_field"]
+                    self._vector_field_configs[name] = {
+                        "embed_fn": embed_fn,
+                        "vector_field": field,
+                        "source_field_name": source_field_name,
+                    }
 
         # Create table.
         Base.metadata.create_all(
@@ -77,7 +80,7 @@ class Table:
                 self._vector_column = None
 
     @property
-    def table_model(self) -> TableModel:
+    def table_model(self) -> T:
         return self._table_model
 
     @property
@@ -104,7 +107,7 @@ class Table:
         with Session(self._db_engine) as session:
             return session.get(self._table_model, id)
 
-    def insert(self, data: BaseModel):
+    def insert(self, data: T) -> T:
         # Auto embedding.
         for field_name, config in self._vector_field_configs.items():
             if getattr(data, field_name) is not None:
@@ -124,7 +127,7 @@ class Table:
             session.refresh(data)
             return data
 
-    def bulk_insert(self, data: List[object]) -> List[object]:
+    def bulk_insert(self, data: List[T]) -> List[T]:
         # Auto embedding.
         for field_name, config in self._vector_field_configs.items():
             items_need_embedding = []
@@ -138,7 +141,7 @@ class Table:
                 embedding_source = getattr(item, config["source_field_name"])
                 sources_to_embedding.append(embedding_source)
 
-            vector_embeddings = config["embed_fn"].get_source_embedding_batch(
+            vector_embeddings = config["embed_fn"].get_source_embeddings(
                 sources_to_embedding
             )
             for item, embedding in zip(items_need_embedding, vector_embeddings):
@@ -194,7 +197,7 @@ class Table:
             res = session.execute(stmt)
             return res.scalar()
 
-    def query(self, filters: Optional[Dict[str, Any]] = None):
+    def query(self, filters: Optional[Dict[str, Any]] = None) -> List[T]:
         with Session(self._db_engine) as session:
             query = session.query(self._table_model)
             if filters:
@@ -204,13 +207,18 @@ class Table:
                 query = query.filter(*filter_clauses)
             return query.all()
 
+    @overload
+    def search(
+        self, query: VectorDataType, query_type: SearchType = SearchType.VECTOR_SEARCH
+    ) -> VectorSearchQuery: ...
+
     def search(
         self,
         query: VectorDataType | str,
-        query_type: QueryType = QueryType.VECTOR_SEARCH,
-    ):
-        if query_type == QueryType.VECTOR_SEARCH:
-            return TiDBVectorQuery(
+        query_type: SearchType = SearchType.VECTOR_SEARCH,
+    ) -> SearchQuery:
+        if query_type == SearchType.VECTOR_SEARCH:
+            return VectorSearchQuery(
                 table=self,
                 query=query,
             )

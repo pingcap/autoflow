@@ -5,11 +5,12 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pytest
-from sqlalchemy import JSON, Integer, Column, Text, VARCHAR
-from sqlmodel import Field
-from tidb_vector.sqlalchemy import VectorType
+from pydantic import BaseModel
 
-from autoflow.storage.tidb import TiDBClient, Base, TiDBModel, DistanceMetric
+from autoflow.storage.tidb import TiDBClient
+from autoflow.storage.tidb.schema import DistanceMetric, TableModel
+from autoflow.storage.tidb.base import Base
+from autoflow.storage.tidb.search import SIMILARITY_SCORE_LABEL
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +25,58 @@ def db() -> TiDBClient:
     )
 
 
+def test_raw_sql(db: TiDBClient):
+    result = db.execute("DROP TABLE IF EXISTS test_raw_sql;")
+    assert result.success
+    assert result.rowcount == 0
+
+    result = db.execute("CREATE TABLE IF NOT EXISTS test_raw_sql(id int);")
+    assert result.success
+    assert result.rowcount == 0
+
+    result = db.execute("CREATE TABLE test_raw_sql(id int);")
+    assert not result.success
+    assert result.rowcount == 0
+    assert result.message is not None
+
+    result = db.execute("INSERT INTO test_raw_sql VALUES (1), (2), (3);")
+    assert result.success
+    assert result.rowcount == 3
+
+    result = db.query("SELECT id FROM test_raw_sql;")
+    df = result.to_pandas()
+    assert df.size == 3
+
+    result = db.query("SELECT id FROM test_raw_sql;")
+    rows = result.to_rows()
+    ids = sorted([r[0] for r in rows])
+    assert ids == [1, 2, 3]
+
+    result = db.query("SELECT id FROM test_raw_sql;")
+    list = result.to_list()
+    ids = sorted([item["id"] for item in list])
+    assert ids == [1, 2, 3]
+
+    class Record(BaseModel):
+        id: int
+
+    result = db.query("SELECT id FROM test_raw_sql;")
+    records = result.to_pydantic(Record)
+    ids = sorted([r.id for r in records])
+    assert ids == [1, 2, 3]
+
+    result = db.query("SELECT COUNT(*) FROM test_raw_sql;")
+    n = result.scalar()
+    assert n == 3
+
+
 # CRUD
 
 
 def test_table_crud(db):
+    from sqlalchemy import Integer, Column, VARCHAR
+    from tidb_vector.sqlalchemy import VectorType
+
     table_name = "test_get_data"
     db.drop_table(table_name)
 
@@ -70,6 +119,8 @@ def test_table_crud(db):
 
 @pytest.fixture(scope="module")
 def table_for_test_filters(db):
+    from sqlalchemy import JSON, Integer, Column, Text
+
     table_name = "test_query_data"
     db.drop_table(table_name)
 
@@ -145,7 +196,11 @@ def test_filters(table_for_test_filters, filters: Dict[str, Any], expected: List
 
 
 def test_vector_search(db: TiDBClient):
-    class Chunk(TiDBModel, table=True):
+    from sqlalchemy import Column
+    from tidb_vector.sqlalchemy import VectorType
+    from sqlmodel import Field
+
+    class Chunk(TableModel, table=True):
         __tablename__ = "test_vector_search"
         id: int = Field(None, primary_key=True)
         text: str = Field(None)
@@ -161,6 +216,8 @@ def test_vector_search(db: TiDBClient):
             Chunk(id=3, text="biz", text_vec=[7, 8, 9], user_id=3),
         ]
     )
+
+    # to_pydantic()
     results = (
         tbl.search([1, 2, 3])
         .distance_metric(metric=DistanceMetric.COSINE)
@@ -175,19 +232,29 @@ def test_vector_search(db: TiDBClient):
     assert results[0].score == 1
     assert results[0].user_id == 2
 
-    for r in results:
-        logger.info(f"{r.id} {r.text} {r.similarity_score} {r.score}")
+    # to_pandas()
+    results = tbl.search([1, 2, 3]).limit(2).to_pandas()
+    assert results.size > 0
+
+    # to_list()
+    results = tbl.search([1, 2, 3]).limit(2).to_list()
+    assert len(results) > 0
+    assert results[0]["text"] == "bar"
+    assert results[0][SIMILARITY_SCORE_LABEL] == 1
+    assert results[0]["score"] == 1
+    assert results[0]["user_id"] == 2
 
 
 # Auto embedding
 
 
 def test_auto_embedding(db: TiDBClient):
-    from autoflow.llms.embeddings import EmbeddingFunction
+    from sqlmodel import Field
+    from autoflow.storage.tidb.embeddings.litellm import LiteLLMEmbeddingFunction
 
-    text_embed_small = EmbeddingFunction("openai/text-embedding-3-small")
+    text_embed_small = LiteLLMEmbeddingFunction("openai/text-embedding-3-small")
 
-    class Chunk(TiDBModel, table=True):
+    class Chunk(TableModel, table=True):
         __tablename__ = "test_auto_embedding"
         id: int = Field(primary_key=True)
         text: str = Field()
@@ -214,7 +281,7 @@ def test_auto_embedding(db: TiDBClient):
     assert chunks[0].text == "baz"
     assert len(chunks[0].text_vec) == 1536
 
-    results = tbl.search("bar").limit(1).to_pydantic()
+    results = tbl.search("bar").limit(1).to_pydantic(with_score=True)
     assert len(results) == 1
     assert results[0].id == 2
     assert results[0].text == "bar"

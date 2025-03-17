@@ -273,14 +273,13 @@ wheels = [
 
 [[package]]
 name = "autoflow-ai"
-version = "0.0.1.dev23"
+version = "0.0.1.dev25"
 source = { editable = "." }
 dependencies = [
     { name = "deepdiff" },
     { name = "litellm" },
     { name = "llama-index-core" },
     { name = "llama-index-llms-litellm" },
-    { name = "notebook" },
     { name = "pymysql" },
     { name = "sqlmodel" },
     { name = "tidb-vector" },
@@ -297,6 +296,7 @@ experiment = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "notebook" },
     { name = "pip" },
     { name = "pre-commit" },
     { name = "pytest" },
@@ -312,8 +312,7 @@ requires-dist = [
     { name = "llama-index-llms-litellm", specifier = ">=0.3.0" },
     { name = "llama-index-readers-file", marker = "extra == 'experiment'", specifier = ">=0.4.6" },
     { name = "markdownify", marker = "extra == 'experiment'", specifier = ">=0.13.1" },
-    { name = "notebook", specifier = ">=7.3.2" },
-    { name = "playwright", marker = "extra == 'experiment'", specifier = ">=1.10.0" },
+    { name = "playwright", marker = "extra == 'experiment'", specifier = ">=1.20.0" },
     { name = "pymysql", specifier = ">=1.1.1" },
     { name = "sqlmodel", specifier = "==0.0.22" },
     { name = "tidb-vector", specifier = ">=0.0.14" },
@@ -322,6 +321,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "notebook", specifier = ">=7.3.2" },
     { name = "pip", specifier = ">=25.0.1" },
     { name = "pre-commit", specifier = ">=4.1.0" },
     { name = "pytest", specifier = ">=8.3.4" },
@@ -615,7 +615,7 @@ wheels = [
 
 [[package]]
 name = "datasets"
-version = "2.21.0"
+version = "3.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -633,9 +633,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "xxhash" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e5/a5/38719e5cff7aa0537a6be37d21cc1fdd7096e9565e8fce2d46a822e10b5b/datasets-2.21.0.tar.gz", hash = "sha256:998f85a8460f1bd982e5bd058f8a0808eef424249e3df1e8cdd594ccd0dc8ba2", size = 2215317 }
+sdist = { url = "https://files.pythonhosted.org/packages/3a/2d/bed5ddb8c5a90605b4a5d4226eabebfd83adc14c3600c48d7329f948d3ea/datasets-3.4.0.tar.gz", hash = "sha256:f3defae5d9c79ff586db3b17389fdde01704ffea015293a050d7e8ab6816bad8", size = 566548 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/72/b3/33c4ad44fa020e3757e9b2fad8a5de53d9079b501e6bbc45bdd18f82f893/datasets-2.21.0-py3-none-any.whl", hash = "sha256:25e4e097110ce28824b746a107727ada94024cba11db8bc588d468414692b65a", size = 527251 },
+    { url = "https://files.pythonhosted.org/packages/7b/37/aaeec6b97c91833f1342c755beb0283f20b6ee208522af04daf49c251bdb/datasets-3.4.0-py3-none-any.whl", hash = "sha256:35ef5182bddd38f7aa774d9f33c3e8b8e9c9c7ea41b4b7969fde431919cb556b", size = 487393 },
 ]
 
 [[package]]
@@ -756,7 +756,7 @@ wheels = [
 
 [[package]]
 name = "dspy"
-version = "2.6.11"
+version = "2.6.12"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -766,7 +766,6 @@ dependencies = [
     { name = "cloudpickle" },
     { name = "datasets" },
     { name = "diskcache" },
-    { name = "jinja2" },
     { name = "joblib" },
     { name = "json-repair" },
     { name = "litellm" },
@@ -781,9 +780,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "ujson" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6a/8c/37da609c8f081d1609e16067888685a89777fa618c6c22b7e345f58bf880/dspy-2.6.11.tar.gz", hash = "sha256:3a96dad9d5aeeac9783bde40c36421679fa24644f5bc8952caa54c42794c9f68", size = 202796 }
+sdist = { url = "https://files.pythonhosted.org/packages/e1/04/ccafde0952819979bf4a7a8dffb2d26c480fb6aaeca9fa641595d29ae6e1/dspy-2.6.12.tar.gz", hash = "sha256:f4be661916caa794a7e9d96726e7d20b5516661059b5efed1917836516c5dc2f", size = 203410 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5c/c9/ed570837f449e127494cc19333f86211703907b8d35dbf4a3ad55dc2d495/dspy-2.6.11-py3-none-any.whl", hash = "sha256:cd5aa865bacb470272a554e2ea41be31cd3e654ed67094f4f4eb922d6dc310e1", size = 258104 },
+    { url = "https://files.pythonhosted.org/packages/14/0d/67806efa73a79a989af58f42d80463501bd3f13de4aca19d2b572e733474/dspy-2.6.12-py3-none-any.whl", hash = "sha256:960deb7516f216d2954e62f097a02d6e3bc6f60020ac9ccb1282d1ef95244d5f", size = 258958 },
 ]
 
 [[package]]
@@ -1582,7 +1581,7 @@ wheels = [
 
 [[package]]
 name = "llama-index-core"
-version = "0.12.23.post2"
+version = "0.12.24"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -1610,9 +1609,9 @@ dependencies = [
     { name = "typing-inspect" },
     { name = "wrapt" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/21/d7/ffecfdf532d6b67f9990332d0e17e7b97ec134291cbf139c76a1fc486679/llama_index_core-0.12.23.post2.tar.gz", hash = "sha256:b8e8abc2c11c2fa26bbfeebc79b00d8d12aaba370e43e3450045b50048744b90", size = 1351798 }
+sdist = { url = "https://files.pythonhosted.org/packages/89/e1/1a05dd022d044e3726d8e46ce73261ed2bb32fc144cc238bdd7d41cc6183/llama_index_core-0.12.24.tar.gz", hash = "sha256:fac61f7eefed1133e46fe74927d961311623269b9cafb999a66051dd205abb17", size = 1353132 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/93/1d/f90a40bc17959927d56ddd63dbe77738a4c3238f228d5065172d6ca65a5f/llama_index_core-0.12.23.post2-py3-none-any.whl", hash = "sha256:3665583d69ca9859b019aacf9496af29ec2fa3b24d031344ddeeefb0dbd00e26", size = 1608441 },
+    { url = "https://files.pythonhosted.org/packages/bc/69/20ea8eca16fb05e2b2f9f2eb6aa3ac79444e58a11b430b86891d0ad68363/llama_index_core-0.12.24-py3-none-any.whl", hash = "sha256:3323da503e668676935168abf4303569a543e75f595ee6b327fb2eabbff2a894", size = 1610244 },
 ]
 
 [[package]]

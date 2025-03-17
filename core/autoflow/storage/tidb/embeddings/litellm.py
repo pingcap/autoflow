@@ -65,7 +65,7 @@ class LiteLLMEmbeddingFunction(BaseEmbeddingFunction):
             timeout=timeout,
             **kwargs,
         )
-        if dimensions is not None:
+        if dimensions is None:
             self.dimensions = len(self.get_query_embedding("test"))
 
     def get_query_embedding(self, query: str) -> list[float]:

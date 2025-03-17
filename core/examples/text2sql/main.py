@@ -4,18 +4,18 @@ import os
 
 from openai import OpenAI
 import streamlit as st
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 from autoflow.storage.tidb import TiDBClient
 from pydantic import BaseModel
+
 
 class QuestionSQLResponse(BaseModel):
     question: str
     sql: str
     markdown: str
 
-st.set_page_config(
-    page_title="Text2SQL", page_icon="📖", layout="wide"
-)
+
+st.set_page_config(page_title="Text2SQL", page_icon="📖", layout="wide")
 with st.sidebar:
     st.markdown("# Text2SQL")
     st.markdown(
@@ -24,7 +24,9 @@ with st.sidebar:
         "2. Enter your [TiDB Cloud](https://tidbcloud.com) database connection URL below 🔗\n"
         "3. Ask a question in the right chat boxgh 🤖\n"
     )
-    st.warning('Please double check the generated SQL before running it on your database.')
+    st.warning(
+        "Please double check the generated SQL before running it on your database."
+    )
     openai_api_key_input = st.text_input(
         "OpenAI API Key",
         type="password",
@@ -64,28 +66,35 @@ table_definitions = []
 current_database = db._db_engine.url.database
 with db._db_engine.connect() as conn:
     for table_name in db.table_names():
-        table_definitions.append(conn.execute(text(f"SHOW CREATE TABLE `{table_name}`")).first())
+        table_definitions.append(
+            conn.execute(text(f"SHOW CREATE TABLE `{table_name}`")).first()
+        )
+
 
 def on_submit():
     user_input = st.session_state.user_input
     if user_input:
-        response = oai.beta.chat.completions.parse(
-            model='gpt-4o-mini',
-            messages=[
-                {
-                    "role": "system",
-                    "content": f"""
+        response = (
+            oai.beta.chat.completions.parse(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": f"""
                         You are a very senior database administrator who can write SQL very well,
                         please write MySQL SQL to answer user question,
                         Use backticks to quote table names and column names,
                         here are some table definitions in database,
                         the database name is {current_database}\n\n"""
-                    + "\n".join('|'.join(t) for t in table_definitions),
-                },
-                {"role": "user", "content": f'Question: {user_input}\n'},
-            ],
-            response_format=QuestionSQLResponse,
-        ).choices[0].message.parsed
+                        + "\n".join("|".join(t) for t in table_definitions),
+                    },
+                    {"role": "user", "content": f"Question: {user_input}\n"},
+                ],
+                response_format=QuestionSQLResponse,
+            )
+            .choices[0]
+            .message.parsed
+        )
         st.session_state.past.append(user_input)
 
         # Execute the SQL query and set the result
@@ -95,25 +104,35 @@ def on_submit():
                 result = conn.execute(text(response.sql))
                 rows = [tuple(result.keys())]
                 rows.extend(row for row in result.fetchall())
-                sql_result = '\n'.join(str(row) for row in rows)
+                sql_result = "\n".join(str(row) for row in rows)
 
-                answer = oai.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {"role": "system", "content": 'You are a markdown formatter, format the user input to markdown, format the data row into markdown tables.'},
-                        {"role": "user", "content": f"""
+                answer = (
+                    oai.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": "You are a markdown formatter, format the user input to markdown, format the data row into markdown tables.",
+                            },
+                            {
+                                "role": "user",
+                                "content": f"""
                             Question: {response.question}\n\n
                             SQL: {response.sql}\n\n
                             Markdown: {response.markdown}\n\n
-                            Result: {sql_result}"""
-                        },
-                    ],
-                ).choices[0].message.content
+                            Result: {sql_result}""",
+                            },
+                        ],
+                    )
+                    .choices[0]
+                    .message.content
+                )
                 st.session_state.generated.append(answer)
             except Exception as e:
                 st.session_state.generated.append(f"Error: {e}")
 
-st.markdown('##### User Query')
+
+st.markdown("##### User Query")
 with st.container():
     st.chat_input(
         "Input your question, e.g. how many tables?",
@@ -123,7 +142,7 @@ with st.container():
 
     chat_placeholder = st.empty()
     with chat_placeholder.container():
-        for i in range(len(st.session_state["generated"])-1, -1, -1):
+        for i in range(len(st.session_state["generated"]) - 1, -1, -1):
             with st.chat_message("user"):
                 st.write(st.session_state["past"][i])
             with st.chat_message("assistant"):

@@ -250,12 +250,15 @@ def test_vector_search(db: TiDBClient):
 
 def test_auto_embedding(db: TiDBClient):
     from sqlmodel import Field
-    from autoflow.storage.tidb.embeddings.litellm import LiteLLMEmbeddingFunction
+    from autoflow.storage.tidb.embeddings import EmbeddingFunction
 
-    text_embed_small = LiteLLMEmbeddingFunction("openai/text-embedding-3-small")
+    text_embed_small = EmbeddingFunction("openai/text-embedding-3-small")
+    test_table_name = "test_auto_embedding"
+
+    db.drop_table(test_table_name)
 
     class Chunk(TableModel, table=True):
-        __tablename__ = "test_auto_embedding"
+        __tablename__ = test_table_name
         id: int = Field(primary_key=True)
         text: str = Field()
         # FIXME: if using list[float], sqlmodel will report an error
@@ -263,6 +266,7 @@ def test_auto_embedding(db: TiDBClient):
         user_id: int = Field()
 
     tbl = db.create_table(schema=Chunk)
+
     tbl.truncate()
     tbl.insert(Chunk(id=1, text="foo", user_id=1))
     tbl.bulk_insert(

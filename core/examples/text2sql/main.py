@@ -96,7 +96,7 @@ def on_submit():
                 rows = [tuple(result.keys())]
                 rows.extend(row for row in result.fetchall())
                 sql_result = '\n'.join(str(row) for row in rows)
-                
+
                 answer = oai.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[

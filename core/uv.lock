@@ -273,7 +273,7 @@ wheels = [
 
 [[package]]
 name = "autoflow-ai"
-version = "0.0.1.dev25"
+version = "0.0.1.dev30"
 source = { editable = "." }
 dependencies = [
     { name = "deepdiff" },

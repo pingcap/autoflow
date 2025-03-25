@@ -1,6 +1,5 @@
 import logging
 import dspy
-from dspy.functional import TypedPredictor
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
@@ -61,7 +60,7 @@ class DecomposeQueryModule(dspy.Module):
     def __init__(self, dspy_lm: dspy.LM):
         super().__init__()
         self.dspy_lm = dspy_lm
-        self.prog = TypedPredictor(DecomposeQuery)
+        self.prog = dspy.Predict(DecomposeQuery)
 
     def forward(self, query):
         with dspy.settings.context(lm=self.dspy_lm):

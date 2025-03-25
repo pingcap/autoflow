@@ -6,7 +6,7 @@ from sqlmodel import Session
 from app.models.knowledge_base import KnowledgeBase
 from app.rag.llms.resolver import get_default_llm, resolve_llm
 from app.rag.embeddings.resolver import resolve_embed_model, get_default_embed_model
-from app.utils.dspy import get_dspy_lm_by_llama_llm
+from app.rag.llms.dspy import get_dspy_lm_by_llama_llm
 
 
 logger = logging.getLogger(__name__)

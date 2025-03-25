@@ -7,9 +7,7 @@ from pydantic import BaseModel
 class LLMProvider(str, enum.Enum):
     OPENAI = "openai"
     GEMINI = "gemini"
-    # TODO: remove ANTHROPIC_VERTEX as it's deprecated.
-    ANTHROPIC_VERTEX = "anthropic_vertex"
-    VERTEX = "vertex"
+    VERTEX_AI = "vertex_ai"
     OPENAI_LIKE = "openai_like"
     BEDROCK = "bedrock"
     OLLAMA = "ollama"
@@ -77,6 +75,22 @@ llm_provider_options: List[LLMProviderOption] = [
         default_credentials="AIza****",
     ),
     LLMProviderOption(
+        provider=LLMProvider.VERTEX_AI,
+        provider_display_name="Vertex AI",
+        provider_description="Vertex AI is a fully-managed, unified AI development platform for building and using generative AI.",
+        provider_url="https://cloud.google.com/vertex-ai",
+        default_llm_model="gemini-1.5-flash",
+        llm_model_description="Find more in https://cloud.google.com/model-garden",
+        credentials_display_name="Google Credentials JSON",
+        credentials_description="The JSON Object of Google Credentials, refer to https://cloud.google.com/docs/authentication/provide-credentials-adc#on-prem",
+        credentials_type="dict",
+        default_credentials={
+            "type": "service_account",
+            "project_id": "****",
+            "private_key_id": "****",
+        },
+    ),
+    LLMProviderOption(
         provider=LLMProvider.OLLAMA,
         provider_display_name="Ollama",
         provider_description="Ollama is a lightweight framework for building and running large language models.",
@@ -85,7 +99,7 @@ llm_provider_options: List[LLMProviderOption] = [
         llm_model_description="Find more in https://ollama.com/library",
         default_config={
             "base_url": "http://localhost:11434",
-            "context_window": 4096,
+            "context_window": 8192,
             "request_timeout": 60 * 10,
         },
         config_description=(
@@ -117,22 +131,6 @@ llm_provider_options: List[LLMProviderOption] = [
         credentials_description="The API key of Gitee AI, you can find it in https://ai.gitee.com/dashboard/settings/tokens",
         credentials_type="str",
         default_credentials="****",
-    ),
-    LLMProviderOption(
-        provider=LLMProvider.VERTEX,
-        provider_display_name="Vertex AI",
-        provider_description="Vertex AI is a fully-managed, unified AI development platform for building and using generative AI.",
-        provider_url="https://cloud.google.com/vertex-ai",
-        default_llm_model="gemini-1.5-flash",
-        llm_model_description="Find more in https://cloud.google.com/model-garden",
-        credentials_display_name="Google Credentials JSON",
-        credentials_description="The JSON Object of Google Credentials, refer to https://cloud.google.com/docs/authentication/provide-credentials-adc#on-prem",
-        credentials_type="dict",
-        default_credentials={
-            "type": "service_account",
-            "project_id": "****",
-            "private_key_id": "****",
-        },
     ),
     LLMProviderOption(
         provider=LLMProvider.BEDROCK,

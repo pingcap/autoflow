@@ -18,7 +18,7 @@ from app.core.config import settings
 from app.rag.knowledge_base.selector import KBSelectMode, MultiKBSelector
 from app.rag.question_gen.query_decomposer import QueryDecomposer
 from app.rag.types import MyCBEventType
-from app.utils.dspy import get_dspy_lm_by_llama_llm
+from app.rag.llms.dspy import get_dspy_lm_by_llama_llm
 
 
 class FusionRetrivalBaseConfig(BaseModel):

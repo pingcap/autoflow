@@ -2,11 +2,11 @@ import dspy
 import logging
 import numpy as np
 import tidb_vector
-from dspy.functional import TypedPredictor
 from deepdiff import DeepDiff
 from typing import List, Optional, Tuple, Dict, Set, Type, Any
 from collections import defaultdict
 
+from dspy import Predict
 from llama_index.core.embeddings.utils import EmbedType, resolve_embed_model
 from llama_index.embeddings.openai import OpenAIEmbedding, OpenAIEmbeddingModelType
 import sqlalchemy
@@ -72,7 +72,7 @@ class MergeEntities(dspy.Signature):
 
 class MergeEntitiesProgram(dspy.Module):
     def __init__(self):
-        self.prog = TypedPredictor(MergeEntities)
+        self.prog = Predict(MergeEntities)
 
     def forward(self, entities: List[Entity]):
         if len(entities) != 2:

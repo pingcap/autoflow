@@ -11,7 +11,7 @@ from llama_index.core.llms.llm import LLM
 from app.rag.postprocessors.metadata_post_filter import MetadataPostFilter
 from app.rag.retrievers.chunk.schema import VectorSearchRetrieverConfig
 from app.rag.retrievers.knowledge_graph.schema import KnowledgeGraphRetrieverConfig
-from app.utils.dspy import get_dspy_lm_by_llama_llm
+from app.rag.llms.dspy import get_dspy_lm_by_llama_llm
 from app.rag.llms.resolver import get_default_llm, resolve_llm
 from app.rag.rerankers.resolver import get_default_reranker_model, resolve_reranker
 

@@ -5,11 +5,11 @@
 
 ### Install dependencies
 
-1. Install [rye](https://rye.astral.sh/)
-2. Use `rye` to install dependencies
+1. Install [uv](https://docs.astral.sh/uv/getting-started/installation/)
+2. Use `uv` to install dependencies
 
 ```bash
-rye sync
+uv sync
 ```
 
 ### Prepare environment
@@ -30,5 +30,5 @@ make migrate
 ### Run development server
 
 ```bash
-rye run python main.py runserver
+uv run python main.py runserver
 ```

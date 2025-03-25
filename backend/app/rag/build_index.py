@@ -26,7 +26,7 @@ from app.rag.indices.knowledge_graph import KnowledgeGraphIndex
 from app.models import Document, Chunk
 from app.rag.node_parser.file.markdown import MarkdownNodeParser
 from app.types import MimeTypes
-from app.utils.dspy import get_dspy_lm_by_llama_llm
+from app.rag.llms.dspy import get_dspy_lm_by_llama_llm
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,30 @@
+# MacOS
+.DS_Store
+
+# Environment
 .env
-.git
 .venv
+
+# Git
+.git
+
+# IDE
+.idea
+.vscode
+
+# Cache
+.pytest_cache
+.ruff_cache
+**/__pycache__
+
+# Test
 .tox
+tests
+pytest.ini
+
+# Extra
+local_embedding_reranker/
+.pre-commit-config.yaml
+.gitignore
+Dockerfile
+.dockerignore

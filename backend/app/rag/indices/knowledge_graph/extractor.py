@@ -2,8 +2,9 @@ import logging
 from copy import deepcopy
 import pandas as pd
 import dspy
-from dspy.functional import TypedPredictor
 from typing import Mapping, Optional, List
+
+from dspy import Predict
 from llama_index.core.schema import BaseNode
 
 from app.rag.indices.knowledge_graph.schema import (
@@ -97,40 +98,12 @@ class Extractor(dspy.Module):
     def __init__(self, dspy_lm: dspy.LM):
         super().__init__()
         self.dspy_lm = dspy_lm
-        self.prog_graph = TypedPredictor(ExtractGraphTriplet)
-        self.prog_covariates = TypedPredictor(ExtractCovariate)
-
-    def get_llm_output_config(self):
-        if "openai" in self.dspy_lm.provider.lower():
-            return {
-                "response_format": {"type": "json_object"},
-            }
-        elif "ollama" in self.dspy_lm.provider.lower():
-            # ollama support set format=json in the top-level request config, but not in the request's option
-            # https://github.com/ollama/ollama/blob/5e2653f9fe454e948a8d48e3c15c21830c1ac26b/api/types.go#L70
-            return {}
-        elif "bedrock" in self.dspy_lm.provider.lower():
-            # Fix: add bedrock branch to fix 'Malformed input request' error
-            # subject must not be valid against schema {"required":["messages"]}: extraneous key [response_mime_type] is not permitted
-            return {"max_tokens": 8192}
-        elif "giteeai" in self.dspy_lm.provider.lower() or "qwen" in self.dspy_lm.model_name.lower():
-            # For Qwen models via GiteeAI or other providers, use a simplified format
-            # to ensure proper JSON structure with metadata as a dictionary
-            return {
-                "response_format": {"type": "json_object"},
-                "max_tokens": 8192,
-            }
-        else:
-            return {
-                "response_mime_type": "application/json",
-            }
+        self.prog_graph = Predict(ExtractGraphTriplet)
+        self.prog_covariates = Predict(ExtractCovariate)
 
     def forward(self, text):
         with dspy.settings.context(lm=self.dspy_lm):
-            pred_graph = self.prog_graph(
-                text=text,
-                config=self.get_llm_output_config(),
-            )
+            pred_graph = self.prog_graph(text=text)
 
             # extract the covariates
             entities_for_covariates = [
@@ -144,7 +117,6 @@ class Extractor(dspy.Module):
             pred_covariates = self.prog_covariates(
                 text=text,
                 entities=entities_for_covariates,
-                config=self.get_llm_output_config(),
             )
 
             # replace the entities with the covariates
@@ -167,12 +139,12 @@ class SimpleGraphExtractor:
     def extract(self, text: str, node: BaseNode):
         pred = self.extract_prog(text=text)
         metadata = get_relation_metadata_from_node(node)
-        
+
         # Ensure all entities have proper metadata dictionary structure
         for entity in pred.knowledge.entities:
             if entity.metadata is None or not isinstance(entity.metadata, dict):
                 entity.metadata = {"topic": "Unknown", "status": "auto-generated"}
-        
+
         return self._to_df(
             pred.knowledge.entities, pred.knowledge.relationships, metadata
         )

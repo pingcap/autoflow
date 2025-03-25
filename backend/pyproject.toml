@@ -3,7 +3,8 @@ name = "tidb-ai-python"
 version = "0.2.9"
 description = "AutoFlow Python Backend"
 authors = [
-    { name = "wd0517", email = "me@wangdi.ink" }
+    { name = "wd0517", email = "me@wangdi.ink" },
+    { name = "mini256", email = "minianter@gmail.com" }
 ]
 dependencies = [
     "fastapi>=0.115.6",
@@ -27,7 +28,6 @@ dependencies = [
     "gunicorn>=22.0.0",
     "python-dotenv>=1.0.1",
     "sentry-sdk>=2.5.1",
-    "dspy-ai>=2.4.9",
     "langfuse>=2.59.1",
     "langchain-openai>=0.2.9",
     "ragas>=0.2.6",
@@ -50,33 +50,38 @@ dependencies = [
     "llama-index-llms-openai-like>=0.3.3",
     "llama-index-llms-bedrock>=0.3.3",
     "llama-index-llms-ollama>=0.5.0",
-    # 0.4.3: AttributeError: module 'google.generativeai.types' has no attribute 'RequestOptions'
-    "llama-index-llms-gemini==0.4.2",
+    "llama-index-llms-google-genai>=0.1.6",
+    "llama-index-llms-azure-openai>=0.3.0",
     "llama-index-embeddings-ollama>=0.5.0",
     "llama-index-embeddings-jinaai>=0.4.0",
     "llama-index-embeddings-cohere>=0.4.0",
     "llama-index-embeddings-bedrock>=0.4.0",
+    "llama-index-embeddings-azure-openai>=0.3.0",
     "llama-index-postprocessor-jinaai-rerank>=0.3.0",
     "llama-index-postprocessor-cohere-rerank>=0.3.0",
     "llama-index-postprocessor-xinference-rerank>=0.2.0",
     "llama-index-postprocessor-bedrock-rerank>=0.3.0",
     "llama-index-llms-vertex>=0.4.2",
     "socksio>=1.0.0",
-    "llama-index-llms-azure-openai>=0.3.0",
-    "llama-index-embeddings-azure-openai>=0.3.0",
+    "dspy>=2.6.13",
 ]
 readme = "README.md"
-requires-python = ">= 3.8"
+requires-python = ">= 3.9"
 
-[tool.rye]
-managed = true
-virtual = true
-universal = true
-dev-dependencies = [
-    "pre-commit>=4.0.1",
-    "ruff>=0.8.6",
-    "pytest-asyncio>=0.25.2",
+[dependency-groups]
+dev = [
+    "pre-commit>=4.2.0",
+    "pytest-asyncio>=0.25.3",
+    "ruff>=0.11.2",
 ]
+
 [tool.ruff.lint]
 ignore = ["E711", "E712", "F811",  "F841"]
 
+[tool.pytest.ini_options]
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+env_files = [".env"]
+asyncio_default_fixture_loop_scope = "session"

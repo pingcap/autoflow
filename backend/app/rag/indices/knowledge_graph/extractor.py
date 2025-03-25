@@ -7,9 +7,9 @@ from typing import Mapping, Optional, List
 from llama_index.core.schema import BaseNode
 
 from app.rag.indices.knowledge_graph.schema import (
-    Entity,
-    Relationship,
-    KnowledgeGraph,
+    AIEntity,
+    AIRelationship,
+    AIKnowledgeGraph,
     EntityCovariateInput,
     EntityCovariateOutput,
 )
@@ -52,7 +52,7 @@ class ExtractGraphTriplet(dspy.Signature):
     text = dspy.InputField(
         desc="a paragraph of text to extract entities and relationships to form a knowledge graph"
     )
-    knowledge: KnowledgeGraph = dspy.OutputField(
+    knowledge: AIKnowledgeGraph = dspy.OutputField(
         desc="Graph representation of the knowledge extracted from the text."
     )
 
@@ -125,7 +125,7 @@ class Extractor(dspy.Module):
                 "response_mime_type": "application/json",
             }
 
-    def forward(self, text):
+    def forward(self, text: str) -> AIKnowledgeGraph:
         with dspy.settings.context(lm=self.dspy_lm):
             pred_graph = self.prog_graph(
                 text=text,
@@ -179,8 +179,8 @@ class SimpleGraphExtractor:
 
     def _to_df(
         self,
-        entities: list[Entity],
-        relationships: list[Relationship],
+        entities: list[AIEntity],
+        relationships: list[AIRelationship],
         extra_meta: Mapping[str, str],
     ):
         # Create lists to store dictionaries for entities and relationships

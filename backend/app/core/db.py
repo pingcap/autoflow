@@ -9,12 +9,12 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.core.config import settings, Environment
+from app.core.config import settings
 
-if settings.ENVIRONMENT == Environment.LOCAL:
-    logging.basicConfig()
-    logger = logging.getLogger("sqlalchemy.engine")
-    logger.setLevel(logging.DEBUG)
+# if settings.ENVIRONMENT == Environment.LOCAL:
+logging.basicConfig()
+logger = logging.getLogger("sqlalchemy.engine")
+logger.setLevel(logging.DEBUG)
 
 # TiDB Serverless clusters have a limitation: if there are no active connections for 5 minutes,
 # they will shut down, which closes all connections, so we need to recycle the connections

@@ -1,27 +1,32 @@
 from fastapi import HTTPException
+from pydantic import BaseModel
 from starlette import status
 
 from app.api.admin_routes.knowledge_base.graph.models import (
     KnowledgeRequest,
     KnowledgeNeighborRequest,
-    KnowledgeChunkRequest,
 )
 from app.api.admin_routes.knowledge_base.graph.routes import router, logger
 from app.api.deps import SessionDep
 from app.exceptions import KBNotFound, InternalServerError
-from app.rag.knowledge_base.index_store import get_kb_tidb_graph_store
+from app.rag.knowledge_base.index_store import (
+    get_kb_tidb_graph_store,
+    get_kb_graph_editor,
+)
 from app.repositories import knowledge_base_repo
 
 
 # Experimental interface
 
 
-@router.post("/admin/knowledge_bases/{kb_id}/graph/knowledge")
-def retrieve_knowledge(session: SessionDep, kb_id: int, request: KnowledgeRequest):
+@router.post("/knowledge", deprecated=True)
+def legacy_retrieve_knowledge(
+    session: SessionDep, kb_id: int, request: KnowledgeRequest
+):
     try:
         kb = knowledge_base_repo.must_get(session, kb_id)
         graph_store = get_kb_tidb_graph_store(session, kb)
-        data = graph_store.retrieve_graph_data(
+        data = graph_store.retrieve_subgraph_by_similar(
             request.query,
             request.top_k,
             request.similarity_threshold,
@@ -37,8 +42,8 @@ def retrieve_knowledge(session: SessionDep, kb_id: int, request: KnowledgeReques
         raise InternalServerError()
 
 
-@router.post("/admin/knowledge_bases/{kb_id}/graph/knowledge/neighbors")
-def retrieve_knowledge_neighbors(
+@router.post("/knowledge/neighbors", deprecated=True)
+def legacy_retrieve_knowledge_neighbors(
     session: SessionDep, kb_id: int, request: KnowledgeNeighborRequest
 ):
     try:
@@ -59,22 +64,24 @@ def retrieve_knowledge_neighbors(
         raise InternalServerError()
 
 
-@router.post("/admin/knowledge_bases/{kb_id}/graph/knowledge/chunks")
-def retrieve_knowledge_chunks(
+class KnowledgeChunkRequest(BaseModel):
+    pass
+
+
+@router.post("/knowledge/chunks", deprecated=True)
+def legacy_retrieve_knowledge_chunks(
     session: SessionDep, kb_id: int, request: KnowledgeChunkRequest
 ):
     try:
         kb = knowledge_base_repo.must_get(session, kb_id)
-        graph_store = get_kb_tidb_graph_store(session, kb)
-        data = graph_store.get_chunks_by_relationships(request.relationships_ids)
+        graph_editor = get_kb_graph_editor(session, kb)
+        data = graph_editor.batch_get_chunks_by_relationships(request.relationships_ids)
         if not data:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="No chunks found for the given relationships",
             )
         return data
-    except KBNotFound as e:
-        raise e
     except HTTPException as e:
         raise e
     except Exception as e:

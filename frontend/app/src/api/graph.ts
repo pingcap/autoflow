@@ -14,6 +14,7 @@ export const enum KnowledgeGraphEntityType {
 
 export interface KnowledgeGraphEntity {
   id: number;
+  knowledge_base_id?: number | null;
   name: string;
   description: string;
   meta: object;
@@ -28,6 +29,7 @@ export interface KnowledgeGraphRelationship {
   id: number;
   source_entity_id: number;
   target_entity_id: number;
+  knowledge_base_id?: number | null;
   description: string;
   meta: object;
   weight: number;
@@ -35,6 +37,7 @@ export interface KnowledgeGraphRelationship {
 
 export const entitySchema = z.object({
   id: z.number(),
+  knowledge_base_id: z.number().nullable().optional(),
   name: z.string(),
   description: z.string(),
   meta: z.object({}).passthrough(),
@@ -47,6 +50,7 @@ export const entitySchema = z.object({
 
 export const relationshipSchema = z.object({
   id: z.number(),
+  knowledge_base_id: z.number().nullable().optional(),
   source_entity_id: z.number(),
   target_entity_id: z.number(),
   description: z.string(),

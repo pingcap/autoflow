@@ -1,11 +1,11 @@
 import { Loader } from '@/components/loader';
 import { cn } from '@/lib/utils';
-import { type FC, type ReactNode, useState } from 'react';
-import { type Entity, type Relationship } from '../utils';
+import { type FC, type ReactNode, useMemo, useState } from 'react';
 import { NetworkCanvas } from '../components/NetworkCanvas';
 import { NetworkContext } from '../components/NetworkContext';
 import { BaseNetwork, type IdType } from '../network/Network';
 import type { NetworkRendererOptions } from '../network/NetworkRenderer';
+import { type Entity, type Relationship } from '../utils';
 
 export interface NetworkViewerProps {
   className?: string;
@@ -21,11 +21,33 @@ export interface NetworkViewerDetailsProps {
   onTargetChange: ((target: { type: string, id: IdType } | undefined) => void)
 }
 
+function randomPosition (radius: number, kbSpacing: number, kbIndex: number, kbCount: number) {
+  const x = kbIndex * kbSpacing - (kbCount - 1) * kbSpacing / 2;
+  const theta = Math.random() * 2 * Math.PI;
+
+  return {
+    x: x + radius * Math.cos(theta),
+    y: radius * Math.sin(theta),
+  };
+}
+
 export function NetworkViewer ({ network, loading, loadingTitle, className, Details }: NetworkViewerProps) {
   const [target, setTarget] = useState<{ type: string, id: IdType }>();
 
+  const knowledgeGraphIndexMap = useMemo(() => {
+    const nodes = network.nodes();
+    const kbIds = Array.from(nodes.reduce((acc, node) => acc.add(node.knowledge_base_id ?? 0), new Set<number>()));
+    kbIds.sort();
+
+    return new Map(kbIds.map((kbId, index) => ([kbId, index])));
+  }, [network]);
+
   const networkOptions: NetworkRendererOptions<Entity, Relationship> = {
     showId: true,
+    getNodeInitialAttrs: (node) => {
+      const kbIndex = knowledgeGraphIndexMap.get(node.knowledge_base_id ?? 0) ?? 0;
+      return randomPosition(20, 100, kbIndex, knowledgeGraphIndexMap.size || 1);
+    },
     getNodeLabel: node => node.name,
     getNodeDetails: node => node.description,
     getNodeRadius: node => Math.pow(Math.log(1 + (network.nodeNeighborhoods(node.id)?.size ?? 0)) / Math.log(2), 2) * 2 + 5,
@@ -33,14 +55,24 @@ export function NetworkViewer ({ network, loading, loadingTitle, className, Deta
       if (node.entity_type === 'synopsis') {
         return `hsl(var(--brand1-foreground))`;
       } else {
-        return `hsl(var(--primary))`;
+        const kbIndex = knowledgeGraphIndexMap.get(node.knowledge_base_id ?? 0);
+        if (!kbIndex) {
+          return `hsl(var(--primary))`;
+        } else {
+          return `hsl(var(--chart-${kbIndex + 1}))`;
+        }
       }
     },
     getNodeStrokeColor: node => {
       if (node.entity_type === 'synopsis') {
         return `hsl(var(--brand1))`;
       } else {
-        return `hsl(var(--primary))`;
+        const kbIndex = knowledgeGraphIndexMap.get(node.knowledge_base_id ?? 0);
+        if (!kbIndex) {
+          return `hsl(var(--primary))`;
+        } else {
+          return `hsl(var(--chart-${kbIndex + 1}))`;
+        }
       }
     },
     getNodeLabelColor: node => {
@@ -62,7 +94,12 @@ export function NetworkViewer ({ network, loading, loadingTitle, className, Deta
       if (link.meta.relationship_type === 'synopsis') {
         return `hsl(var(--brand1) / 50%)`;
       } else {
-        return `hsl(var(--primary) / 50%)`;
+        const kbIndex = knowledgeGraphIndexMap.get(link.knowledge_base_id ?? 0);
+        if (!kbIndex) {
+          return `hsl(var(--primary) / 50%)`;
+        } else {
+          return `hsl(var(--chart-${kbIndex + 1}) / 50%)`;
+        }
       }
     },
     getLinkLabel: link => {
@@ -78,7 +115,12 @@ export function NetworkViewer ({ network, loading, loadingTitle, className, Deta
       if (link.meta.relationship_type === 'synopsis') {
         return `hsl(var(--brand1) / 50%)`;
       } else {
-        return `hsl(var(--primary) / 50%)`;
+        const kbIndex = knowledgeGraphIndexMap.get(link.knowledge_base_id ?? 0);
+        if (!kbIndex) {
+          return `hsl(var(--primary) / 50%)`;
+        } else {
+          return `hsl(var(--chart-${kbIndex + 1}) / 50%)`;
+        }
       }
     },
     getLinkLabelStrokeColor: () => {

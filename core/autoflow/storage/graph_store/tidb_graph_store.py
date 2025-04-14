@@ -1,5 +1,5 @@
 import logging
-from typing import Collection, Dict, List, Optional, Tuple, Type
+from typing import Collection, Dict, List, Optional, Tuple, Type, Any
 from uuid import UUID
 
 from pydantic import PrivateAttr
@@ -25,6 +25,8 @@ from autoflow.storage.graph_store.types import (
     EntityFilters,
     EntityType,
     EntityUpdate,
+    KnowledgeGraph,
+    KnowledgeGraphCreate,
     Relationship,
     RelationshipFilters,
     RelationshipUpdate,
@@ -71,23 +73,27 @@ def dynamic_create_models(
         __table_args__ = (
             Index("idx_entity_type", "entity_type"),
             Index("idx_entity_name", "name"),
-            {"extend_existing": True},
         )
         entity_type: EntityType = EntityType.original
         name: str = Field(max_length=512)
         description: str = Field(sa_column=Column(Text))
         meta: Optional[Dict] = Field(default_factory=dict, sa_column=Column(JSON))
-        embedding: Optional[list[float]] = entity_vector_field
+        embedding: Optional[Any] = entity_vector_field
 
-        @property
-        def embedding_str(self) -> str:
-            return f"{self.name}: {self.description}"
+        def __hash__(self):
+            return hash(self.id)
+
+        def __eq__(self, other):
+            return self.id == other.id
 
     entity_model = type(
         entity_model_name,
         (DBEntity,),
         {
             "__tablename__": entity_table_name,
+            "__table_args__": {
+                "extend_existing": True,
+            },
         },
         table=True,
     )
@@ -103,15 +109,23 @@ def dynamic_create_models(
         source_entity_id: UUID = Field(foreign_key=f"{entity_table_name}.id")
         target_entity_id: UUID = Field(foreign_key=f"{entity_table_name}.id")
         meta: Optional[Dict] = Field(default_factory=dict, sa_column=Column(JSON))
-        embedding: Optional[list[float]] = relationship_vector_field
+        embedding: Optional[Any] = relationship_vector_field
+        weight: Optional[float] = Field(default=0)
         chunk_id: Optional[UUID] = Field(default=None)
         document_id: Optional[UUID] = Field(default=None)
+
+        def __hash__(self):
+            return hash(self.id)
+
+        def __eq__(self, other):
+            return self.id == other.id
 
     relationship_model = type(
         relationship_model_name,
         (DBRelationship,),
         {
             "__tablename__": relationship_table_name,
+            "__table_args__": {"extend_existing": True},
             "__annotations__": {
                 "source_entity": entity_model,
                 "target_entity": entity_model,
@@ -148,13 +162,13 @@ class TiDBGraphStore(GraphStore):
         namespace: Optional[str] = None,
         embedding_model: Optional[EmbeddingModel] = None,
         vector_dims: Optional[int] = None,
-        entity_similarity_threshold: Optional[float] = 0.9,
+        entity_distance_threshold: Optional[float] = 0.1,
     ):
         super().__init__()
         self._db = client
         self._db_engine = client.db_engine
         self._embedding_model = embedding_model
-        self._entity_distance_threshold = 1 - entity_similarity_threshold
+        self._entity_distance_threshold = entity_distance_threshold
         self._init_store(namespace, vector_dims)
 
     def _init_store(
@@ -235,6 +249,30 @@ class TiDBGraphStore(GraphStore):
     def _get_entity_embedding(self, name: str, description: str) -> list[float]:
         embedding_str = f"{name}: {description}"
         return self._embedding_model.get_text_embedding(embedding_str)
+
+    def find_or_create_entity(
+        self,
+        name: str,
+        entity_type: EntityType = EntityType.original,
+        description: Optional[str] = None,
+        meta: Optional[dict] = None,
+        embedding: Optional[Any] = None,
+    ) -> Entity:
+        query_embedding = self._get_entity_embedding(name, description)
+        query = QueryBundle(query_embedding=query_embedding)
+        nearest_entity = self.search_entities(
+            query, top_k=1, distance_threshold=self._entity_distance_threshold
+        )
+        if len(nearest_entity) != 0:
+            return nearest_entity[0][0]
+        else:
+            return self.create_entity(
+                name=name,
+                entity_type=entity_type,
+                description=description,
+                meta=meta,
+                embedding=embedding,
+            )
 
     def update_entity(self, entity: Entity | UUID, update: EntityUpdate) -> Entity:
         if isinstance(entity, UUID):
@@ -343,6 +381,7 @@ class TiDBGraphStore(GraphStore):
         top_k: int = 10,
         num_candidate: Optional[int] = None,
         distance_threshold: Optional[float] = None,
+        distance_range: Optional[Tuple[float, float]] = None,
         filters: Optional[RelationshipFilters] = None,
     ) -> List[Tuple[Relationship, float]]:
         filter_dict = self._convert_relationship_filters(filters)
@@ -351,40 +390,86 @@ class TiDBGraphStore(GraphStore):
             .num_candidate(num_candidate or top_k * 10)
             .filter(filter_dict)
             .distance_threshold(distance_threshold)
+            .distance_range(distance_range[0], distance_range[1])
             .limit(top_k)
             .to_pydantic()
         )
+
+        # FIXME: pytidb should return the relationship field: target_entity, source_entity.
+        entity_ids = [item.hit.target_entity_id for item in results]
+        entity_ids.extend([item.hit.source_entity_id for item in results])
+        entities = self.list_entities(filters=EntityFilters(entity_id=entity_ids))
+        entity_map = {entity.id: entity for entity in entities}
+        for item in results:
+            item.hit.target_entity = entity_map[item.hit.target_entity_id]
+            item.hit.source_entity = entity_map[item.hit.source_entity_id]
+
         return [(item.hit, item.score) for item in results]
 
     def _convert_relationship_filters(self, filters: RelationshipFilters) -> dict:
         filter_dict = {}
 
         if filters.entity_id:
-            op = "$in" if isinstance(filters.entity_id, list) else "$eq"
-            filter_dict["$or"] = [
-                {"target_entity_id": {op: filters.entity_id}},
-                {"source_entity_id": {op: filters.entity_id}},
-            ]
+            if isinstance(filters.entity_id, list):
+                if len(filters.entity_id) != 0:
+                    filter_dict["$or"] = [
+                        {"target_entity_id": {"$in": filters.entity_id}},
+                        {"source_entity_id": {"$in": filters.entity_id}},
+                    ]
+            else:
+                filter_dict["$or"] = [
+                    {"target_entity_id": {"$eq": filters.entity_id}},
+                    {"source_entity_id": {"$eq": filters.entity_id}},
+                ]
 
         if filters.source_entity_id:
-            op = "$in" if isinstance(filters.source_entity_id, list) else "$eq"
-            filter_dict["$or"] = [{"source_entity_id": {op: filters.source_entity_id}}]
+            if isinstance(filters.source_entity_id, list):
+                if len(filters.source_entity_id) != 0:
+                    filter_dict["$or"] = [
+                        {"source_entity_id": {"$in": filters.source_entity_id}}
+                    ]
+            else:
+                filter_dict["$or"] = [
+                    {"source_entity_id": {"$eq": filters.source_entity_id}}
+                ]
 
         if filters.target_entity_id:
-            op = "$in" if isinstance(filters.target_entity_id, list) else "$eq"
-            filter_dict["$or"] = [{"target_entity_id": {op: filters.target_entity_id}}]
+            if isinstance(filters.target_entity_id, list):
+                if len(filters.target_entity_id) != 0:
+                    filter_dict["$or"] = [
+                        {"target_entity_id": {"$in": filters.target_entity_id}}
+                    ]
+            else:
+                filter_dict["$or"] = [
+                    {"target_entity_id": {"$eq": filters.target_entity_id}}
+                ]
 
         if filters.relationship_id:
-            op = "$in" if isinstance(filters.relationship_id, list) else "$eq"
-            filter_dict["id"] = {op: filters.relationship_id}
+            if isinstance(filters.relationship_id, list):
+                if len(filters.relationship_id) != 0:
+                    filter_dict["id"] = {"$in": filters.relationship_id}
+            else:
+                filter_dict["id"] = {"$eq": filters.relationship_id}
+
+        if (
+            filters.exclude_relationship_ids
+            and len(filters.exclude_relationship_ids) != 0
+        ):
+            filter_dict["id"] = {"$nin": filters.exclude_relationship_ids}
 
         if filters.document_id:
-            op = "$in" if isinstance(filters.document_id, list) else "$eq"
-            filter_dict["document_id"] = {op: filters.document_id}
+            if isinstance(filters.document_id, list):
+                if len(filters.document_id) != 0:
+                    filter_dict["document_id"] = {"$in": filters.document_id}
+            else:
+                filter_dict["document_id"] = {"$eq": filters.document_id}
 
         if filters.chunk_id:
-            op = "$in" if isinstance(filters.chunk_id, list) else "$eq"
-            filter_dict["chunk_id"] = {op: filters.chunk_id}
+            if isinstance(filters.chunk_id, list):
+                if len(filters.chunk_id) != 0:
+                    filter_dict["chunk_id"] = {"$in": filters.chunk_id}
+            else:
+                filter_dict["chunk_id"] = {"$eq": filters.chunk_id}
 
         if filters.metadata:
             for key, value in filters.metadata.items():
@@ -399,7 +484,7 @@ class TiDBGraphStore(GraphStore):
         target_entity: Entity | UUID,
         description: Optional[str] = None,
         meta: Optional[dict] = {},
-        embedding: Optional[list[float]] = None,
+        embedding: Optional[Any] = None,
     ) -> Relationship:
         """
         Create a relationship between two entities.
@@ -467,6 +552,58 @@ class TiDBGraphStore(GraphStore):
     def delete_relationship(self, relationship_id: UUID):
         return self._relationship_table.delete(filters={"id": relationship_id})
 
+    # Knowledge Graph Operations
+
+    def add(self, knowledge_graph: KnowledgeGraphCreate) -> Optional[KnowledgeGraph]:
+        with self._db.session():
+            # Create or find entities
+            entity_map = {}
+            for entity in knowledge_graph.entities:
+                created_entity = self.find_or_create_entity(
+                    entity_type=EntityType.original,
+                    name=entity.name,
+                    description=entity.description,
+                    meta=entity.meta,
+                )
+                entity_map[entity.name] = created_entity
+            entities = list(entity_map.values())
+
+            # Create relationships
+            relationships = []
+            for rel in knowledge_graph.relationships:
+                logger.info("Saving relationship: %s", rel.description)
+                source_entity = entity_map.get(rel.source_entity_name)
+                if not source_entity:
+                    logger.warning(
+                        "Source entity not found for relationship: %s", str(rel)
+                    )
+                    continue
+
+                target_entity = entity_map.get(rel.target_entity_name)
+                if not target_entity:
+                    logger.warning(
+                        "Target entity not found for relationship: %s", str(rel)
+                    )
+                    continue
+
+                relationship = self.create_relationship(
+                    source_entity=source_entity,
+                    target_entity=target_entity,
+                    description=rel.description,
+                    meta=rel.meta,
+                )
+                relationships.append(relationship)
+
+        return KnowledgeGraph(
+            entities=[Entity(**entity.model_dump()) for entity in entities],
+            relationships=[
+                Relationship(**relationship.model_dump())
+                for relationship in relationships
+            ],
+        )
+
+    # Graph Store Operations
+
     def reset(self):
         with self._db.session():
             self._db.execute("SET FOREIGN_KEY_CHECKS = 0")
@@ -474,6 +611,14 @@ class TiDBGraphStore(GraphStore):
             self._entity_table.truncate()
             self._db.execute("SET FOREIGN_KEY_CHECKS = 1")
 
+    def recreate(self):
+        self._db.drop_table(self._relationship_table.table_name)
+        self._db.drop_table(self._entity_table.table_name)
+        self._entity_table = self._db.create_table(schema=self._entity_db_model)
+        self._relationship_table = self._db.create_table(
+            schema=self._relationship_db_model
+        )
+
     def drop(self):
-        self._entity_table.drop()
-        self._relationship_table.drop()
+        self._db.drop_table(self._relationship_table.table_name)
+        self._db.drop_table(self._entity_table.table_name)

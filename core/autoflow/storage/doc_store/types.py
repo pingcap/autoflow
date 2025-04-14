@@ -1,6 +1,6 @@
 from uuid import UUID
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any
 
 from pydantic import BaseModel, Field, computed_field
 
@@ -15,7 +15,7 @@ from autoflow.utils.hash import sha256
 class Chunk(BaseModel):
     id: Optional[UUID] = Field(default_factory=uuid6.uuid7)
     text: str = Field(description="The text of the chunk.")
-    text_vec: Optional[list[float]] = Field(
+    text_vec: Optional[Any] = Field(
         default=None, description="The vector of text vectors."
     )
     meta: Optional[dict] = Field(

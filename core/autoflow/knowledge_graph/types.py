@@ -1,7 +1,14 @@
 from typing import Any, Dict, List, Optional
+from uuid import UUID
 
 from pydantic import BaseModel, Field
-from autoflow.storage.graph_store.types import Entity, Relationship
+from autoflow.storage.graph_store.types import (
+    Entity,
+    EntityCreate,
+    KnowledgeGraphCreate,
+    Relationship,
+    RelationshipCreate,
+)
 
 
 # Generated Knowledge Graph
@@ -23,6 +30,34 @@ class GeneratedRelationship(BaseModel):
 class GeneratedKnowledgeGraph(BaseModel):
     entities: List[GeneratedEntity]
     relationships: List[GeneratedRelationship]
+
+    def to_create(
+        self,
+        chunk_id: Optional[UUID] = None,
+        document_id: Optional[UUID] = None,
+    ) -> KnowledgeGraphCreate:
+        return KnowledgeGraphCreate(
+            entities=[
+                EntityCreate(
+                    name=e.name,
+                    description=e.description,
+                    meta=e.meta,
+                )
+                for e in self.entities
+            ],
+            relationships=[
+                RelationshipCreate(
+                    source_entity_name=r.source_entity_name,
+                    target_entity_name=r.target_entity_name,
+                    description=r.description,
+                    meta=r.meta,
+                    weight=0,
+                    chunk_id=chunk_id,
+                    document_id=document_id,
+                )
+                for r in self.relationships
+            ],
+        )
 
 
 # Retrieved Knowledge Graph
@@ -55,7 +90,7 @@ class RetrievedKnowledgeGraph(BaseModel):
         description="The query used to retrieve the knowledge graph",
         default=None,
     )
-    entities: List[RetrievedEntity] = Field(
+    entities: List[Entity] = Field(
         description="List of entities in the knowledge graph", default_factory=list
     )
     relationships: List[RetrievedRelationship] = Field(

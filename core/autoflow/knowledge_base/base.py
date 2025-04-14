@@ -2,6 +2,7 @@ import logging
 from os import cpu_count
 import uuid
 from typing import List, Optional, Any
+from functools import partial
 
 from pydantic import Field
 from sqlalchemy import Engine
@@ -20,7 +21,6 @@ from autoflow.models.llms.dspy import get_dspy_lm_by_llm
 from autoflow.models.rerank_models import RerankModel
 from autoflow.types import BaseComponent, SearchMode
 from autoflow.storage.doc_store import DocumentSearchResult, Document
-from autoflow.storage.types import QueryBundle
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class KnowledgeBase(BaseComponent):
         self._reranker_model = rerank_model
         self._init_stores()
         self._init_indexes()
-        self._max_workers = max_workers
+        self._max_workers = max_workers or cpu_count()
 
     def _init_stores(self):
         from autoflow.storage.doc_store.tidb_doc_store import TiDBDocumentStore
@@ -77,9 +77,13 @@ class KnowledgeBase(BaseComponent):
     def _init_indexes(self):
         self._dspy_lm = get_dspy_lm_by_llm(self._llm)
         self._kg_index = KnowledgeGraphIndex(
-            graph_store=self._kg_store,
+            kg_store=self._kg_store,
             dspy_lm=self._dspy_lm,
+            embedding_model=self._embedding_model,
         )
+
+    def class_name(self):
+        return "KnowledgeBase"
 
     def add(
         self,
@@ -96,51 +100,55 @@ class KnowledgeBase(BaseComponent):
         if loader is None:
             loader = get_loader_for_datatype(data_type)
 
-        if chunker is None:
-            chunker = get_chunker_for_datatype(data_type)
-
-        if self._max_workers is None:
-            self._max_workers = cpu_count()
-
         with ThreadPoolExecutor(max_workers=self._max_workers) as executor:
-            from functools import partial
-
-            ingest_document = partial(
-                self._ingest_document,
-                chunker=chunker,
+            build_index_for_document = partial(
+                self.build_index_for_document, chunker=chunker
             )
-            results = executor.map(ingest_document, loader.load(source))
 
-        all_documents = []
+            results = executor.map(build_index_for_document, loader.load(source))
+
+        return_documents = []
         for result in results:
-            if result:
-                all_documents.extend(result)
-        return all_documents
+            return_documents.append(result)
+        return return_documents
 
-    def _ingest_document(
+    def build_index_for_document(
         self,
         document: Document,
-        chunker: Chunker,
+        chunker: Optional[Chunker] = None,
     ) -> List[Document]:
+        """
+        Build index for a document.
+
+        Args:
+            document: The document to build index for.
+            chunker: The chunker to use to chunk the document.
+
+        Returns:
+            A list of documents that are the result of indexing the original document.
+        """
         # TODO: handle duplicate documents.
+        if chunker is None:
+            chunker = get_chunker_for_datatype(document.data_type)
+
         chunked_document = chunker.chunk(document)
         self.add_document(chunked_document)
 
         if IndexMethod.KNOWLEDGE_GRAPH in self.index_methods:
-            for chunk in chunked_document.chunks:
-                logger.info("Adding chunk %s to knowledge graph.", chunk.id)
-                self._kg_index.add_from_chunk(chunk)
+
+            def add_chunk_to_kg(chunk):
+                logger.info("Adding chunk <id: %s> to knowledge graph.", chunk.id)
+                self._kg_index.add_chunk(chunk)
+
+            with ThreadPoolExecutor(max_workers=self._max_workers) as executor:
+                list(executor.map(add_chunk_to_kg, chunked_document.chunks))
 
         return chunked_document
-
-    def search(self):
-        # TODO: Support one interface search documents and knowledge graph at the same time.
-        raise NotImplementedError()
 
     # Document management.
 
     def add_document(self, document: Document):
-        return self._doc_store.add([document])
+        self._doc_store.add([document])
 
     def add_documents(self, documents: List[Document]):
         return self._doc_store.add(documents)
@@ -153,6 +161,12 @@ class KnowledgeBase(BaseComponent):
 
     def delete_document(self, doc_id: uuid.UUID) -> None:
         return self._doc_store.delete(doc_id)
+
+    # Search
+
+    def search(self):
+        # TODO: Support one interface search documents and knowledge graph at the same time.
+        raise NotImplementedError()
 
     def search_documents(
         self,
@@ -176,14 +190,16 @@ class KnowledgeBase(BaseComponent):
         self,
         query: str,
         depth: int = 2,
-        include_meta: bool = False,
         metadata_filters: Optional[dict] = None,
         **kwargs,
     ):
-        return self._kg_store.search(
-            query=QueryBundle(query_str=query),
+        return self._kg_index.retrieve(
+            query=query,
             depth=depth,
-            include_meta=include_meta,
             metadata_filters=metadata_filters,
             **kwargs,
         )
+
+    def reset(self):
+        self._doc_store.reset()
+        self._kg_store.reset()

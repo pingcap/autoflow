@@ -6,12 +6,12 @@ import dspy
 from autoflow.knowledge_graph.extractors.simple import SimpleKGExtractor
 from autoflow.knowledge_graph.retrievers.weighted import WeightedGraphRetriever
 from autoflow.knowledge_graph.types import (
-    GeneratedKnowledgeGraph,
     RetrievedKnowledgeGraph,
 )
+from autoflow.models.embedding_models import EmbeddingModel
 from autoflow.storage.doc_store.types import Chunk
 from autoflow.storage.graph_store.base import GraphStore
-from autoflow.storage.graph_store.types import EntityType, KnowledgeGraph
+from autoflow.storage.graph_store.types import KnowledgeGraph
 from autoflow.types import BaseComponent
 
 
@@ -19,79 +19,36 @@ logger = logging.getLogger(__name__)
 
 
 class KnowledgeGraphIndex(BaseComponent):
-    def __init__(self, graph_store: GraphStore, dspy_lm: dspy.LM):
+    def __init__(
+        self,
+        kg_store: GraphStore,
+        dspy_lm: dspy.LM,
+        embedding_model: EmbeddingModel,
+    ):
         super().__init__()
-        self._graph_store = graph_store
+        self._kg_store = kg_store
         self._dspy_lm = dspy_lm
-        self._extractor = SimpleKGExtractor(self._dspy_lm)
+        self._embedding_model = embedding_model
+        self._kg_extractor = SimpleKGExtractor(self._dspy_lm)
 
-    def add_from_text(self, text: str) -> Optional[KnowledgeGraph]:
-        knowledge_graph = self._extractor.extract(text)
-        return self.add(knowledge_graph)
+    def add_text(self, text: str) -> Optional[KnowledgeGraph]:
+        knowledge_graph = self._kg_extractor.extract(text)
+        return self._kg_store.add(knowledge_graph.to_create())
 
-    def add_from_chunk(self, chunk: Chunk) -> Optional[KnowledgeGraph]:
+    def add_chunk(self, chunk: Chunk) -> Optional[KnowledgeGraph]:
         # Check if the chunk has been added.
-        exists_relationships = self._graph_store.list_relationships(chunk_id=chunk.id)
+        exists_relationships = self._kg_store.list_relationships(chunk_id=chunk.id)
         if len(exists_relationships) > 0:
             logger.warning(
                 "The subgraph of chunk %s has already been added, skip.", chunk.id
             )
             return None
 
-        knowledge_graph = self._extractor.extract(chunk)
-        return self.add(knowledge_graph)
+        logger.info("Extracting knowledge graph from chunk %s", chunk.id)
+        knowledge_graph = self._kg_extractor.extract(chunk)
+        logger.info("Knowledge graph extracted from chunk %s", chunk.id)
 
-    def add(self, knowledge_graph: GeneratedKnowledgeGraph) -> Optional[KnowledgeGraph]:
-        if (
-            len(knowledge_graph.entities) == 0
-            or len(knowledge_graph.relationships) == 0
-        ):
-            logger.warning(
-                "Entities or relationships are empty, skip saving to the database"
-            )
-            return None
-
-        with self._db.session():
-            # Create or find entities
-            entity_map = {}
-            for entity in knowledge_graph.entities:
-                created_entity = self._graph_store.find_or_create_entity(
-                    entity_type=EntityType.original,
-                    name=entity.name,
-                    description=entity.description,
-                    meta=entity.meta,
-                )
-                entity_map[entity.name] = created_entity
-
-            # Create relationships
-            relationships = []
-            for rel in knowledge_graph.relationships:
-                logger.info("Saving relationship: %s", rel.description)
-                source_entity = entity_map.get(rel.source_entity_name)
-                if not source_entity:
-                    logger.warning(
-                        "Source entity not found for relationship: %s", str(rel)
-                    )
-                    continue
-
-                target_entity = entity_map.get(rel.target_entity_name)
-                if not target_entity:
-                    logger.warning(
-                        "Target entity not found for relationship: %s", str(rel)
-                    )
-                    continue
-
-                relationship = self._graph_store.create_relationship(
-                    source_entity=source_entity,
-                    target_entity=target_entity,
-                    description=rel.description,
-                    meta=rel.meta,
-                )
-                relationships.append(relationship)
-
-        return KnowledgeGraph(
-            entities=list(entity_map.values()), relationships=relationships
-        )
+        return self._kg_store.add(knowledge_graph.to_create())
 
     def retrieve(
         self,
@@ -100,7 +57,11 @@ class KnowledgeGraphIndex(BaseComponent):
         metadata_filters: Optional[dict] = None,
         **kwargs,
     ) -> RetrievedKnowledgeGraph:
-        retriever = WeightedGraphRetriever(self._graph_store, **kwargs)
+        retriever = WeightedGraphRetriever(
+            self._kg_store,
+            self._embedding_model,
+            **kwargs,
+        )
         return retriever.retrieve(
             query=query,
             depth=depth,

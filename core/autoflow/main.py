@@ -1,10 +1,15 @@
-from typing import Optional
+from typing import List, Optional
 from sqlalchemy.engine import Engine
 
 from autoflow.configs.db import DatabaseConfig
+from autoflow.configs.knowledge_base import IndexMethod
 from autoflow.configs.main import Config
 from autoflow.db import get_db_engine_from_config
+from autoflow.knowledge_base.base import KnowledgeBase
+from autoflow.models.embedding_models import EmbeddingModel
+from autoflow.models.llms import LLM
 from autoflow.models.manager import ModelManager, model_manager as default_model_manager
+from autoflow.models.rerank_models import RerankModel
 
 
 class Autoflow:
@@ -21,7 +26,7 @@ class Autoflow:
     @classmethod
     def from_config(cls, config: Config) -> "Autoflow":
         db_engine = cls._init_db_engine(config.db)
-        model_manager = ModelManager.from_config({})
+        model_manager = ModelManager()
         return cls(db_engine=db_engine, model_manager=model_manager)
 
     @classmethod
@@ -42,5 +47,21 @@ class Autoflow:
 
     def create_knowledge_base(
         self,
+        name: str,
+        namespace: Optional[str] = None,
+        description: Optional[str] = None,
+        index_methods: Optional[List[IndexMethod]] = None,
+        llm: Optional[LLM] = None,
+        embedding_model: Optional[EmbeddingModel] = None,
+        rerank_model: Optional[RerankModel] = None,
     ):
-        pass
+        return KnowledgeBase(
+            db_engine=self.db_engine,
+            namespace=namespace,
+            name=name,
+            description=description,
+            index_methods=index_methods,
+            llm=llm,
+            embedding_model=embedding_model,
+            rerank_model=rerank_model,
+        )

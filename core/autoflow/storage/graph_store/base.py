@@ -1,5 +1,6 @@
 from abc import ABC
 
+import logging
 from typing import (
     Collection,
     Dict,
@@ -14,13 +15,18 @@ from autoflow.types import BaseComponent
 from autoflow.storage.graph_store.types import (
     Entity,
     EntityFilters,
-    EntityCreate,
+    EntityType,
     EntityUpdate,
     EntityDegree,
+    KnowledgeGraph,
+    KnowledgeGraphCreate,
     Relationship,
     RelationshipFilters,
     RelationshipUpdate,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class GraphStore(BaseComponent, ABC):
@@ -54,17 +60,16 @@ class GraphStore(BaseComponent, ABC):
             raise ValueError(f"Can not find the entity #{entity_id}")
         return entity
 
-    def create_entity(self, create: EntityCreate) -> Entity:
+    def create_entity(
+        self,
+        name: str,
+        entity_type: EntityType = EntityType.original,
+        description: Optional[str] = None,
+        meta: Optional[dict] = None,
+        embedding: Optional[list[float]] = None,
+    ) -> Entity:
         """Create a new entity"""
         raise NotImplementedError
-
-    def find_or_create_entity(self, create: EntityCreate) -> Entity:
-        query = f"{create.name}: {create.description}"
-        nearest_entity = self.search_entities(query, top_k=1)
-        if len(nearest_entity) != 0:
-            return nearest_entity[0][0]
-        else:
-            return self.create_entity(create)
 
     def update_entity(self, entity: Entity | UUID, update: EntityUpdate) -> Entity:
         """Update an existing entity"""
@@ -134,8 +139,20 @@ class GraphStore(BaseComponent, ABC):
         query: QueryBundle,
         top_k: int = 10,
         num_candidate: Optional[int] = None,
+        distance_threshold: Optional[float] = None,
+        distance_range: Optional[Tuple[float, float]] = None,
         filters: Optional[RelationshipFilters] = None,
     ) -> List[Tuple[Relationship, float]]:
+        """
+
+        Args:
+            query:
+            top_k:
+            num_candidate:
+            distance_threshold:
+            distance_range:
+            filters:
+        """
         raise NotImplementedError
 
     def reset(self):
@@ -144,4 +161,10 @@ class GraphStore(BaseComponent, ABC):
 
     def drop(self):
         """Drop the graph store"""
+        raise NotImplementedError
+
+    # Knowledge Graph Operations
+
+    def add(self, knowledge_graph: KnowledgeGraphCreate) -> Optional[KnowledgeGraph]:
+        """Add a knowledge graph to the graph store"""
         raise NotImplementedError

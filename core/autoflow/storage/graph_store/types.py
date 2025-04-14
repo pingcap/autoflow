@@ -24,7 +24,7 @@ class Entity(BaseModel):
     )
     name: str = Field(description="Name of the entity")
     description: str = Field(description="Description of the entity")
-    embedding: Optional[list[float]] = Field(
+    embedding: Optional[Any] = Field(
         description="Embedding of the entity", default=None
     )
     meta: Optional[Dict[str, Any]] = Field(
@@ -80,14 +80,25 @@ class Relationship(BaseModel):
     target_entity_id: Optional[UUID] = Field(default=None)
     target_entity: Optional[Entity] = Field(default=None)
     description: str = Field(description="Description of the relationship")
+    weight: Optional[float] = Field(default=0, description="Weight of the relationship")
     meta: Optional[Dict[str, Any]] = Field(
         description="Metadata of the relationship", default_factory=dict
     )
-    embedding: Optional[list[float]] = Field(
+    embedding: Optional[Any] = Field(
         description="Embedding of the relationship", default=None
     )
     created_at: Optional[datetime] = Field(default=None)
     updated_at: Optional[datetime] = Field(default=None)
+
+
+class RelationshipCreate(BaseModel):
+    source_entity_name: str
+    target_entity_name: str
+    description: str
+    meta: Dict[str, Any] = Field(default_factory=dict)
+    weight: Optional[float] = Field(default=0)
+    chunk_id: Optional[UUID] = Field(default=None)
+    document_id: Optional[UUID] = Field(default=None)
 
 
 class RelationshipUpdate(BaseModel):
@@ -120,6 +131,10 @@ class RelationshipFilters(BaseModel):
         description="Filter by the id of the relationship",
         default=None,
     )
+    exclude_relationship_ids: Optional[List[UUID]] = Field(
+        description="Exclude the relationships by the id",
+        default=None,
+    )
     metadata: Optional[Dict[str, Any]] = Field(
         description="Filter by the metadata of the relationship",
         default=None,
@@ -132,3 +147,11 @@ class RelationshipFilters(BaseModel):
 class KnowledgeGraph(BaseModel):
     entities: List[Entity] = Field(default_factory=list)
     relationships: List[Relationship] = Field(default_factory=list)
+
+
+# Knowledge Graph Create
+
+
+class KnowledgeGraphCreate(BaseModel):
+    entities: List[EntityCreate]
+    relationships: List[RelationshipCreate]

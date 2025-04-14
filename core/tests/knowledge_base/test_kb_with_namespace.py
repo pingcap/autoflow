@@ -20,7 +20,7 @@ def kb(db_engine, llm, embedding_model):
         db_engine=db_engine,
     )
     logger.info(
-        "Created a knowledge base with namespace %s successfully.", kb.namespace
+        "Created a knowledge base with namespace <%s> successfully.", kb.namespace
     )
     return kb
 
@@ -30,20 +30,20 @@ def test_add_documents_via_filepath(kb: KnowledgeBase):
     assert len(docs) == 1
 
 
-def test_add_documents_via_url(kb):
+def test_add_documents_via_url(kb: KnowledgeBase):
     docs = kb.add("https://docs.pingcap.com/tidbcloud/tidb-cloud-intro")
     assert len(docs) == 1
 
 
-def test_search_documents(kb):
+def test_search_documents(kb: KnowledgeBase):
     result = kb.search_documents(
         query="What is TiDB?",
-        similarity_top_k=2,
+        top_k=2,
     )
     assert len(result.chunks) > 0
 
 
-def test_search_knowledge_graph(kb):
+def test_search_knowledge_graph(kb: KnowledgeBase):
     knowledge_graph = kb.search_knowledge_graph(
         query="What is TiDB?",
     )

@@ -76,7 +76,7 @@ def dynamic_create_models(
 
     class DBChunk(UUIDBaseModel):
         text: str = Field(sa_column=Column(LONGTEXT))
-        text_vec: Optional[list[float]] = vector_field
+        text_vec: Optional[Any] = vector_field
         document_id: UUID = Field(foreign_key=f"{document_table_name}.id")
 
     chunk_model = type(
@@ -135,11 +135,7 @@ class TiDBDocumentStore(DocumentStore):
         self._document_table = self._client.create_table(schema=self._document_db_model)
         self._chunk_table = self._client.create_table(schema=self._chunk_db_model)
 
-    def reset(self) -> None:
-        self._client.drop_table(self._chunk_table.table_name)
-        self._client.drop_table(self._document_table.table_name)
-        self._document_table = self._client.create_table(schema=self._document_db_model)
-        self._chunk_table = self._client.create_table(schema=self._chunk_db_model)
+    # Document Operations.
 
     def add(self, documents: List[Document]) -> List[Document]:
         """
@@ -252,6 +248,8 @@ class TiDBDocumentStore(DocumentStore):
             ],
         )
 
+    # Chunk Operations.
+
     def add_doc_chunks(self, document_id: UUID, chunks: List[Chunk]) -> List[Chunk]:
         """
         Add document chunks.
@@ -290,3 +288,18 @@ class TiDBDocumentStore(DocumentStore):
         """
         self._chunk_table.update(update, {"id": chunk_id})
         return self.get_chunk(chunk_id)
+
+    # Document Store Operations.
+
+    def recreate(self) -> None:
+        self._client.drop_table(self._chunk_table.table_name)
+        self._client.drop_table(self._document_table.table_name)
+        self._document_table = self._client.create_table(schema=self._document_db_model)
+        self._chunk_table = self._client.create_table(schema=self._chunk_db_model)
+
+    def reset(self) -> None:
+        with self._client.session():
+            self._client.execute("SET FOREIGN_KEY_CHECKS = 0")
+            self._chunk_table.truncate()
+            self._document_table.truncate()
+            self._client.execute("SET FOREIGN_KEY_CHECKS = 1")

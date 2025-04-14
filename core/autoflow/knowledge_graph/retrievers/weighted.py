@@ -5,13 +5,16 @@ from autoflow.knowledge_graph.types import (
     RetrievedKnowledgeGraph,
     RetrievedRelationship,
 )
+from autoflow.models.embedding_models import EmbeddingModel
 from autoflow.storage.graph_store import GraphStore
 from autoflow.knowledge_graph.retrievers.base import KGRetriever
 from autoflow.storage.graph_store.types import (
     Entity,
     EntityDegree,
+    EntityFilters,
     Relationship,
     EntityType,
+    RelationshipFilters,
 )
 from autoflow.storage.types import QueryBundle
 
@@ -43,6 +46,7 @@ class WeightedGraphRetriever(KGRetriever):
     def __init__(
         self,
         kg_store: GraphStore,
+        embedding_model: EmbeddingModel,
         with_degree: bool = False,
         alpha: float = 1,
         weight_coefficients: List[Tuple[float, float]] = None,
@@ -52,6 +56,7 @@ class WeightedGraphRetriever(KGRetriever):
         max_neighbors: int = 10,
     ):
         super().__init__(kg_store)
+        self._embedding_model = embedding_model
         self.with_degree = with_degree
         self.alpha = alpha
         self.weight_coefficients = weight_coefficients or DEFAULT_WEIGHT_COEFFICIENTS
@@ -62,10 +67,12 @@ class WeightedGraphRetriever(KGRetriever):
 
     def retrieve(
         self,
-        query_embedding: List[float],
+        query: str,
         depth: int = 2,
         metadata_filters: Optional[dict] = None,
     ) -> RetrievedKnowledgeGraph:
+        query_embedding = self._embedding_model.get_query_embedding(query)
+
         visited_relationships = set()
         visited_entities = set()
 
@@ -77,11 +84,20 @@ class WeightedGraphRetriever(KGRetriever):
         )
 
         if len(new_relationships) == 0:
-            return [], []
+            return RetrievedKnowledgeGraph(
+                entities=[],
+                relationships=[],
+            )
 
         for rel, score in new_relationships:
             visited_relationships.add(
-                RetrievedRelationship(relationship=rel, score=score)
+                RetrievedRelationship(
+                    **rel.model_dump(),
+                    target_entity=rel.target_entity.model_dump(),
+                    source_entity=rel.source_entity.model_dump(),
+                    similarity_score=score,
+                    score=score,
+                )
             )
             visited_entities.add(rel.source_entity)
             visited_entities.add(rel.target_entity)
@@ -116,7 +132,11 @@ class WeightedGraphRetriever(KGRetriever):
 
                 for rel, score in new_relationships:
                     visited_relationships.add(
-                        RetrievedRelationship(relationship=rel, score=score)
+                        RetrievedRelationship(
+                            **rel.model_dump(),
+                            similarity_score=score,
+                            score=score,
+                        )
                     )
                     visited_entities.add(rel.source_entity)
                     visited_entities.add(rel.target_entity)
@@ -127,17 +147,37 @@ class WeightedGraphRetriever(KGRetriever):
                     progress += search_ratio
 
         # Fetch related synopsis entities.
-        synopsis_entities = self._kg_store.search_similar_entities(
+        synopsis_entities = self._kg_store.search_entities(
             query=QueryBundle(query_embedding=query_embedding),
-            entity_type=EntityType.synopsis,
             top_k=self.fetch_synopsis_entities_num,
+            filters=EntityFilters(
+                entity_type=EntityType.synopsis,
+            ),
         )
-        visited_entities.update(synopsis_entities)
+        if len(synopsis_entities) > 0:
+            visited_entities.update(synopsis_entities)
+
+        # Rerank final relationships.
+        relationships_list = list(visited_relationships)
+        relationships_list.sort(key=lambda x: x.score, reverse=True)
+        self._fill_entity(relationships_list)
 
         return RetrievedKnowledgeGraph(
-            entities=list(visited_entities),
-            relationships=list(visited_relationships),
+            entities=[Entity(**e.model_dump()) for e in visited_entities],
+            relationships=relationships_list,
         )
+
+    def _fill_entity(self, relationships: List[RetrievedRelationship]):
+        # FIXME: pytidb should return the relationship field: target_entity, source_entity.
+        entity_ids = [item.target_entity_id for item in relationships]
+        entity_ids.extend([item.source_entity_id for item in relationships])
+        entities = self._kg_store.list_entities(
+            filters=EntityFilters(entity_id=entity_ids)
+        )
+        entity_map = {entity.id: entity for entity in entities}
+        for rel in relationships:
+            rel.target_entity = entity_map[rel.target_entity_id]
+            rel.source_entity = entity_map[rel.source_entity_id]
 
     def _weighted_search_relationships(
         self,
@@ -149,20 +189,24 @@ class WeightedGraphRetriever(KGRetriever):
         metadata_filters: Optional[dict] = None,
     ) -> List[RetrievedRelationship]:
         visited_entity_ids = [e.id for e in visited_entities]
-        visited_relationship_ids = [r.relationship.id for r in visited_relationships]
+        visited_relationship_ids = [r.id for r in visited_relationships]
         relationships_with_score = self._kg_store.search_relationships(
             query=QueryBundle(query_embedding=query_embedding),
+            filters=RelationshipFilters(
+                source_entity_id=visited_entity_ids,
+                exclude_relationship_ids=visited_relationship_ids,
+                metadata=metadata_filters,
+            ),
             distance_range=search_distance_range,
-            source_entity_ids=visited_entity_ids,
-            exclude_relationship_ids=visited_relationship_ids,
-            metadata_filters=metadata_filters,
+            top_k=top_k,
         )
-        return self._rerank_relationships(
+
+        return self._rank_relationships(
             relationships_with_score=relationships_with_score,
             top_k=top_k,
         )
 
-    def _rerank_relationships(
+    def _rank_relationships(
         self,
         relationships_with_score: List[Tuple[Relationship, float]],
         top_k: int = 10,
@@ -198,7 +242,11 @@ class WeightedGraphRetriever(KGRetriever):
         return reranked_relationships[:top_k]
 
     def _calc_relationship_weighted_score(
-        self, embedding_distance: float, weight: int, in_degree: int, out_degree: int
+        self,
+        embedding_distance: float,
+        weight: int = 0,
+        in_degree: int = 0,
+        out_degree: int = 0,
     ) -> float:
         weighted_score = self._calc_weight_score(weight)
         degree_score = 0

@@ -1,0 +1,9 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Code Style
+
+- Always sort the imports with the order (standard, third-party, local)

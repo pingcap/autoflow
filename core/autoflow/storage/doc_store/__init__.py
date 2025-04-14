@@ -1,9 +1,9 @@
-from .base import DocumentStore, DocumentSearchQuery, DocumentSearchResult
-from .tidb.tidb_doc_store import TiDBDocumentStore
+from .base import DocumentStore
+from .types import Document, DocumentSearchResult, Chunk
 
 __all__ = [
     "DocumentStore",
-    "TiDBDocumentStore",
-    "DocumentSearchQuery",
     "DocumentSearchResult",
+    "Document",
+    "Chunk",
 ]

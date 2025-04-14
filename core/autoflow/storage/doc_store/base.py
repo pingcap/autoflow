@@ -1,68 +1,56 @@
+from uuid import UUID
 from abc import ABC, abstractmethod
-from enum import Enum
-from typing import List, Optional, Generic, TypeVar, Type
+from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
-from autoflow.models.document import Document
-from autoflow.storage.schema import QueryBundle
-
-D = TypeVar("D", bound=Type[Document])
-C = TypeVar("C")
+from autoflow.storage.doc_store.types import Chunk, Document, DocumentSearchResult
 
 
-class DocumentSearchMethod(str, Enum):
-    VECTOR_SEARCH = "vector_search"
-    FULLTEXT_SEARCH = "fulltext_search"
-
-
-class DocumentSearchQuery(QueryBundle):
-    # document_ids: Optional[List[int]] = None
-    # chunk_ids: Optional[List[int]] = None
-    # metadata_filters: Optional[MetadataFilters] = None
-    search_method: List[DocumentSearchMethod] = [DocumentSearchMethod.VECTOR_SEARCH]
-    top_k: Optional[int] = None
-
-    # Vector Search
-    similarity_threshold: Optional[float] = None
-    # similarity_weight: Optional[float] = None
-    similarity_nprobe: Optional[int] = None
-    similarity_top_k: Optional[int] = 5
-
-    # Full Text Search
-    # TODO: Support Full Text Search.
-
-    # Reranking
-    enable_reranker: bool = False
-    reranker_model_name: Optional[str] = None
-
-
-class ChunkWithScore(BaseModel, Generic[C]):
-    chunk: C
-    score: float
-
-
-class DocumentSearchResult(BaseModel, Generic[D, C]):
-    chunks: List[ChunkWithScore[C]]
-    documents: List[Document]
-
-
-class DocumentStore(ABC, Generic[D, C]):
+class DocumentStore(ABC):
     @abstractmethod
-    def add(self, document: List[D]) -> List[D]:
+    def add(self, documents: List[Document]) -> List[Document]:
         raise NotImplementedError()
 
     @abstractmethod
-    def delete(self, document_id: int) -> None:
+    def update(self, document_id: UUID, update: Dict[str, Any]):
         raise NotImplementedError()
 
     @abstractmethod
-    def search(self, query: DocumentSearchQuery) -> DocumentSearchResult[D, C]:
+    def delete(self, document_id: UUID) -> None:
         raise NotImplementedError()
 
     @abstractmethod
-    def get(self, document_id: int) -> D:
+    def list(self, filters: Dict[str, Any] = None) -> List[Document]:
         raise NotImplementedError()
 
     @abstractmethod
-    def add_doc_chunks(self, chunks: List[C]) -> List[C]:
+    def search(
+        self,
+        query: str,
+        top_k: Optional[int] = None,
+        similarity_candidate: Optional[int] = None,
+    ) -> DocumentSearchResult:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get(self, document_id: UUID) -> Document:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def add_doc_chunks(self, document_id: UUID, chunks: List[Chunk]) -> List[Chunk]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def list_doc_chunks(self, document_id: UUID) -> List[Chunk]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_chunk(self, chunk_id: UUID) -> Chunk:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def update_chunk(self, chunk_id: UUID, update: Dict[str, Any]) -> Chunk:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def delete_chunk(self, chunk_id: UUID) -> None:
         raise NotImplementedError()

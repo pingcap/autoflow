@@ -1,4 +1,4 @@
-from .base import KnowledgeGraphStore
-from .tidb.tidb_graph_store import TiDBKnowledgeGraphStore
+from .base import GraphStore
+from .tidb_graph_store import TiDBGraphStore
 
-__all__ = ["KnowledgeGraphStore", "TiDBKnowledgeGraphStore"]
+__all__ = ["GraphStore", "TiDBGraphStore"]

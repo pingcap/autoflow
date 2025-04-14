@@ -2,12 +2,11 @@
 # -*- coding: utf-8 -*-
 import os
 from uuid import UUID
-from pathlib import Path
 
 import streamlit as st
 from sqlalchemy import create_engine
 from autoflow import Autoflow
-from autoflow.schema import IndexMethod
+from autoflow.types import IndexMethod
 from autoflow.llms.chat_models import ChatModel
 from autoflow.llms.embeddings import EmbeddingModel
 from llama_index.core.llms import ChatMessage
@@ -88,11 +87,7 @@ with st.form(key="file_upload_form"):
         ):
             with open(file_path, "wb") as f:
                 f.write(uploaded_file.getvalue())
-            kb.import_documents_from_files(
-                files=[
-                    Path(file_path),
-                ]
-            )
+            kb.add(file_path)
             import time
 
             time.sleep(3)

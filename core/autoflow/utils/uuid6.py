@@ -10,6 +10,7 @@ Copy from: https://github.com/jonra1993/fastapi-alembic-sqlmodel-async/blob/main
 
 import secrets
 import time
+from typing import Optional
 import uuid
 
 
@@ -18,12 +19,12 @@ class UUID(uuid.UUID):
 
     def __init__(
         self,
-        hex: str = None,
-        bytes: bytes = None,
-        bytes_le: bytes = None,
-        fields: tuple[int, int, int, int, int, int] = None,
-        int: int = None,
-        version: int = None,
+        hex: Optional[str] = None,
+        bytes: Optional[bytes] = None,
+        bytes_le: Optional[bytes] = None,
+        fields: Optional[tuple[int, int, int, int, int, int]] = None,
+        int: Optional[int] = None,
+        version: Optional[int] = None,
         *,
         is_safe=uuid.SafeUUID.unknown,
     ) -> None:
@@ -39,7 +40,7 @@ class UUID(uuid.UUID):
                 version=version,
                 is_safe=is_safe,
             )
-        if not 0 <= int < 1 << 128:
+        if int is not None and not 0 <= int < 1 << 128:
             raise ValueError("int is out of range (need a 128-bit value)")
         if version is not None:
             if not 6 <= version <= 7:

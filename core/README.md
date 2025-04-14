@@ -1,4 +1,3 @@
 # Autoflow
 
-Yet another RAG framework. (WIP)
-
+A unified storage layer for AI agents and RAG applications.

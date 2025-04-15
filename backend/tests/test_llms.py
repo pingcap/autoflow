@@ -77,8 +77,7 @@ def test_openai():
 def test_ollama():
     llm = resolve_llm(
         provider=LLMProvider.OLLAMA,
-        model="qwen2.5:14b",
-        config={},
+        model="gemma3:4b",
     )
     check_llm_answer_simple_question(llm)
 
@@ -151,7 +150,7 @@ def test_azure_ai():
         credentials=os.getenv("AZURE_AI_API_KEY"),
         config={
             "azure_endpoint": os.getenv("AZURE_AI_ENDPOINT"),
-            "engine": "gpt-4o-mini",
+            "engine": "gpt-4o",
             "api_version": "2025-01-01-preview",
         },
     )

@@ -83,11 +83,11 @@ class RelationshipReasoning(Relationship):
 class KnowledgeGraph(BaseModel):
     """Graph representation of the knowledge for text."""
 
-    entities: List[Entity] = Field(
-        description="List of entities in the knowledge graph"
-    )
     relationships: List[Relationship] = Field(
         description="List of relationships in the knowledge graph"
+    )
+    entities: List[Entity] = Field(
+        description="List of entities in the knowledge graph"
     )
 
 

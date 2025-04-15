@@ -31,8 +31,9 @@ def get_dspy_lm_by_llama_llm(llama_llm: BaseLLM) -> dspy.LM:
         case "GenAI":
             if "models/" in llama_llm.model:
                 # For Gemini
+                model_name = llama_llm.model.split("models/")[1]
                 return dspy.LM(
-                    model=f"gemini/{llama_llm.model.split("models/")[1]}",
+                    model=f"gemini/{model_name}",
                     max_tokens=llama_llm._max_tokens,
                     api_key=llama_llm._client._api_client.api_key,
                 )

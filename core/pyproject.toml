@@ -1,6 +1,6 @@
 [project]
 name = "autoflow-ai"
-version = "0.0.2.dev3"
+version = "0.0.2.dev5"
 description = "Framework to index and search your vector data, make your data ready for AI apps, developed by TiDB."
 authors = [
     { name = "Mini256", email = "minianter@foxmail.com" },
@@ -23,6 +23,7 @@ dependencies = [
     "dspy>=2.6.6",
     "tokenizers>=0.21.0",
     "mypy>=1.15.0",
+    "banks>=2.1.1",
 ]
 
 [dependency-groups]

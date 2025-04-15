@@ -93,8 +93,6 @@ class WeightedGraphRetriever(KGRetriever):
             visited_relationships.add(
                 RetrievedRelationship(
                     **rel.model_dump(),
-                    target_entity=rel.target_entity.model_dump(),
-                    source_entity=rel.source_entity.model_dump(),
                     similarity_score=score,
                     score=score,
                 )
@@ -158,13 +156,15 @@ class WeightedGraphRetriever(KGRetriever):
             visited_entities.update(synopsis_entities)
 
         # Rerank final relationships.
-        relationships_list = list(visited_relationships)
-        relationships_list.sort(key=lambda x: x.score, reverse=True)
-        self._fill_entity(relationships_list)
+        return_relationships = list(visited_relationships)
+        return_relationships.sort(key=lambda x: x.score, reverse=True)
+        self._fill_entity(return_relationships)
+
+        return_entities = [Entity(**e.model_dump()) for e in visited_entities]
 
         return RetrievedKnowledgeGraph(
-            entities=[Entity(**e.model_dump()) for e in visited_entities],
-            relationships=relationships_list,
+            entities=return_entities,
+            relationships=return_relationships,
         )
 
     def _fill_entity(self, relationships: List[RetrievedRelationship]):
@@ -176,8 +176,8 @@ class WeightedGraphRetriever(KGRetriever):
         )
         entity_map = {entity.id: entity for entity in entities}
         for rel in relationships:
-            rel.target_entity = entity_map[rel.target_entity_id]
-            rel.source_entity = entity_map[rel.source_entity_id]
+            rel.target_entity = Entity(**entity_map[rel.target_entity_id].model_dump())
+            rel.source_entity = Entity(**entity_map[rel.source_entity_id].model_dump())
 
     def _weighted_search_relationships(
         self,

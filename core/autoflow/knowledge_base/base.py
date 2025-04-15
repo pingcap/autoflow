@@ -1,17 +1,19 @@
 import logging
-from os import cpu_count
 import uuid
 from typing import List, Optional, Any
 from functools import partial
-
-from pydantic import Field
-from sqlalchemy import Engine
+from os import cpu_count
 from concurrent.futures import ThreadPoolExecutor
+
+from pydantic import Field, PrivateAttr
+from sqlalchemy import Engine
+from llama_index.core.base.llms.types import ChatResponse
 
 from autoflow.chunkers.base import Chunker
 from autoflow.chunkers.helper import get_chunker_for_datatype
 from autoflow.configs.knowledge_base import IndexMethod
 from autoflow.data_types import DataType, guess_datatype
+from autoflow.knowledge_base.prompts import QA_WITH_KNOWLEDGE_PROMPT_TEMPLATE
 from autoflow.knowledge_graph.index import KnowledgeGraphIndex
 from autoflow.loaders.base import Loader
 from autoflow.loaders.helper import get_loader_for_datatype
@@ -26,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 class KnowledgeBase(BaseComponent):
+    _llm: LLM = PrivateAttr()
     namespace: Optional[str] = Field(default=None)
     name: Optional[str] = Field(default=None)
     description: Optional[str] = Field(default=None)
@@ -84,6 +87,12 @@ class KnowledgeBase(BaseComponent):
 
     def class_name(self):
         return "KnowledgeBase"
+
+    def documents(self):
+        return self._doc_store
+
+    def knowledge_graph(self):
+        return self._kg_store
 
     def add(
         self,
@@ -199,6 +208,28 @@ class KnowledgeBase(BaseComponent):
             metadata_filters=metadata_filters,
             **kwargs,
         )
+
+    # Generation.
+
+    def ask(self, question: str) -> ChatResponse:
+        result = self.search_documents(
+            query=question,
+            similarity_threshold=0.4,
+            top_k=5,
+        )
+        chunks = result.chunks
+        knowledge_graph = self.search_knowledge_graph(
+            query=question,
+        )
+        messages = QA_WITH_KNOWLEDGE_PROMPT_TEMPLATE.format_messages(
+            llm=self._llm,
+            query_str=question,
+            chunks=chunks,
+            knowledge_graph=knowledge_graph,
+        )
+        return self._llm.chat(messages)
+
+    # Knowledge Base Operation.
 
     def reset(self):
         self._doc_store.reset()

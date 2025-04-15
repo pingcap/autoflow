@@ -121,14 +121,14 @@ def get_graph_data_from_chat_message(
     if "version" not in graph_data:
         kb = engine_config.get_knowledge_bases(db_session)[0]
         graph_store = get_kb_tidb_graph_store(db_session, kb)
-        return graph_store.get_subgraph_by_relationship_ids(graph_data["relationships"])
+        return graph_store.list_relationships_by_ids(graph_data["relationships"])
 
     # Stored Knowledge Graph -> Retrieved Knowledge Graph
     stored_kg = StoredKnowledgeGraph.model_validate(graph_data)
     if stored_kg.knowledge_base_id is not None:
         kb = knowledge_base_repo.must_get(db_session, stored_kg.knowledge_base_id)
         graph_store = get_kb_tidb_graph_store(db_session, kb)
-        retrieved_kg = graph_store.get_subgraph_by_relationship_ids(
+        retrieved_kg = graph_store.list_relationships_by_ids(
             ids=stored_kg.relationships, query=stored_kg.query
         )
         return retrieved_kg
@@ -150,7 +150,7 @@ def get_graph_data_from_chat_message(
             if kg_store is None:
                 continue
             relationship_ids = stored_subgraph.relationships
-            subgraph = kg_store.get_subgraph_by_relationship_ids(
+            subgraph = kg_store.list_relationships_by_ids(
                 ids=relationship_ids,
                 query=stored_kg.query,
             )

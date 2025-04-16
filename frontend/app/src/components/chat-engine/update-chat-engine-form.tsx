@@ -38,10 +38,10 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
         }
       }}
     >
-      <SecondaryNavigatorLayout defaultValue="Info">
+      <SecondaryNavigatorLayout defaultValue="General">
         <SecondaryNavigatorList>
-          <SecondaryNavigatorItem value="Info">
-            Info
+          <SecondaryNavigatorItem value="General">
+            General
           </SecondaryNavigatorItem>
           <SecondaryNavigatorItem value="Retrieval">
             Retrieval
@@ -49,16 +49,21 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
           <SecondaryNavigatorItem value="Generation">
             Generation
           </SecondaryNavigatorItem>
-          <SecondaryNavigatorItem value="Features">
-            Features
+          <SecondaryNavigatorItem value="Experimental">
+            Experimental
           </SecondaryNavigatorItem>
+          <div className="mt-auto pt-4 text-xs text-gray-500 space-y-1">
+            <div className="flex justify-between px-3">
+              <span>Created:</span>
+              <span>{format(chatEngine.created_at, 'yyyy-MM-dd HH:mm:ss')}</span>
+            </div>
+            <div className="flex justify-between px-3">
+              <span>Updated:</span>
+              <span>{format(chatEngine.updated_at, 'yyyy-MM-dd HH:mm:ss')}</span>
+            </div>
+          </div>
         </SecondaryNavigatorList>
-        <Section title="Info">
-          <GeneralSettingsField readonly accessor={idAccessor} schema={neverSchema}>
-            <field.Basic required name="value" label="ID">
-              <FormInput />
-            </field.Basic>
-          </GeneralSettingsField>
+        <Section title="General">
           <GeneralSettingsField accessor={nameAccessor} schema={nameSchema}>
             <field.Basic name="value" label="Name">
               <FormInput />
@@ -68,16 +73,6 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
             <field.Contained unimportant name="value" label="Is Default" fallbackValue={chatEngine.is_default} description="Set this chat engine as the default engine for new conversations">
               <FormSwitch />
             </field.Contained>
-          </GeneralSettingsField>
-          <GeneralSettingsField readonly accessor={createdAccessor} schema={neverSchema}>
-            <field.Basic name="value" label="Created At">
-              <FormInput />
-            </field.Basic>
-          </GeneralSettingsField>
-          <GeneralSettingsField readonly accessor={updatedAccessor} schema={neverSchema}>
-            <field.Basic name="value" label="Updated At">
-              <FormInput />
-            </field.Basic>
           </GeneralSettingsField>
           <SubSection title="Models">
             <GeneralSettingsField accessor={llmIdAccessor} schema={idSchema}>
@@ -91,36 +86,26 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
               </field.Basic>
             </GeneralSettingsField>
           </SubSection>
-          <SubSection title="External Engine Config">
-            <GeneralSettingsField accessor={externalEngineAccessor} schema={externalEngineSchema}>
-              <field.Basic name="value" label="External Chat Engine API URL (StackVM)" fallbackValue={defaultChatEngineOptions.external_engine_config?.stream_chat_api_url ?? ''}>
-                <FormInput />
-              </field.Basic>
-            </GeneralSettingsField>
-            <GeneralSettingsField accessor={llmAccessor.generate_goal_prompt} schema={llmSchema}>
-              <field.Basic name="value" label="Generate Goal Prompt" description="Template used to generate conversation goals and objectives based on user input" fallbackValue={defaultChatEngineOptions.llm?.generate_goal_prompt}>
-                <PromptInput />
-              </field.Basic>
-            </GeneralSettingsField>
-          </SubSection>
         </Section>
 
         <Section title="Retrieval">
-          <GeneralSettingsField accessor={kbAccessor} schema={kbSchema}>
-            <field.Basic required name="value" label="Knowledge Sources">
-              <KBListSelect />
-            </field.Basic>
-          </GeneralSettingsField>
+          <SubSection title="Knowledge Sources">
+            <GeneralSettingsField accessor={kbAccessor} schema={kbSchema}>
+              <field.Basic required name="value" label="Knowledge Bases">
+                <KBListSelect />
+              </field.Basic>
+            </GeneralSettingsField>
+            <GeneralSettingsField accessor={hideSourcesAccessor} schema={hideSourcesSchema}>
+              <field.Inline name="value" label="Hide Sources" fallbackValue={defaultChatEngineOptions.hide_sources} description="Hide knowledge sources in chat responses">
+                <FormCheckbox />
+              </field.Inline>
+            </GeneralSettingsField>
+          </SubSection>
           <SubSection title="Semantic Search">
             <GeneralSettingsField accessor={rerankerIdAccessor} schema={idSchema}>
               <field.Basic name="value" label="Reranker">
                 <RerankerSelect />
               </field.Basic>
-            </GeneralSettingsField>
-            <GeneralSettingsField accessor={hideSourcesAccessor} schema={hideSourcesSchema}>
-              <field.Inline name="value" label="Hide Sources" fallbackValue={defaultChatEngineOptions.hide_sources} description="Hide the reference sources in the chat response to provide a cleaner interface">
-                <FormCheckbox />
-              </field.Inline>
             </GeneralSettingsField>
           </SubSection>
           <SubSection title="Knowledge Graph">
@@ -167,28 +152,47 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
               </field.Contained>
             </GeneralSettingsField>
             <GeneralSettingsField accessor={llmAccessor.clarifying_question_prompt} schema={llmSchema}>
-              <field.Contained name="value" label="Clarifying Question Prompt" description="Template for generating clarifying questions when the user's input needs more context or specificity" fallbackValue={defaultChatEngineOptions.llm?.clarifying_question_prompt}>
-                <PromptInput />
-              </field.Contained>
-            </GeneralSettingsField>
-          </SubSection>
-          <SubSection title="Rewrite Question">
-            <GeneralSettingsField accessor={llmAccessor.condense_question_prompt} schema={llmSchema}>
-              <field.Basic name="value" label="Condense Question Prompt" description={promptDescriptions.condense_question_prompt} fallbackValue={defaultChatEngineOptions.llm?.condense_question_prompt}>
+              <field.Basic name="value" label="Clarify Question Prompt" description="Template for generating clarifying questions when the user's input needs more context or specificity" fallbackValue={defaultChatEngineOptions.llm?.clarifying_question_prompt}>
                 <PromptInput />
               </field.Basic>
             </GeneralSettingsField>
           </SubSection>
-          <SubSection title="Resolve Question">
+          <SubSection title="Rewrite Question">
+            <GeneralSettingsField accessor={llmAccessor.condense_question_prompt} schema={llmSchema}>
+              <field.Basic name="value" label="Rewrite Question Prompt" description={promptDescriptions.condense_question_prompt} fallbackValue={defaultChatEngineOptions.llm?.condense_question_prompt}>
+                <PromptInput />
+              </field.Basic>
+            </GeneralSettingsField>
+          </SubSection>
+          <SubSection title="Answer Question">
             <GeneralSettingsField accessor={llmAccessor.text_qa_prompt} schema={llmSchema}>
-              <field.Basic name="value" label="Text QA Prompt" description={promptDescriptions.text_qa_prompt} fallbackValue={defaultChatEngineOptions.llm?.text_qa_prompt}>
+              <field.Basic name="value" label="Answer Question Prompt" description={promptDescriptions.text_qa_prompt} fallbackValue={defaultChatEngineOptions.llm?.text_qa_prompt}>
+                <PromptInput />
+              </field.Basic>
+            </GeneralSettingsField>
+          </SubSection>
+          <SubSection title="Recommend More Questions">
+            <GeneralSettingsField accessor={llmAccessor.further_questions_prompt} schema={llmSchema}>
+              <field.Basic name="value" label="Further Questions Prompt" description="Template for generating follow-up questions to continue the conversation" fallbackValue={defaultChatEngineOptions.llm?.further_questions_prompt}>
                 <PromptInput />
               </field.Basic>
             </GeneralSettingsField>
           </SubSection>
         </Section>
 
-        <Section title="Features">
+        <Section title="Experimental">
+          <SubSection title="External Engine">
+            <GeneralSettingsField accessor={externalEngineAccessor} schema={externalEngineSchema}>
+              <field.Basic name="value" label="External Chat Engine API URL (StackVM)" fallbackValue={defaultChatEngineOptions.external_engine_config?.stream_chat_api_url ?? ''}>
+                <FormInput />
+              </field.Basic>
+            </GeneralSettingsField>
+            <GeneralSettingsField accessor={llmAccessor.generate_goal_prompt} schema={llmSchema}>
+              <field.Basic name="value" label="Generate Goal Prompt" description="Template used to generate conversation goals and objectives based on user input" fallbackValue={defaultChatEngineOptions.llm?.generate_goal_prompt}>
+                <PromptInput />
+              </field.Basic>
+            </GeneralSettingsField>
+          </SubSection>
           <SubSection title="Post Verification">
             <GeneralSettingsField accessor={postVerificationUrlAccessor} schema={postVerificationUrlSchema}>
               <field.Basic name="value" label="Post Verifycation Service URL" fallbackValue={defaultChatEngineOptions.post_verification_url ?? ''}>
@@ -198,13 +202,6 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
             <GeneralSettingsField accessor={postVerificationTokenAccessor} schema={postVerificationTokenSchema}>
               <field.Basic name="value" label="Post Verifycation Service Token" fallbackValue={defaultChatEngineOptions.post_verification_token ?? ''}>
                 <FormInput />
-              </field.Basic>
-            </GeneralSettingsField>
-          </SubSection>
-          <SubSection title="Further Recommended Questions">
-            <GeneralSettingsField accessor={llmAccessor.further_questions_prompt} schema={llmSchema}>
-              <field.Basic name="value" label="Further Questions Prompt" description="Template for generating follow-up questions to continue the conversation" fallbackValue={defaultChatEngineOptions.llm?.further_questions_prompt}>
-                <PromptInput />
               </field.Basic>
             </GeneralSettingsField>
           </SubSection>

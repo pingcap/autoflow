@@ -68,12 +68,12 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
     <Form form={form} disabled={transitioning} submissionError={submissionError}>
       <FormSectionsProvider>
         <form id={id} {...formDomEventHandlers(form, transitioning)}>
-          <SecondaryNavigatorLayout defaultValue="Info">
+          <SecondaryNavigatorLayout defaultValue="General">
             <SecondaryNavigatorList>
-              <SectionTabTrigger required value="Info" />
+              <SectionTabTrigger required value="General" />
               <SectionTabTrigger required value="Retrieval" />
               <SectionTabTrigger value="Generation" />
-              <SectionTabTrigger value="Features" />
+              <SectionTabTrigger value="Experimental" />
               <Separator />
               <FormRootError />
               <Button className="w-full" type="submit" form={id} disabled={form.state.isSubmitting || transitioning}>
@@ -81,7 +81,7 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
               </Button>
             </SecondaryNavigatorList>
 
-            <Section title="Info">
+            <Section title="General">
               <field.Basic required name="name" label="Name" defaultValue="" validators={{ onSubmit: nameSchema, onBlur: nameSchema }}>
                 <FormInput />
               </field.Basic>
@@ -93,22 +93,22 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
                   <LLMSelect />
                 </field.Basic>
               </SubSection>
-              <SubSection title="External Engine Config">
-                <field.Basic name="engine_options.external_engine_config.stream_chat_api_url" label="External Chat Engine API URL (StackVM)" fallbackValue={defaultChatEngineOptions.external_engine_config?.stream_chat_api_url ?? ''}>
-                  <FormInput />
+            </Section>
+
+            <Section title="Retrieval">
+              <SubSection title="Knowledge Sources">
+                <field.Basic required name="engine_options.knowledge_base.linked_knowledge_bases" label="Knowledge Bases" validators={{ onChange: kbSchema, onSubmit: kbSchema }}>
+                  <KBListSelectForObjectValue />
                 </field.Basic>
-                <field.Basic name="engine_options.llm.generate_goal_prompt" label="Generate Goal Prompt" fallbackValue={defaultChatEngineOptions.llm?.generate_goal_prompt} description={llmPromptDescriptions.generate_goal_prompt}>
-                  <PromptInput />
+                <field.Inline name="engine_options.hide_sources" label="Hide Sources" description="Hide knowledge sources in chat responses">
+                  <FormCheckbox />
+                </field.Inline>
+              </SubSection>
+              <SubSection title="Semantic Search">
+                <field.Basic name="reranker_id" label="Reranker">
+                  <RerankerSelect />
                 </field.Basic>
               </SubSection>
-            </Section>
-            <Section title="Retrieval">
-              <field.Basic required name="engine_options.knowledge_base.linked_knowledge_bases" label="Linked Knowledge Bases" validators={{ onChange: kbSchema, onSubmit: kbSchema }}>
-                <KBListSelectForObjectValue />
-              </field.Basic>
-              <field.Basic name="reranker_id" label="Reranker">
-                <RerankerSelect />
-              </field.Basic>
               <SubSection title="Knowledge Graph">
                 <field.Contained name="engine_options.knowledge_graph.enabled" label="Enable Knowledge Graph" fallbackValue={defaultChatEngineOptions.knowledge_graph?.enabled} description="Enable knowledge graph functionality to enhance context understanding and relationship mapping between different pieces of information">
                   <FormSwitch />
@@ -132,22 +132,39 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
                 ))}
               </SubSection>
             </Section>
+
             <Section title="Generation">
-              {(['condense_question_prompt', 'condense_answer_prompt', 'text_qa_prompt', 'refine_prompt'] as const).map(name => (
-                <field.Basic key={name} name={`engine_options.llm.${name}`} label={capitalCase(name)} fallbackValue={defaultChatEngineOptions.llm?.[name]} description={llmPromptDescriptions[name]}>
-                  <PromptInput />
-                </field.Basic>
-              ))}
-            </Section>
-            <Section title="Features">
-              <field.Inline name="engine_options.hide_sources" label="Hide Reference Sources" description="Hide the reference sources in the chat response to provide a cleaner interface">
-                <FormCheckbox />
-              </field.Inline>
               <SubSection title="Clarify Question">
                 <field.Contained unimportant name="engine_options.clarify_question" label="Clarify Question" description="Enable the system to ask clarifying questions when user input is ambiguous">
                   <FormSwitch />
                 </field.Contained>
-                <field.Basic name="engine_options.llm.clarifying_question_prompt" label="Clarifying Question Prompt" fallbackValue={defaultChatEngineOptions.llm?.clarifying_question_prompt} description={llmPromptDescriptions.clarifying_question_prompt}>
+                <field.Basic name="engine_options.llm.clarifying_question_prompt" label="Clarify Question Prompt" fallbackValue={defaultChatEngineOptions.llm?.clarifying_question_prompt} description={llmPromptDescriptions.clarifying_question_prompt}>
+                  <PromptInput />
+                </field.Basic>
+              </SubSection>
+              <SubSection title="Rewrite Question">
+                <field.Basic name="engine_options.llm.condense_question_prompt" label="Rewrite Question Prompt" fallbackValue={defaultChatEngineOptions.llm?.condense_question_prompt} description={llmPromptDescriptions.condense_question_prompt}>
+                  <PromptInput />
+                </field.Basic>
+              </SubSection>
+              <SubSection title="Answer Question">
+                <field.Basic name="engine_options.llm.text_qa_prompt" label="Answer Question Prompt" fallbackValue={defaultChatEngineOptions.llm?.text_qa_prompt} description={llmPromptDescriptions.text_qa_prompt}>
+                  <PromptInput />
+                </field.Basic>
+              </SubSection>
+              <SubSection title="Recommend More Questions">
+                <field.Basic name="engine_options.llm.further_questions_prompt" label="Further Questions Prompt" fallbackValue={defaultChatEngineOptions.llm?.further_questions_prompt} description={llmPromptDescriptions.further_questions_prompt}>
+                  <PromptInput />
+                </field.Basic>
+              </SubSection>
+            </Section>
+
+            <Section title="Experimental">
+              <SubSection title="External Engine">
+                <field.Basic name="engine_options.external_engine_config.stream_chat_api_url" label="External Chat Engine API URL (StackVM)" fallbackValue={defaultChatEngineOptions.external_engine_config?.stream_chat_api_url ?? ''}>
+                  <FormInput />
+                </field.Basic>
+                <field.Basic name="engine_options.llm.generate_goal_prompt" label="Generate Goal Prompt" fallbackValue={defaultChatEngineOptions.llm?.generate_goal_prompt} description={llmPromptDescriptions.generate_goal_prompt}>
                   <PromptInput />
                 </field.Basic>
               </SubSection>
@@ -157,11 +174,6 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
                 </field.Basic>
                 <field.Basic name="engine_options.post_verification_token" label="Post Verifycation Service Token" fallbackValue={defaultChatEngineOptions.post_verification_token ?? ''}>
                   <FormInput />
-                </field.Basic>
-              </SubSection>
-              <SubSection title="Further Recommended Questions">
-                <field.Basic name="engine_options.llm.further_questions_prompt" label="Further Questions Prompt" fallbackValue={defaultChatEngineOptions.llm?.further_questions_prompt} description={llmPromptDescriptions.further_questions_prompt}>
-                  <PromptInput />
                 </field.Basic>
               </SubSection>
             </Section>
@@ -221,9 +233,7 @@ function SubSection ({ title, children }: { title: ReactNode, children: ReactNod
 
 const llmPromptFields = [
   'condense_question_prompt',
-  'condense_answer_prompt',
   'text_qa_prompt',
-  'refine_prompt',
   'intent_graph_knowledge',
   'normal_graph_knowledge',
   'clarifying_question_prompt',
@@ -233,12 +243,10 @@ const llmPromptFields = [
 
 const llmPromptDescriptions: { [P in typeof llmPromptFields[number]]: string } = {
   'condense_question_prompt': 'Template for condensing a conversation history and follow-up question into a standalone question',
-  'condense_answer_prompt': 'Template for condensing multiple answer fragments into a coherent response',
   'text_qa_prompt': 'Template for generating answers based on provided context and question',
-  'refine_prompt': 'Template for refining an existing answer with additional context',
   'intent_graph_knowledge': 'Template for extracting knowledge from intent-based graph traversal',
   'normal_graph_knowledge': 'Template for processing knowledge from standard graph traversal',
   'clarifying_question_prompt': 'Template for generating clarifying questions when user input is ambiguous',
   'generate_goal_prompt': 'Template for generating conversation goals based on user input',
   'further_questions_prompt': 'Template for generating follow-up questions to continue the conversation',
-};
+}; 

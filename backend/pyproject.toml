@@ -1,7 +1,7 @@
 [project]
-name = "autoflow-api"
+name = "tidb-ai-backend"
 version = "0.2.9"
-description = "The API Server for AutoFlow"
+description = "The Backend Server for TiDB.AI"
 authors = [
     { name = "wd0517", email = "me@wangdi.ink" },
     { name = "mini256", email = "minianter@gmail.com" }
@@ -32,7 +32,9 @@ dependencies = [
     "sentry-sdk>=2.5.1",
     "langfuse>=2.59.1",
     "langchain-openai>=0.2.9",
-    "ragas>=0.2.6",
+    # Pin ragas to 0.2.6 to avoid async loop error:
+    # https://github.com/explodinggradients/ragas/issues/1819
+    "ragas==0.2.6",
     "deepeval>=0.21.73",
     "click>=8.1.7",
     "tenacity~=8.4.0",

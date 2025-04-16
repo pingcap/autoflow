@@ -74,7 +74,6 @@ dependencies = [
     { name = "aiohappyeyeballs" },
     { name = "aiosignal" },
     { name = "async-timeout", version = "4.0.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "async-timeout", version = "5.0.1", source = { registry = "https://pypi.org/simple" }, marker = "python_version < '0'" },
     { name = "attrs" },
     { name = "frozenlist" },
     { name = "multidict" },
@@ -406,143 +405,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/5a/b0/1367933a8532ee6ff8d63537de4f1177af4bff9f3e829baf7331f595bb24/attrs-25.3.0.tar.gz", hash = "sha256:75d7cefc7fb576747b2c81b4442d4d4a1ce0900973527c011d1030fd3bf4af1b", size = 812032 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/77/06/bb80f5f86020c4551da315d78b3ab75e8228f89f0162f2c3a819e407941a/attrs-25.3.0-py3-none-any.whl", hash = "sha256:427318ce031701fea540783410126f03899a97ffc6f61596ad581ac2e40e3bc3", size = 63815 },
-]
-
-[[package]]
-name = "autoflow-api"
-version = "0.2.9"
-source = { virtual = "." }
-dependencies = [
-    { name = "alembic" },
-    { name = "asyncmy" },
-    { name = "celery" },
-    { name = "click" },
-    { name = "colorama" },
-    { name = "deepdiff" },
-    { name = "deepeval" },
-    { name = "dspy" },
-    { name = "fastapi" },
-    { name = "fastapi-cli" },
-    { name = "fastapi-pagination" },
-    { name = "fastapi-users" },
-    { name = "fastapi-users-db-sqlmodel" },
-    { name = "flower" },
-    { name = "gunicorn" },
-    { name = "httpx-oauth" },
-    { name = "jinja2" },
-    { name = "langchain-openai" },
-    { name = "langfuse" },
-    { name = "llama-index" },
-    { name = "llama-index-embeddings-azure-openai" },
-    { name = "llama-index-embeddings-bedrock" },
-    { name = "llama-index-embeddings-cohere" },
-    { name = "llama-index-embeddings-jinaai" },
-    { name = "llama-index-embeddings-ollama" },
-    { name = "llama-index-llms-azure-openai" },
-    { name = "llama-index-llms-bedrock" },
-    { name = "llama-index-llms-google-genai" },
-    { name = "llama-index-llms-ollama" },
-    { name = "llama-index-llms-openai" },
-    { name = "llama-index-llms-openai-like" },
-    { name = "llama-index-llms-vertex" },
-    { name = "llama-index-postprocessor-bedrock-rerank" },
-    { name = "llama-index-postprocessor-cohere-rerank" },
-    { name = "llama-index-postprocessor-jinaai-rerank" },
-    { name = "llama-index-postprocessor-xinference-rerank" },
-    { name = "markdownify" },
-    { name = "openpyxl" },
-    { name = "playwright" },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
-    { name = "pymysql" },
-    { name = "pypdf" },
-    { name = "python-docx" },
-    { name = "python-dotenv" },
-    { name = "python-pptx" },
-    { name = "pyyaml" },
-    { name = "ragas" },
-    { name = "redis" },
-    { name = "retry" },
-    { name = "sentry-sdk" },
-    { name = "socksio" },
-    { name = "sqlmodel" },
-    { name = "tenacity" },
-    { name = "tidb-vector" },
-    { name = "uvicorn" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pre-commit" },
-    { name = "pytest-asyncio" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "alembic", specifier = ">=1.14.0" },
-    { name = "asyncmy", specifier = ">=0.2.9" },
-    { name = "celery", specifier = ">=5.4.0" },
-    { name = "click", specifier = ">=8.1.7" },
-    { name = "colorama", specifier = ">=0.4.6" },
-    { name = "deepdiff", specifier = ">=7.0.1" },
-    { name = "deepeval", specifier = ">=0.21.73" },
-    { name = "dspy", specifier = ">=2.6.13" },
-    { name = "fastapi", specifier = ">=0.115.6" },
-    { name = "fastapi-cli", specifier = ">=0.0.5" },
-    { name = "fastapi-pagination", specifier = ">=0.12.25" },
-    { name = "fastapi-users", specifier = ">=13.0.0" },
-    { name = "fastapi-users-db-sqlmodel", specifier = ">=0.3.0" },
-    { name = "flower", specifier = ">=2.0.1" },
-    { name = "gunicorn", specifier = ">=22.0.0" },
-    { name = "httpx-oauth", specifier = ">=0.14.1" },
-    { name = "jinja2", specifier = ">=3.1.4" },
-    { name = "langchain-openai", specifier = ">=0.2.9" },
-    { name = "langfuse", specifier = ">=2.59.1" },
-    { name = "llama-index", specifier = ">=0.12.16" },
-    { name = "llama-index-embeddings-azure-openai", specifier = ">=0.3.0" },
-    { name = "llama-index-embeddings-bedrock", specifier = ">=0.4.0" },
-    { name = "llama-index-embeddings-cohere", specifier = ">=0.4.0" },
-    { name = "llama-index-embeddings-jinaai", specifier = ">=0.4.0" },
-    { name = "llama-index-embeddings-ollama", specifier = ">=0.5.0" },
-    { name = "llama-index-llms-azure-openai", specifier = ">=0.3.0" },
-    { name = "llama-index-llms-bedrock", specifier = ">=0.3.3" },
-    { name = "llama-index-llms-google-genai", specifier = ">=0.1.6" },
-    { name = "llama-index-llms-ollama", specifier = ">=0.5.0" },
-    { name = "llama-index-llms-openai", specifier = ">=0.3.13" },
-    { name = "llama-index-llms-openai-like", specifier = ">=0.3.3" },
-    { name = "llama-index-llms-vertex", specifier = ">=0.4.2" },
-    { name = "llama-index-postprocessor-bedrock-rerank", specifier = ">=0.3.0" },
-    { name = "llama-index-postprocessor-cohere-rerank", specifier = ">=0.3.0" },
-    { name = "llama-index-postprocessor-jinaai-rerank", specifier = ">=0.3.0" },
-    { name = "llama-index-postprocessor-xinference-rerank", specifier = ">=0.2.0" },
-    { name = "markdownify", specifier = ">=0.13.1" },
-    { name = "openpyxl", specifier = ">=3.1.5" },
-    { name = "playwright", specifier = ">=1.45.1" },
-    { name = "pydantic", specifier = ">=2.10.5" },
-    { name = "pydantic-settings", specifier = ">=2.3.3" },
-    { name = "pymysql", specifier = ">=1.1.1" },
-    { name = "pypdf", specifier = ">=4.3.1" },
-    { name = "python-docx", specifier = ">=1.1.2" },
-    { name = "python-dotenv", specifier = ">=1.0.1" },
-    { name = "python-pptx", specifier = ">=1.0.2" },
-    { name = "pyyaml", specifier = ">=6.0.1" },
-    { name = "ragas", specifier = ">=0.2.6" },
-    { name = "redis", specifier = ">=5.0.5" },
-    { name = "retry", specifier = ">=0.9.2" },
-    { name = "sentry-sdk", specifier = ">=2.5.1" },
-    { name = "socksio", specifier = ">=1.0.0" },
-    { name = "sqlmodel", specifier = "==0.0.19" },
-    { name = "tenacity", specifier = "~=8.4.0" },
-    { name = "tidb-vector", specifier = ">=0.0.14" },
-    { name = "uvicorn", specifier = ">=0.30.3" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pre-commit", specifier = ">=4.2.0" },
-    { name = "pytest-asyncio", specifier = ">=0.25.3" },
-    { name = "ruff", specifier = ">=0.11.2" },
 ]
 
 [[package]]
@@ -4567,6 +4429,14 @@ wheels = [
 ]
 
 [[package]]
+name = "pysbd"
+version = "0.3.4"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/48/0a/c99fb7d7e176f8b176ef19704a32e6a9c6aafdf19ef75a187f701fc15801/pysbd-0.3.4-py3-none-any.whl", hash = "sha256:cd838939b7b0b185fcf86b0baf6636667dfb6e474743beeff878e9f42e022953", size = 71082 },
+]
+
+[[package]]
 name = "pytest"
 version = "8.3.5"
 source = { registry = "https://pypi.org/simple" }
@@ -4788,12 +4658,11 @@ wheels = [
 
 [[package]]
 name = "ragas"
-version = "0.2.14"
+version = "0.2.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "appdirs" },
     { name = "datasets" },
-    { name = "diskcache" },
     { name = "langchain" },
     { name = "langchain-community" },
     { name = "langchain-core" },
@@ -4802,11 +4671,12 @@ dependencies = [
     { name = "numpy" },
     { name = "openai" },
     { name = "pydantic" },
+    { name = "pysbd" },
     { name = "tiktoken" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4d/33/e001b7ad7aa755f526630df38c8ed4d454e1a027d79a6cb5592990dbcad1/ragas-0.2.14.tar.gz", hash = "sha256:a438d93cee9eccdcfb749ab741cb36438ab69e8903684b6fb39ad24b6241d1cb", size = 40204156 }
+sdist = { url = "https://files.pythonhosted.org/packages/95/20/b6e0e43897e5cf66659443aa647521d61c8045bb57930933bc63fed45c29/ragas-0.2.6.tar.gz", hash = "sha256:877e723e4bbf29eab8e1b12f7bf6f63bb2145d63ea4c3ce21620b14f9dbfb421", size = 5035876 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/56/17/825a8bed3780261bf6179f216a2b33250ad8ef372f944b399cc591f8cb1f/ragas-0.2.14-py3-none-any.whl", hash = "sha256:874ebe9f4e04d83f88b7fded35cc2fe849e7dec2cff824db39c686faca8bb6e2", size = 187224 },
+    { url = "https://files.pythonhosted.org/packages/8b/1a/7f4fba14367ba769cf606edd017993faf919b2bbaef3e88f0929daed8b00/ragas-0.2.6-py3-none-any.whl", hash = "sha256:2d40a6af196df7346486e2eeb203bb0a542efa0827e839812f6c66123fd3319f", size = 157481 },
 ]
 
 [[package]]
@@ -5501,6 +5371,143 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/9a/dc/7b9818743ab08d53245b777639b6c2d274be8e7eb09b1131885958a3f517/tenacity-8.4.2.tar.gz", hash = "sha256:cd80a53a79336edba8489e767f729e4f391c896956b57140b5d7511a64bbd3ef", size = 46206 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e3/ee/b179c3ab5cb842d75c65339c4b86b572eaf8f43407890bd1d2c7b72eb829/tenacity-8.4.2-py3-none-any.whl", hash = "sha256:9e6f7cf7da729125c7437222f8a522279751cdfbe6b67bfe64f75d3a348661b2", size = 28165 },
+]
+
+[[package]]
+name = "tidb-ai-backend"
+version = "0.2.9"
+source = { virtual = "." }
+dependencies = [
+    { name = "alembic" },
+    { name = "asyncmy" },
+    { name = "celery" },
+    { name = "click" },
+    { name = "colorama" },
+    { name = "deepdiff" },
+    { name = "deepeval" },
+    { name = "dspy" },
+    { name = "fastapi" },
+    { name = "fastapi-cli" },
+    { name = "fastapi-pagination" },
+    { name = "fastapi-users" },
+    { name = "fastapi-users-db-sqlmodel" },
+    { name = "flower" },
+    { name = "gunicorn" },
+    { name = "httpx-oauth" },
+    { name = "jinja2" },
+    { name = "langchain-openai" },
+    { name = "langfuse" },
+    { name = "llama-index" },
+    { name = "llama-index-embeddings-azure-openai" },
+    { name = "llama-index-embeddings-bedrock" },
+    { name = "llama-index-embeddings-cohere" },
+    { name = "llama-index-embeddings-jinaai" },
+    { name = "llama-index-embeddings-ollama" },
+    { name = "llama-index-llms-azure-openai" },
+    { name = "llama-index-llms-bedrock" },
+    { name = "llama-index-llms-google-genai" },
+    { name = "llama-index-llms-ollama" },
+    { name = "llama-index-llms-openai" },
+    { name = "llama-index-llms-openai-like" },
+    { name = "llama-index-llms-vertex" },
+    { name = "llama-index-postprocessor-bedrock-rerank" },
+    { name = "llama-index-postprocessor-cohere-rerank" },
+    { name = "llama-index-postprocessor-jinaai-rerank" },
+    { name = "llama-index-postprocessor-xinference-rerank" },
+    { name = "markdownify" },
+    { name = "openpyxl" },
+    { name = "playwright" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "pymysql" },
+    { name = "pypdf" },
+    { name = "python-docx" },
+    { name = "python-dotenv" },
+    { name = "python-pptx" },
+    { name = "pyyaml" },
+    { name = "ragas" },
+    { name = "redis" },
+    { name = "retry" },
+    { name = "sentry-sdk" },
+    { name = "socksio" },
+    { name = "sqlmodel" },
+    { name = "tenacity" },
+    { name = "tidb-vector" },
+    { name = "uvicorn" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pre-commit" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "alembic", specifier = ">=1.14.0" },
+    { name = "asyncmy", specifier = ">=0.2.9" },
+    { name = "celery", specifier = ">=5.4.0" },
+    { name = "click", specifier = ">=8.1.7" },
+    { name = "colorama", specifier = ">=0.4.6" },
+    { name = "deepdiff", specifier = ">=7.0.1" },
+    { name = "deepeval", specifier = ">=0.21.73" },
+    { name = "dspy", specifier = ">=2.6.13" },
+    { name = "fastapi", specifier = ">=0.115.6" },
+    { name = "fastapi-cli", specifier = ">=0.0.5" },
+    { name = "fastapi-pagination", specifier = ">=0.12.25" },
+    { name = "fastapi-users", specifier = ">=13.0.0" },
+    { name = "fastapi-users-db-sqlmodel", specifier = ">=0.3.0" },
+    { name = "flower", specifier = ">=2.0.1" },
+    { name = "gunicorn", specifier = ">=22.0.0" },
+    { name = "httpx-oauth", specifier = ">=0.14.1" },
+    { name = "jinja2", specifier = ">=3.1.4" },
+    { name = "langchain-openai", specifier = ">=0.2.9" },
+    { name = "langfuse", specifier = ">=2.59.1" },
+    { name = "llama-index", specifier = ">=0.12.16" },
+    { name = "llama-index-embeddings-azure-openai", specifier = ">=0.3.0" },
+    { name = "llama-index-embeddings-bedrock", specifier = ">=0.4.0" },
+    { name = "llama-index-embeddings-cohere", specifier = ">=0.4.0" },
+    { name = "llama-index-embeddings-jinaai", specifier = ">=0.4.0" },
+    { name = "llama-index-embeddings-ollama", specifier = ">=0.5.0" },
+    { name = "llama-index-llms-azure-openai", specifier = ">=0.3.0" },
+    { name = "llama-index-llms-bedrock", specifier = ">=0.3.3" },
+    { name = "llama-index-llms-google-genai", specifier = ">=0.1.6" },
+    { name = "llama-index-llms-ollama", specifier = ">=0.5.0" },
+    { name = "llama-index-llms-openai", specifier = ">=0.3.13" },
+    { name = "llama-index-llms-openai-like", specifier = ">=0.3.3" },
+    { name = "llama-index-llms-vertex", specifier = ">=0.4.2" },
+    { name = "llama-index-postprocessor-bedrock-rerank", specifier = ">=0.3.0" },
+    { name = "llama-index-postprocessor-cohere-rerank", specifier = ">=0.3.0" },
+    { name = "llama-index-postprocessor-jinaai-rerank", specifier = ">=0.3.0" },
+    { name = "llama-index-postprocessor-xinference-rerank", specifier = ">=0.2.0" },
+    { name = "markdownify", specifier = ">=0.13.1" },
+    { name = "openpyxl", specifier = ">=3.1.5" },
+    { name = "playwright", specifier = ">=1.45.1" },
+    { name = "pydantic", specifier = ">=2.10.5" },
+    { name = "pydantic-settings", specifier = ">=2.3.3" },
+    { name = "pymysql", specifier = ">=1.1.1" },
+    { name = "pypdf", specifier = ">=4.3.1" },
+    { name = "python-docx", specifier = ">=1.1.2" },
+    { name = "python-dotenv", specifier = ">=1.0.1" },
+    { name = "python-pptx", specifier = ">=1.0.2" },
+    { name = "pyyaml", specifier = ">=6.0.1" },
+    { name = "ragas", specifier = "==0.2.6" },
+    { name = "redis", specifier = ">=5.0.5" },
+    { name = "retry", specifier = ">=0.9.2" },
+    { name = "sentry-sdk", specifier = ">=2.5.1" },
+    { name = "socksio", specifier = ">=1.0.0" },
+    { name = "sqlmodel", specifier = "==0.0.19" },
+    { name = "tenacity", specifier = "~=8.4.0" },
+    { name = "tidb-vector", specifier = ">=0.0.14" },
+    { name = "uvicorn", specifier = ">=0.30.3" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pre-commit", specifier = ">=4.2.0" },
+    { name = "pytest-asyncio", specifier = ">=0.25.3" },
+    { name = "ruff", specifier = ">=0.11.2" },
 ]
 
 [[package]]

@@ -80,8 +80,14 @@ cat .credentials
 echo -e "$TAG Start components"
 docker compose up -d redis frontend backend background static-web-server
 
-echo -e "$TAG Wait until tidb.ai ready..."
+echo -e "$TAG Wait until tidb.ai frontend ready..."
 while ! curl http://127.0.0.1:3000 > /dev/null 2>/dev/null
+do
+  sleep 1
+done
+
+echo -e "$TAG Wait until tidb.ai backend ready..."
+while ! curl http://127.0.0.1:5001 > /dev/null 2>/dev/null
 do
   sleep 1
 done

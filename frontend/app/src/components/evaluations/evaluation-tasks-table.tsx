@@ -16,14 +16,14 @@ const helper = createColumnHelper<EvaluationTaskWithSummary>();
 
 const columns = [
   helper.accessor('id', { header: 'ID', cell: mono }),
-  helper.accessor('name', { header: 'Name', cell: link({ text: row => row.name, url: row => `/evaluation/tasks/${row.id}` }) }),
-  helper.accessor('dataset_id', { header: 'Dataset', cell: link({ text: row => String(row.dataset_id), url: row => `/evaluation/datasets/${row.dataset_id}` }) }),
-  helper.accessor('user_id', { header: 'User ID' }),
-  helper.accessor('created_at', { header: 'Created At', cell: datetime }),
-  helper.accessor('updated_at', { header: 'Updated At', cell: datetime }),
+  helper.accessor('name', { header: 'NAME', cell: link({ text: row => row.name, url: row => `/evaluation/tasks/${row.id}` }) }),
+  helper.accessor('dataset_id', { header: 'DATASET', cell: link({ text: row => String(row.dataset_id), url: row => `/evaluation/datasets/${row.dataset_id}` }) }),
+  helper.accessor('user_id', { header: 'USER ID' }),
+  helper.accessor('created_at', { header: 'CREATED AT', cell: datetime }),
+  helper.accessor('updated_at', { header: 'UPDATED AT', cell: datetime }),
   helper.display({
     id: 'op',
-    header: 'Operations',
+    header: 'OPERATIONS',
     cell: actions(row => [
       {
         title: 'View',

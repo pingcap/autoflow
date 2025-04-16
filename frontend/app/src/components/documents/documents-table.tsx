@@ -23,9 +23,11 @@ const helper = createColumnHelper<Document>();
 
 
 const getColumns = (kbId: number) => [
-  helper.accessor('id', { header: "#", cell: mono }),
+  helper.accessor('id', { header: "ID", cell: mono }),
   helper.display({
-    id: 'name', header: 'Name', cell: ({ row }) =>
+    id: 'name', 
+    header: 'NAME', 
+    cell: ({ row }) =>
       <DocumentPreviewDialog
         title={row.original.source_uri}
         name={row.original.name}
@@ -34,17 +36,18 @@ const getColumns = (kbId: number) => [
       />,
   }),
   helper.accessor('source_uri', {
-    header: "Source URI",
+    header: "SOURCE URI",
     cell: link({
       icon: <DownloadIcon className="size-3" />,
       truncate: true,
     }),
   }),
-  helper.accessor('data_source', { header: "Data source", cell: ctx => <DatasourceCell {...ctx.getValue()} /> }),
-  helper.accessor('updated_at', { header: "Last updated", cell: datetime }),
-  helper.accessor('index_status', { header: "Index status", cell: mono }),
+  helper.accessor('data_source', { header: "DATA SOURCE", cell: ctx => <DatasourceCell {...ctx.getValue()} /> }),
+  helper.accessor('updated_at', { header: "LAST UPDATED", cell: datetime }),
+  helper.accessor('index_status', { header: "INDEX STATUS", cell: mono }),
   helper.display({
     id: 'op',
+    header: 'ACTIONS',
     cell: actions(row => [
       {
         type: 'label',

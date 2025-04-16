@@ -25,8 +25,12 @@ export function EmbeddingModelsTable () {
 
 const helper = createColumnHelper<EmbeddingModel>();
 const columns: ColumnDef<EmbeddingModel, any>[] = [
+  helper.accessor('id', {
+    header: 'ID',
+    cell: ({ row }) => row.original.id
+  }),
   helper.accessor('name', {
-    header: 'Name',
+    header: 'NAME',
     cell: ({ row }) => {
       const { id, name, is_default } = row.original;
       return (
@@ -38,7 +42,7 @@ const columns: ColumnDef<EmbeddingModel, any>[] = [
     },
   }),
   helper.display({
-    header: 'Provider / Model',
+    header: 'PROVIDER / MODEL',
     cell: ({ row }) => {
       const { model, provider } = row.original;
       return (
@@ -48,10 +52,13 @@ const columns: ColumnDef<EmbeddingModel, any>[] = [
       );
     },
   }),
-  helper.accessor('vector_dimension', { cell: mono }),
+  helper.accessor('vector_dimension', { 
+    header: 'VECTOR DIMENSION',
+    cell: mono 
+  }),
   helper.display({
     id: 'Operations',
-    header: 'Operations',
+    header: 'ACTIONS',
     cell: actions(row => ([
       {
         key: 'set-default',

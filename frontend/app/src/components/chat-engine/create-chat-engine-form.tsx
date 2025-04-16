@@ -83,7 +83,7 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
 
             <Section title="General">
               <field.Basic required name="name" label="Name" defaultValue="" validators={{ onSubmit: nameSchema, onBlur: nameSchema }}>
-                <FormInput />
+                <FormInput placeholder="Enter chat engine name" />
               </field.Basic>
               <SubSection title="Models">
                 <field.Basic name="llm_id" label="LLM">

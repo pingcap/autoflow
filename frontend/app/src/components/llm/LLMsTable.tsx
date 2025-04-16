@@ -24,8 +24,12 @@ export function LLMsTable () {
 
 const helper = createColumnHelper<LLM>();
 const columns: ColumnDef<LLM, any>[] = [
+  helper.accessor('id', {
+    header: 'ID',
+    cell: ({ row }) => row.original.id
+  }),
   helper.accessor('name', {
-    header: 'Name',
+    header: 'NAME',
     cell: ({ row }) => {
       const { id, name, is_default } = row.original;
       return (
@@ -37,7 +41,7 @@ const columns: ColumnDef<LLM, any>[] = [
     },
   }),
   helper.display({
-    header: 'Provider / Model',
+    header: 'PROVIDER / MODEL',
     cell: ({ row }) => {
       const { model, provider } = row.original;
       return (
@@ -49,7 +53,7 @@ const columns: ColumnDef<LLM, any>[] = [
   }),
   helper.display({
     id: 'Operations',
-    header: 'Operations',
+    header: 'ACTIONS',
     cell: actions(row => ([
       {
         key: 'set-default',

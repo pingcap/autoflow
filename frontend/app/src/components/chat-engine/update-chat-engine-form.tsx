@@ -66,7 +66,7 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
         <Section title="General">
           <GeneralSettingsField accessor={nameAccessor} schema={nameSchema}>
             <field.Basic name="value" label="Name">
-              <FormInput />
+              <FormInput placeholder="Enter chat engine name" />
             </field.Basic>
           </GeneralSettingsField>
           <GeneralSettingsField accessor={isDefaultAccessor} schema={isDefaultSchema}>

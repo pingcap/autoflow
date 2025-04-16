@@ -16,15 +16,15 @@ const helper = createColumnHelper<EvaluationDatasetItem>();
 
 const columns = [
   helper.accessor('id', { header: 'ID', cell: link({ url: row => `/evaluation/datasets/${row.evaluation_dataset_id}/items/${row.id}` }) }),
-  helper.accessor('query', { header: 'Query', cell: documentCell('Query') }),
-  helper.accessor('reference', { header: 'Reference', cell: documentCell('Reference') }),
-  helper.accessor('retrieved_contexts', { header: 'Retrieved Contexts', cell: textChunksArrayCell }),
-  helper.accessor('extra', { header: 'extra', cell: metadataCell }),
-  helper.accessor('created_at', { header: 'Created At', cell: datetime }),
-  helper.accessor('updated_at', { header: 'Updated At', cell: datetime }),
+  helper.accessor('query', { header: 'QUERY', cell: documentCell('Query') }),
+  helper.accessor('reference', { header: 'REFERENCE', cell: documentCell('Reference') }),
+  helper.accessor('retrieved_contexts', { header: 'RETRIEVED CONTEXTS', cell: textChunksArrayCell }),
+  helper.accessor('extra', { header: 'EXTRA', cell: metadataCell }),
+  helper.accessor('created_at', { header: 'CREATED AT', cell: datetime }),
+  helper.accessor('updated_at', { header: 'UPDATED AT', cell: datetime }),
   helper.display({
     id: 'op',
-    header: 'Operations',
+    header: 'ACTIONS',
     cell: actions(row => ([
       {
         key: 'update',

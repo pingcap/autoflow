@@ -17,13 +17,28 @@ import { toast } from 'sonner';
 const helper = createColumnHelper<ChatEngine>();
 
 const columns = [
-  helper.accessor('id', { cell: mono }),
-  helper.accessor('name', { cell: context => <NameLink chatEngine={context.row.original} /> }),
-  helper.accessor('created_at', { cell: datetime }),
-  helper.accessor('updated_at', { cell: datetime }),
-  helper.accessor('is_default', { cell: boolean }),
+  helper.accessor('id', { 
+    header: 'ID',
+    cell: mono 
+  }),
+  helper.accessor('name', { 
+    header: 'NAME',
+    cell: context => <NameLink chatEngine={context.row.original} /> 
+  }),
+  helper.accessor('created_at', { 
+    header: 'CREATED AT',
+    cell: datetime 
+  }),
+  helper.accessor('updated_at', { 
+    header: 'UPDATED AT',
+    cell: datetime 
+  }),
+  helper.accessor('is_default', { 
+    header: 'IS DEFAULT',
+    cell: boolean 
+  }),
   helper.display({
-    header: 'Actions',
+    header: 'ACTIONS',
     cell: actions((chatEngine) => [
       {
         key: 'clone',

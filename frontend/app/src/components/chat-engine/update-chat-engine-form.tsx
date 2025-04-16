@@ -107,15 +107,22 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
 
         <Section title="Retrieval">
           <GeneralSettingsField accessor={kbAccessor} schema={kbSchema}>
-            <field.Basic required name="value" label="Linked Knowledge Bases">
+            <field.Basic required name="value" label="Knowledge Sources">
               <KBListSelect />
             </field.Basic>
           </GeneralSettingsField>
-          <GeneralSettingsField accessor={rerankerIdAccessor} schema={idSchema}>
-            <field.Basic name="value" label="Reranker">
-              <RerankerSelect />
-            </field.Basic>
-          </GeneralSettingsField>
+          <SubSection title="Semantic Search">
+            <GeneralSettingsField accessor={rerankerIdAccessor} schema={idSchema}>
+              <field.Basic name="value" label="Reranker">
+                <RerankerSelect />
+              </field.Basic>
+            </GeneralSettingsField>
+            <GeneralSettingsField accessor={hideSourcesAccessor} schema={hideSourcesSchema}>
+              <field.Inline name="value" label="Hide Sources" fallbackValue={defaultChatEngineOptions.hide_sources} description="Hide the reference sources in the chat response to provide a cleaner interface">
+                <FormCheckbox />
+              </field.Inline>
+            </GeneralSettingsField>
+          </SubSection>
           <SubSection title="Knowledge Graph">
             <GeneralSettingsField accessor={kgEnabledAccessor} schema={kgEnabledSchema}>
               <field.Contained name="value" label="Enable Knowledge Graph" fallbackValue={defaultChatEngineOptions.knowledge_graph?.enabled} description="Enable knowledge graph to enrich context information">
@@ -153,21 +160,6 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
         </Section>
 
         <Section title="Generation">
-          {(['condense_question_prompt', 'text_qa_prompt'] as const).map(type => (
-            <GeneralSettingsField key={type} accessor={llmAccessor[type]} schema={llmSchema}>
-              <field.Basic name="value" label={capitalCase(type)} description={promptDescriptions[type]} fallbackValue={defaultChatEngineOptions.llm?.[type]}>
-                <PromptInput />
-              </field.Basic>
-            </GeneralSettingsField>
-          ))}
-        </Section>
-
-        <Section title="Features">
-          <GeneralSettingsField accessor={hideSourcesAccessor} schema={hideSourcesSchema}>
-            <field.Inline name="value" label="Hide Sources" fallbackValue={defaultChatEngineOptions.hide_sources} description="Hide the reference sources in the chat response to provide a cleaner interface">
-              <FormCheckbox />
-            </field.Inline>
-          </GeneralSettingsField>
           <SubSection title="Clarify Question">
             <GeneralSettingsField accessor={clarifyAccessor} schema={clarifyAccessorSchema}>
               <field.Contained unimportant name="value" label="Clarify Question" fallbackValue={defaultChatEngineOptions.clarify_question} description="Enable the system to ask clarifying questions when user input is ambiguous">
@@ -180,6 +172,23 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
               </field.Contained>
             </GeneralSettingsField>
           </SubSection>
+          <SubSection title="Rewrite Question">
+            <GeneralSettingsField accessor={llmAccessor.condense_question_prompt} schema={llmSchema}>
+              <field.Basic name="value" label="Condense Question Prompt" description={promptDescriptions.condense_question_prompt} fallbackValue={defaultChatEngineOptions.llm?.condense_question_prompt}>
+                <PromptInput />
+              </field.Basic>
+            </GeneralSettingsField>
+          </SubSection>
+          <SubSection title="Resolve Question">
+            <GeneralSettingsField accessor={llmAccessor.text_qa_prompt} schema={llmSchema}>
+              <field.Basic name="value" label="Text QA Prompt" description={promptDescriptions.text_qa_prompt} fallbackValue={defaultChatEngineOptions.llm?.text_qa_prompt}>
+                <PromptInput />
+              </field.Basic>
+            </GeneralSettingsField>
+          </SubSection>
+        </Section>
+
+        <Section title="Features">
           <SubSection title="Post Verification">
             <GeneralSettingsField accessor={postVerificationUrlAccessor} schema={postVerificationUrlSchema}>
               <field.Basic name="value" label="Post Verifycation Service URL" fallbackValue={defaultChatEngineOptions.post_verification_url ?? ''}>

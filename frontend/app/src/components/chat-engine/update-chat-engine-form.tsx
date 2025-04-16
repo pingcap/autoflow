@@ -52,7 +52,7 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
           <SecondaryNavigatorItem value="Experimental">
             Experimental
           </SecondaryNavigatorItem>
-          <div className="mt-auto pt-4 text-xs text-gray-500 space-y-1">
+          <div className="mt-auto pt-2 text-xs text-gray-500 space-y-1">
             <div className="flex justify-between px-3">
               <span>Created:</span>
               <span>{format(chatEngine.created_at, 'yyyy-MM-dd HH:mm:ss')}</span>

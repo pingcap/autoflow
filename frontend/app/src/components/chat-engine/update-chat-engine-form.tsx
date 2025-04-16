@@ -65,7 +65,7 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
             </field.Basic>
           </GeneralSettingsField>
           <GeneralSettingsField accessor={isDefaultAccessor} schema={isDefaultSchema}>
-            <field.Contained unimportant name="value" label="Is Default" fallbackValue={chatEngine.is_default} description="/// Description TBD">
+            <field.Contained unimportant name="value" label="Is Default" fallbackValue={chatEngine.is_default} description="Set this chat engine as the default engine for new conversations">
               <FormSwitch />
             </field.Contained>
           </GeneralSettingsField>
@@ -98,7 +98,7 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
               </field.Basic>
             </GeneralSettingsField>
             <GeneralSettingsField accessor={llmAccessor.generate_goal_prompt} schema={llmSchema}>
-              <field.Basic name="value" label="Generate Goal Prompt" description="/// TBD" fallbackValue={defaultChatEngineOptions.llm?.generate_goal_prompt}>
+              <field.Basic name="value" label="Generate Goal Prompt" description="Template used to generate conversation goals and objectives based on user input" fallbackValue={defaultChatEngineOptions.llm?.generate_goal_prompt}>
                 <PromptInput />
               </field.Basic>
             </GeneralSettingsField>
@@ -118,33 +118,33 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
           </GeneralSettingsField>
           <SubSection title="Knowledge Graph">
             <GeneralSettingsField accessor={kgEnabledAccessor} schema={kgEnabledSchema}>
-              <field.Contained name="value" label="Enable Knowledge Graph" fallbackValue={defaultChatEngineOptions.knowledge_graph?.enabled} description="/// Description TBD">
+              <field.Contained name="value" label="Enable Knowledge Graph" fallbackValue={defaultChatEngineOptions.knowledge_graph?.enabled} description="Enable knowledge graph to enrich context information">
                 <FormSwitch />
               </field.Contained>
             </GeneralSettingsField>
             <GeneralSettingsField accessor={kgDepthAccessor} schema={kgDepthSchema}>
-              <field.Basic name="value" label="Depth" fallbackValue={defaultChatEngineOptions.knowledge_graph?.depth}>
+              <field.Basic name="value" label="Depth" fallbackValue={defaultChatEngineOptions.knowledge_graph?.depth} description="Set the maximum traversal depth for knowledge graph search (higher values allow finding more distant relationships)">
                 <FormInput type="number" min={1} />
               </field.Basic>
             </GeneralSettingsField>
             <GeneralSettingsField accessor={kgIncludeMetaAccessor} schema={kgIncludeMetaSchema}>
-              <field.Inline name="value" label="Include Meta" fallbackValue={defaultChatEngineOptions.knowledge_graph?.include_meta} description="/// Description TBD">
+              <field.Inline name="value" label="Include Metadata" fallbackValue={defaultChatEngineOptions.knowledge_graph?.include_meta} description="Include metadata information in knowledge graph nodes to provide additional context">
                 <FormCheckbox />
               </field.Inline>
             </GeneralSettingsField>
             <GeneralSettingsField accessor={kgWithDegreeAccessor} schema={kgWithDegreeSchema}>
-              <field.Inline name="value" label="With Degree" fallbackValue={defaultChatEngineOptions.knowledge_graph?.with_degree} description="/// Description TBD">
+              <field.Inline name="value" label="With Degree" fallbackValue={defaultChatEngineOptions.knowledge_graph?.with_degree} description="Include entity in-degree and out-degree information in knowledge graph for weight calculation and ranking">
                 <FormCheckbox />
               </field.Inline>
             </GeneralSettingsField>
             <GeneralSettingsField accessor={kgUsingIntentSearchAccessor} schema={kgUsingIntentSearchSchema}>
-              <field.Inline name="value" label="Using intent search" fallbackValue={defaultChatEngineOptions.knowledge_graph?.using_intent_search} description="/// Description TBD">
+              <field.Inline name="value" label="Using Intent Search" fallbackValue={defaultChatEngineOptions.knowledge_graph?.using_intent_search} description="Enable intelligent search that breaks down user question into sub-questions for more comprehensive search results">
                 <FormCheckbox />
               </field.Inline>
             </GeneralSettingsField>
             {(['intent_graph_knowledge', 'normal_graph_knowledge'] as const).map(type => (
               <GeneralSettingsField key={type} accessor={llmAccessor[type]} schema={llmSchema}>
-                <field.Basic name="value" label={capitalCase(type)} description="/// TBD" fallbackValue={defaultChatEngineOptions.llm?.[type]}>
+                <field.Basic name="value" label={capitalCase(type)} description="Template for processing and extracting knowledge from graph-based traversal methods" fallbackValue={defaultChatEngineOptions.llm?.[type]}>
                   <PromptInput />
                 </field.Basic>
               </GeneralSettingsField>
@@ -153,9 +153,9 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
         </Section>
 
         <Section title="Generation">
-          {(['condense_question_prompt', 'condense_answer_prompt', 'text_qa_prompt', 'refine_prompt'] as const).map(type => (
+          {(['condense_question_prompt', 'text_qa_prompt'] as const).map(type => (
             <GeneralSettingsField key={type} accessor={llmAccessor[type]} schema={llmSchema}>
-              <field.Basic name="value" label={capitalCase(type)} description="/// TBD" fallbackValue={defaultChatEngineOptions.llm?.[type]}>
+              <field.Basic name="value" label={capitalCase(type)} description={promptDescriptions[type]} fallbackValue={defaultChatEngineOptions.llm?.[type]}>
                 <PromptInput />
               </field.Basic>
             </GeneralSettingsField>
@@ -164,18 +164,18 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
 
         <Section title="Features">
           <GeneralSettingsField accessor={hideSourcesAccessor} schema={hideSourcesSchema}>
-            <field.Inline name="value" label="Hide Sources" fallbackValue={defaultChatEngineOptions.hide_sources} description="/// Description TBD">
+            <field.Inline name="value" label="Hide Sources" fallbackValue={defaultChatEngineOptions.hide_sources} description="Hide the reference sources in the chat response to provide a cleaner interface">
               <FormCheckbox />
             </field.Inline>
           </GeneralSettingsField>
           <SubSection title="Clarify Question">
             <GeneralSettingsField accessor={clarifyAccessor} schema={clarifyAccessorSchema}>
-              <field.Contained unimportant name="value" label="Clarify Question" fallbackValue={defaultChatEngineOptions.clarify_question} description="/// Description TBD">
+              <field.Contained unimportant name="value" label="Clarify Question" fallbackValue={defaultChatEngineOptions.clarify_question} description="Enable the system to ask clarifying questions when user input is ambiguous">
                 <FormSwitch />
               </field.Contained>
             </GeneralSettingsField>
             <GeneralSettingsField accessor={llmAccessor.clarifying_question_prompt} schema={llmSchema}>
-              <field.Contained name="value" label="Clarifying Question Prompt" description="/// TBD" fallbackValue={defaultChatEngineOptions.llm?.clarifying_question_prompt}>
+              <field.Contained name="value" label="Clarifying Question Prompt" description="Template for generating clarifying questions when the user's input needs more context or specificity" fallbackValue={defaultChatEngineOptions.llm?.clarifying_question_prompt}>
                 <PromptInput />
               </field.Contained>
             </GeneralSettingsField>
@@ -194,7 +194,7 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
           </SubSection>
           <SubSection title="Further Recommended Questions">
             <GeneralSettingsField accessor={llmAccessor.further_questions_prompt} schema={llmSchema}>
-              <field.Basic name="value" label="Further Questions Prompt" description="/// TBD" fallbackValue={defaultChatEngineOptions.llm?.further_questions_prompt}>
+              <field.Basic name="value" label="Further Questions Prompt" description="Template for generating follow-up questions to continue the conversation" fallbackValue={defaultChatEngineOptions.llm?.further_questions_prompt}>
                 <PromptInput />
               </field.Basic>
             </GeneralSettingsField>
@@ -341,9 +341,7 @@ const hideSourcesSchema = z.boolean().nullable();
 
 const llmPromptFields = [
   'condense_question_prompt',
-  'condense_answer_prompt',
   'text_qa_prompt',
-  'refine_prompt',
   'intent_graph_knowledge',
   'normal_graph_knowledge',
   'clarifying_question_prompt',
@@ -397,3 +395,13 @@ function SubSection ({ title, children }: { title: ReactNode, children: ReactNod
     </section>
   );
 }
+
+const promptDescriptions: Record<typeof llmPromptFields[number], string> = {
+  'condense_question_prompt': 'Template for condensing a conversation history and follow-up question into a standalone question',
+  'text_qa_prompt': 'Template for generating answers based on provided context and question',
+  'intent_graph_knowledge': 'Template for extracting knowledge from intent-based graph traversal',
+  'normal_graph_knowledge': 'Template for processing knowledge from standard graph traversal',
+  'clarifying_question_prompt': 'Template for generating clarifying questions when user input is ambiguous',
+  'generate_goal_prompt': 'Template for generating conversation goals based on user input',
+  'further_questions_prompt': 'Template for generating follow-up questions to continue the conversation',
+};

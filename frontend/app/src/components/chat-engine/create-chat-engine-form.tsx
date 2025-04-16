@@ -110,19 +110,19 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
                 <RerankerSelect />
               </field.Basic>
               <SubSection title="Knowledge Graph">
-                <field.Contained name="engine_options.knowledge_graph.enabled" label="Enable Knowledge Graph" fallbackValue={defaultChatEngineOptions.knowledge_graph?.enabled} description="/// Description TBD">
+                <field.Contained name="engine_options.knowledge_graph.enabled" label="Enable Knowledge Graph" fallbackValue={defaultChatEngineOptions.knowledge_graph?.enabled} description="Enable knowledge graph functionality to enhance context understanding and relationship mapping between different pieces of information">
                   <FormSwitch />
                 </field.Contained>
                 <field.Basic name="engine_options.knowledge_graph.depth" label="Depth" fallbackValue={defaultChatEngineOptions.knowledge_graph?.depth} validators={{ onBlur: kgGraphDepthSchema, onSubmit: kgGraphDepthSchema }}>
                   <FormInput type="number" min={1} step={1} />
                 </field.Basic>
-                <field.Inline name="engine_options.knowledge_graph.include_meta" label="Include Meta" fallbackValue={defaultChatEngineOptions.knowledge_graph?.include_meta} description="/// Description TBD">
+                <field.Inline name="engine_options.knowledge_graph.include_meta" label="Include Meta" fallbackValue={defaultChatEngineOptions.knowledge_graph?.include_meta} description="Include metadata information in knowledge graph nodes to provide additional context">
                   <FormCheckbox />
                 </field.Inline>
-                <field.Inline name="engine_options.knowledge_graph.with_degree" label="With Degree" fallbackValue={defaultChatEngineOptions.knowledge_graph?.with_degree} description="/// Description TBD">
+                <field.Inline name="engine_options.knowledge_graph.with_degree" label="With Degree" fallbackValue={defaultChatEngineOptions.knowledge_graph?.with_degree} description="Include connection degree information in knowledge graph relationships">
                   <FormCheckbox />
                 </field.Inline>
-                <field.Inline name="engine_options.knowledge_graph.using_intent_search" label="Using intent search" fallbackValue={defaultChatEngineOptions.knowledge_graph?.using_intent_search} description="/// Description TBD">
+                <field.Inline name="engine_options.knowledge_graph.using_intent_search" label="Using intent search" fallbackValue={defaultChatEngineOptions.knowledge_graph?.using_intent_search} description="Enable intent-based search in knowledge graph traversal for more contextually relevant results">
                   <FormCheckbox />
                 </field.Inline>
                 {(['intent_graph_knowledge', 'normal_graph_knowledge'] as const).map(name => (
@@ -140,11 +140,11 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
               ))}
             </Section>
             <Section title="Features">
-              <field.Inline name="engine_options.hide_sources" label="Hide Reference Sources" description="/// Description TBD">
+              <field.Inline name="engine_options.hide_sources" label="Hide Reference Sources" description="Hide the reference sources in the chat response to provide a cleaner interface">
                 <FormCheckbox />
               </field.Inline>
               <SubSection title="Clarify Question">
-                <field.Contained unimportant name="engine_options.clarify_question" label="Clarify Question" description="/// Description TBD">
+                <field.Contained unimportant name="engine_options.clarify_question" label="Clarify Question" description="Enable the system to ask clarifying questions when user input is ambiguous">
                   <FormSwitch />
                 </field.Contained>
                 <field.Basic name="engine_options.llm.clarifying_question_prompt" label="Clarifying Question Prompt" fallbackValue={defaultChatEngineOptions.llm?.clarifying_question_prompt} description={llmPromptDescriptions.clarifying_question_prompt}>
@@ -232,13 +232,13 @@ const llmPromptFields = [
 ] as const;
 
 const llmPromptDescriptions: { [P in typeof llmPromptFields[number]]: string } = {
-  'condense_question_prompt': '/// Description TBD',
-  'condense_answer_prompt': '/// Description TBD',
-  'text_qa_prompt': '/// Description TBD',
-  'refine_prompt': '/// Description TBD',
-  'intent_graph_knowledge': '/// Description TBD',
-  'normal_graph_knowledge': '/// Description TBD',
-  'clarifying_question_prompt': '/// Description TBD',
-  'generate_goal_prompt': '/// Description TBD',
-  'further_questions_prompt': '/// Description TBD',
+  'condense_question_prompt': 'Template for condensing a conversation history and follow-up question into a standalone question',
+  'condense_answer_prompt': 'Template for condensing multiple answer fragments into a coherent response',
+  'text_qa_prompt': 'Template for generating answers based on provided context and question',
+  'refine_prompt': 'Template for refining an existing answer with additional context',
+  'intent_graph_knowledge': 'Template for extracting knowledge from intent-based graph traversal',
+  'normal_graph_knowledge': 'Template for processing knowledge from standard graph traversal',
+  'clarifying_question_prompt': 'Template for generating clarifying questions when user input is ambiguous',
+  'generate_goal_prompt': 'Template for generating conversation goals based on user input',
+  'further_questions_prompt': 'Template for generating follow-up questions to continue the conversation',
 };

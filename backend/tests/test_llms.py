@@ -3,10 +3,13 @@ import os
 import logging
 from logging import getLogger
 
+import pytest
 import dspy
+
 from litellm import verbose_logger
 from llama_index.core import PromptTemplate
 from llama_index.core.base.llms.base import BaseLLM
+
 from app.rag.indices.knowledge_graph.extractor import Extractor
 from app.rag.llms.provider import LLMProvider
 from app.rag.llms.resolver import resolve_llm
@@ -74,6 +77,9 @@ def test_openai():
     check_dspy_lm_extract_graph(lm)
 
 
+@pytest.mark.skipif(
+    os.getenv("GITHUB_ACTIONS"), reason="ollama is not available on GitHub Actions"
+)
 def test_ollama():
     llm = resolve_llm(
         provider=LLMProvider.OLLAMA,

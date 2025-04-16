@@ -25,3 +25,8 @@ nltk.download("punkt", download_dir=download_dir);'
 ENV PYTHONPATH=/app
 
 COPY . /app/
+
+# Default number of workers
+ENV FASTAPI_WORKERS=4
+
+CMD ["sh", "-c", "fastapi run app/api_server.py --host 0.0.0.0 --port 80 --workers ${FASTAPI_WORKERS}"]

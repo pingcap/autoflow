@@ -12,14 +12,26 @@ migrate:
 	@echo "Migrating database..."
 	@uv run alembic upgrade head
 
-run_dev_server:
-	@echo "Running server..."
-	@uv run python main.py runserver --host 0.0.0.0 --port 5001
+lint:
+	@echo "Linting code..."
+	@uv run ruff check .
 
-run_dev_celery_worker:
-	@echo "Running celery..."
+format:
+	@echo "Formatting code..."
+	@uv run ruff format .
+
+test:
+	@echo "Running tests..."
+	@uv run pytest -v tests/
+
+dev_backend:
+	@echo "Running development backend server..."
+	@uv run fastapi run app/api_server.py --host 0.0.0.0 --port 5001
+
+dev_background_worker:
+	@echo "Running background worker..."
 	@uv run celery -A app.celery worker -Q default
 
-run_eval_dev_celery_worker:
-	@echo "Running evaluation celery..."
+dev_eval_worker:
+	@echo "Running evaluation worker..."
 	@uv run celery -A app.celery worker -Q evaluation --loglevel=debug --pool=solo

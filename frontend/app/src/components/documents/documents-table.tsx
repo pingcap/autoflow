@@ -17,6 +17,8 @@ import { createColumnHelper } from '@tanstack/table-core';
 import { TrashIcon, UploadIcon, BlocksIcon, WrenchIcon, DownloadIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 const helper = createColumnHelper<Document>();
 
@@ -123,15 +125,24 @@ export function DocumentsTable ({ knowledgeBaseId }: { knowledgeBaseId: number }
   return (
     <DataTableRemote
       toolbar={((table) => (
-        <div className="space-y-2">
-          <NextLink
-            href={`/knowledge-bases/${knowledgeBaseId}/data-sources/new?type=file`}
-            variant="secondary"
-          >
-            <UploadIcon />
-            Upload documents
-          </NextLink>
-          <DocumentsTableFilters table={table} onFilterChange={setFilters} />
+        <div className="space-y-1">
+          {/* Top container - Search and Upload */}
+          <div className="flex items-center justify-between py-1.5">
+            <div></div>
+            <NextLink
+              href={`/knowledge-bases/${knowledgeBaseId}/data-sources/new?type=file`}
+              variant="secondary"
+              className="h-8 text-sm px-3"
+            >
+              <UploadIcon className="mr-2 size-3" />
+              Upload
+            </NextLink>
+          </div>
+
+          {/* Bottom container - Filters */}
+          <div className="py-1.5 border-b">
+            <DocumentsTableFilters table={table} onFilterChange={setFilters} />
+          </div>
         </div>
       ))}
       columns={columns}

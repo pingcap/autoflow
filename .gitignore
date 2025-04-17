@@ -12,3 +12,7 @@ local-embedding-reranker
 
 *.swp
 *.swo
+
+.next
+node_modules/
+_pagefind/

@@ -78,22 +78,20 @@ test.describe('Chat Engine', () => {
 
         // Goto retrieval tab
         await page.getByRole('tab', { name: 'Retrieval' }).click();
-
-        // Select default knowledge base
         await selectOption(page, 'Knowledge Bases', /My Knowledge Base/, true);
+        await checkCheckbox(page, 'Hide Sources');
 
-        // Select Reranker
+        // Semantic Search Subsection
         await selectOption(page, 'Reranker', /My Reranker/);
 
-        // KG Properties
+        // Knowledge Graph Subsection
         await page.getByRole('spinbutton', { name: 'Depth' }).fill('1'); // Do not use 2 for default value is 2
-        await checkCheckbox(page, 'Include Meta');
+        await checkCheckbox(page, 'Include Metadata');
         await checkCheckbox(page, 'Using intent search');
 
-        // Goto features tab
-        await page.getByRole('tab', { name: 'Features' }).click();
+        // Goto Generation tab
+        await page.getByRole('tab', { name: 'Generation' }).click();
 
-        await checkCheckbox(page, 'Hide Reference Sources');
         await turnSwitch(page, 'Clarify Question');
       });
 

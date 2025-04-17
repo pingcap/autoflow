@@ -135,7 +135,7 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
 
             <Section title="Generation">
               <SubSection title="Clarify Question">
-                <field.Contained unimportant name="engine_options.clarify_question" label="Clarify Question" description="Enable the system to ask clarifying questions when user input is ambiguous">
+                <field.Contained unimportant name="engine_options.clarify_question" label="Clarify Question" description="Allow ChatBot to check if user input is ambiguous and ask clarifying questions">
                   <FormSwitch />
                 </field.Contained>
                 <field.Basic name="engine_options.llm.clarifying_question_prompt" label="Clarify Question Prompt" fallbackValue={defaultChatEngineOptions.llm?.clarifying_question_prompt} description={llmPromptDescriptions.clarifying_question_prompt}>

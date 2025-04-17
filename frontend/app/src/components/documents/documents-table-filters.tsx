@@ -8,49 +8,88 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useForm } from '@tanstack/react-form';
 import { Table as ReactTable } from '@tanstack/react-table';
 import { capitalCase } from 'change-case-all';
-import { ChevronDownIcon } from 'lucide-react';
+import { ChevronDownIcon, UploadIcon } from 'lucide-react';
+import { DateRangePicker } from '@/components/date-range-picker';
+import { DateRange } from 'react-day-picker';
+import { NextLink } from '@/components/nextjs/NextLink';
 
-export function DocumentsTableFilters ({ onFilterChange }: { table: ReactTable<Document>, onFilterChange: (data: ListDocumentsTableFilters) => void }) {
+interface DocumentsTableFiltersProps {
+  knowledgeBaseId: number;
+  table: ReactTable<Document>;
+  onFilterChange: (data: ListDocumentsTableFilters) => void;
+}
+
+export function DocumentsTableFilters ({ knowledgeBaseId, table, onFilterChange }: DocumentsTableFiltersProps) {
   const form = useForm({
     validators: {
       onChange: listDocumentsFiltersSchema,
     },
-    onSubmit: ({ value }) => {
-      onFilterChange?.(listDocumentsFiltersSchema.parse(value));
+    defaultValues: {
+      search: undefined,
+      mime_type: undefined,
+      index_status: undefined,
+    },
+    onSubmit: async ({ value }) => {
+      const filters = listDocumentsFiltersSchema.parse(value);
+      onFilterChange?.(filters);
     },
   });
 
   return (
     <Form form={form}>
-      <div className="flex items-center">
-        <div className="flex items-center gap-2">
-          <FormField
-            name="search"
-            render={(field) => (
-              <FormItem>
-                <FormControl>
-                  <div className="flex gap-2">
+      <div className="flex flex-col gap-4">
+        {/* Top row - Search and Upload */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FormField
+              name="search"
+              render={(field) => (
+                <FormItem>
+                  <FormControl>
                     <Input
                       name={field.name}
-                      className="h-8 text-sm w-[400px]"
+                      className="h-8 text-sm w-[500px]"
                       onBlur={field.handleBlur}
                       onChange={ev => field.handleChange(ev.target.value)}
                       value={field.state.value ?? ''}
-                      placeholder="Search..."
+                      placeholder="Search name or source..."
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          form.handleSubmit();
+                        }
+                      }}
                     />
-                    <Button 
-                      type="submit" 
-                      size="sm" 
-                      className="h-8 px-3"
-                      onClick={() => form.handleSubmit()}
-                    >
-                      Search
-                    </Button>
-                  </div>
-                </FormControl>
-              </FormItem>
-            )}
-          />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <Button 
+              type="submit" 
+              size="sm" 
+              className="h-8 px-3"
+              onClick={(e) => {
+                e.preventDefault();
+                form.handleSubmit();
+              }}
+            >
+              Search
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <NextLink
+              href={`/knowledge-bases/${knowledgeBaseId}/data-sources/new?type=file`}
+              variant="secondary"
+              className="h-8 text-sm px-3"
+            >
+              <UploadIcon className="mr-2 size-3" />
+              Upload
+            </NextLink>
+          </div>
+        </div>
+
+        {/* Bottom row - Filters */}
+        <div className="flex items-center gap-2">
 
           <FormField
             name="mime_type"
@@ -58,7 +97,7 @@ export function DocumentsTableFilters ({ onFilterChange }: { table: ReactTable<D
               <FormItem>
                 <Select value={field.state.value ?? ''} name={field.name} onValueChange={field.handleChange}>
                   <SelectTrigger className="h-8 text-sm font-normal hover:bg-accent min-w-[120px]" onBlur={field.handleBlur}>
-                    <SelectValue placeholder="Type" />
+                    <SelectValue placeholder="Document Type" />
                   </SelectTrigger>
                   <SelectContent>
                     {mimeTypes.map(mime => (
@@ -78,7 +117,7 @@ export function DocumentsTableFilters ({ onFilterChange }: { table: ReactTable<D
               <FormItem>
                 <Select value={field.state.value ?? ''} name={field.name} onValueChange={field.handleChange}>
                   <SelectTrigger className="h-8 text-sm font-normal hover:bg-accent min-w-[120px]" onBlur={field.handleBlur}>
-                    <SelectValue placeholder="Status" />
+                    <SelectValue placeholder="Index Status" />
                   </SelectTrigger>
                   <SelectContent>
                     {indexStatuses.map(indexStatus => (
@@ -93,143 +132,49 @@ export function DocumentsTableFilters ({ onFilterChange }: { table: ReactTable<D
           />
 
           <FormField
-            name="source_uri"
+            name="created_at"
             render={(field) => (
               <FormItem>
-                <FormControl>
-                  <Input
-                    name={field.name}
-                    className="h-8 text-sm w-[180px]"
-                    onBlur={field.handleBlur}
-                    onChange={ev => field.handleChange(ev.target.value)}
-                    value={field.state.value ?? ''}
-                    placeholder="Source URI"
-                  />
-                </FormControl>
+                <DateRangePicker
+                  value={field.state.value ? { from: field.state.value[0], to: field.state.value[1] } : undefined}
+                  onChange={(range) => field.handleChange(range ? [range.from, range.to] : undefined)}
+                  placeholder="Created Time"
+                  className="w-[180px]"
+                  size="sm"
+                />
               </FormItem>
             )}
           />
 
-          <Collapsible>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 px-2 font-normal">
-                More filters
-                <ChevronDownIcon className="ml-1 size-4 transition-transform group-data-[state=open]:rotate-180" />
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="absolute mt-2 p-4 bg-background border rounded-md shadow-md z-10">
-              <div className="grid grid-cols-2 gap-4 min-w-[600px]">
-                <FormField
-                  name="created_at_start"
-                  render={(field) => (
-                    <FormItem>
-                      <FormLabel>Created After</FormLabel>
-                      <FormControl>
-                        <Input
-                          name={field.name}
-                          onBlur={field.handleBlur}
-                          onChange={ev => field.handleChange(ev.target.valueAsDate)}
-                          type="datetime-local"
-                          value={field.state.value ?? ''}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+          <FormField
+            name="updated_at"
+            render={(field) => (
+              <FormItem>
+                <DateRangePicker
+                  value={field.state.value ? { from: field.state.value[0], to: field.state.value[1] } : undefined}
+                  onChange={(range) => field.handleChange(range ? [range.from, range.to] : undefined)}
+                  placeholder="Updated Time"
+                  className="w-[180px]"
+                  size="sm"
                 />
-                <FormField
-                  name="created_at_end"
-                  render={(field) => (
-                    <FormItem>
-                      <FormLabel>Created Before</FormLabel>
-                      <FormControl>
-                        <Input
-                          name={field.name}
-                          onBlur={field.handleBlur}
-                          onChange={ev => field.handleChange(ev.target.valueAsDate)}
-                          type="datetime-local"
-                          value={field.state.value ?? ''}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            name="last_modified_at"
+            render={(field) => (
+              <FormItem>
+                <DateRangePicker
+                  value={field.state.value ? { from: field.state.value[0], to: field.state.value[1] } : undefined}
+                  onChange={(range) => field.handleChange(range ? [range.from, range.to] : undefined)}
+                  placeholder="Last Modified Time"
+                  className="w-[180px]"
+                  size="sm"
                 />
-                <FormField
-                  name="updated_at_start"
-                  render={(field) => (
-                    <FormItem>
-                      <FormLabel>Updated After</FormLabel>
-                      <FormControl>
-                        <Input
-                          name={field.name}
-                          onBlur={field.handleBlur}
-                          onChange={ev => field.handleChange(ev.target.valueAsDate)}
-                          type="datetime-local"
-                          value={field.state.value ?? ''}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  name="updated_at_end"
-                  render={(field) => (
-                    <FormItem>
-                      <FormLabel>Updated Before</FormLabel>
-                      <FormControl>
-                        <Input
-                          name={field.name}
-                          onBlur={field.handleBlur}
-                          onChange={ev => field.handleChange(ev.target.valueAsDate)}
-                          type="datetime-local"
-                          value={field.state.value ?? ''}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  name="last_modified_at_start"
-                  render={(field) => (
-                    <FormItem>
-                      <FormLabel>Last Modified After</FormLabel>
-                      <FormControl>
-                        <Input
-                          name={field.name}
-                          onBlur={field.handleBlur}
-                          onChange={ev => field.handleChange(ev.target.valueAsDate)}
-                          type="datetime-local"
-                          value={field.state.value ?? ''}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  name="last_modified_at_end"
-                  render={(field) => (
-                    <FormItem>
-                      <FormLabel>Last Modified Before</FormLabel>
-                      <FormControl>
-                        <Input
-                          name={field.name}
-                          onBlur={field.handleBlur}
-                          onChange={ev => field.handleChange(ev.target.valueAsDate)}
-                          type="datetime-local"
-                          value={field.state.value ?? ''}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+              </FormItem>
+            )}
+          />
 
           <Button 
             variant="ghost" 

@@ -147,7 +147,7 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
         <Section title="Generation">
           <SubSection title="Clarify Question">
             <GeneralSettingsField accessor={clarifyAccessor} schema={clarifyAccessorSchema}>
-              <field.Contained unimportant name="value" label="Clarify Question" fallbackValue={defaultChatEngineOptions.clarify_question} description="Enable the system to ask clarifying questions when user input is ambiguous">
+              <field.Contained unimportant name="value" label="Clarify Question" fallbackValue={defaultChatEngineOptions.clarify_question} description="Allow ChatBot to check if user input is ambiguous and ask clarifying questions">
                 <FormSwitch />
               </field.Contained>
             </GeneralSettingsField>

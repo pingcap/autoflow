@@ -10,7 +10,6 @@ import { DatasourceCell } from '@/components/cells/reference';
 import { DataTableRemote } from '@/components/data-table-remote';
 import { DocumentPreviewDialog } from '@/components/document-viewer';
 import { DocumentsTableFilters } from '@/components/documents/documents-table-filters';
-import { NextLink } from '@/components/nextjs/NextLink';
 import { getErrorMessage } from '@/lib/errors';
 import type { ColumnDef } from '@tanstack/react-table';
 import { createColumnHelper } from '@tanstack/table-core';
@@ -125,24 +124,12 @@ export function DocumentsTable ({ knowledgeBaseId }: { knowledgeBaseId: number }
   return (
     <DataTableRemote
       toolbar={((table) => (
-        <div className="space-y-1">
-          {/* Top container - Search and Upload */}
-          <div className="flex items-center justify-between py-1.5">
-            <div></div>
-            <NextLink
-              href={`/knowledge-bases/${knowledgeBaseId}/data-sources/new?type=file`}
-              variant="secondary"
-              className="h-8 text-sm px-3"
-            >
-              <UploadIcon className="mr-2 size-3" />
-              Upload
-            </NextLink>
-          </div>
-
-          {/* Bottom container - Filters */}
-          <div className="py-1.5 border-b">
-            <DocumentsTableFilters table={table} onFilterChange={setFilters} />
-          </div>
+          <div className="py-1">
+            <DocumentsTableFilters
+              knowledgeBaseId={knowledgeBaseId}
+              table={table}
+              onFilterChange={setFilters}
+            />
         </div>
       ))}
       columns={columns}

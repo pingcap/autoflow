@@ -10,24 +10,38 @@ from app.types import MimeTypes
 
 
 class DocumentFilters(BaseModel):
-    name: Optional[str] = Field(
-        None,
-        description="[Fuzzy Match] name field, will search for the name that contains the given string.",
+    search: Optional[str] = Field(
+        description="The search string to filter documents by name or source URI.",
+        default=None,
     )
-    source_uri: Optional[str] = Field(
-        None,
-        description="[Fuzzy Match] source URI field, will search for the source URI that contains the given string.",
+    knowledge_base_id: Optional[int] = Field(
+        description="The knowledge base ID that the document belongs to.",
+        default=None,
     )
-    knowledge_base_id: Optional[int] = Field(None)
-    data_source_id: Optional[int] = Field(None)
-    created_at_start: Optional[datetime] = Field(None)
-    created_at_end: Optional[datetime] = None
-    updated_at_start: Optional[datetime] = None
-    updated_at_end: Optional[datetime] = None
-    last_modified_at_start: Optional[datetime] = None
-    last_modified_at_end: Optional[datetime] = None
-    mime_type: Optional[MimeTypes] = None
-    index_status: Optional[DocIndexTaskStatus] = None
+    data_source_id: Optional[int] = Field(
+        description="The data source ID that the document belongs to.",
+        default=None,
+    )
+    mime_type: Optional[MimeTypes] = Field(
+        description="The MIME type of the documents to filter by.",
+        default=None,
+    )
+    index_status: Optional[DocIndexTaskStatus] = Field(
+        description="The status of the document index task to filter by.",
+        default=None,
+    )
+    created_at: Optional[tuple[datetime, datetime]] = Field(
+        description="The time range when the document was created.",
+        default=None,
+    )
+    updated_at: Optional[tuple[datetime, datetime]] = Field(
+        description="The time range when the document was last updated.",
+        default=None,
+    )
+    last_modified_at: Optional[tuple[datetime, datetime]] = Field(
+        description="The time range when the document was last modified in the source system.",
+        default=None,
+    )
 
 
 class DocumentItem(BaseModel):

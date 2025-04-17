@@ -45,3 +45,6 @@ public/sitemap-*.xml
 
 *storybook.log
 storybook-static
+
+
+_pagefind/

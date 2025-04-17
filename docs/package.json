@@ -13,7 +13,8 @@
     "nextra": "^4.2.17",
     "nextra-theme-docs": "^4.2.17",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "tailwindcss": "^4.1.4"
   },
   "devDependencies": {
     "@types/node": "22.14.1",

@@ -22,7 +22,7 @@ test.describe('Chat Engine', () => {
         await page.getByRole('tab', { name: 'Retrieval' }).click();
 
         // Select default knowledge base
-        await selectOption(page, 'Linked Knowledge Bases', /My Knowledge Base/, true);
+        await selectOption(page, 'Knowledge Bases', /My Knowledge Base/, true);
       });
 
       const chatEngineId = await test.step('Create', async () => {
@@ -80,7 +80,7 @@ test.describe('Chat Engine', () => {
         await page.getByRole('tab', { name: 'Retrieval' }).click();
 
         // Select default knowledge base
-        await selectOption(page, 'Linked Knowledge Bases', /My Knowledge Base/, true);
+        await selectOption(page, 'Knowledge Bases', /My Knowledge Base/, true);
 
         // Select Reranker
         await selectOption(page, 'Reranker', /My Reranker/);
@@ -151,7 +151,7 @@ test.describe('Chat Engine', () => {
           await page.getByRole('tab', { name: 'Retrieval' }).click();
 
           // Select default knowledge base
-          await selectOption(page, 'Linked Knowledge Bases', /My Knowledge Base/, true);
+          await selectOption(page, 'Knowledge Bases', /My Knowledge Base/, true);
         });
 
         const chatEngineId = await test.step('Create', async () => {

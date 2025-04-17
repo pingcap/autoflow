@@ -240,7 +240,7 @@ test('Bootstrap', async ({ browser, page }) => {
     await page.getByRole('link', { name: 'default' }).click();
 
     await page.getByRole('tab', { name: 'Retrieval' }).click();
-    await page.getByRole('button', { name: 'Linked Knowledge Bases', exact: true }).click();
+    await page.getByRole('button', { name: 'Knowledge Bases', exact: true }).click();
     await page.getByRole('option').filter({ has: page.getByText('My Knowledge Base') }).click();
     await page.click('body');
 

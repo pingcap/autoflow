@@ -1,0 +1,60 @@
+# Evaluation (beta)
+
+The **Evaluation** module is an integral part of the Chat Engine of the AutoFlow, designed to assess the performance and reliability of the Chat Engine's outputs.
+
+Currently, the module provides evaluations based on two key metrics:
+
+1. **Factual Correctness**: This metric measures the degree to which the generated responses align with verified facts. It ensures that the Chat Engine delivers accurate and trustworthy information.
+
+2. **Semantic Similarity**: This metric evaluates the closeness in meaning between the generated responses and the expected outputs. It helps gauge the contextual relevance and coherence of the Chat Engine's performance.
+
+With these metrics, the Evaluation component empowers developers and users to analyze and optimize the Chat Engine's capabilities effectively.
+
+## Prerequisites
+
+- An admin account to access the Evaluation panel.
+- (Optional) A CSV dataset with at least two columns:
+    - `query`: i.e. question.
+    - `reference`: i.e. expected answer.
+
+## How to Evaluate
+
+To evaluate the Chat Engine, follow these steps:
+
+1. Create an evaluation dataset:
+
+    1. Click on the **Evaluation** in the left panel, and then click the **Datasets** button.
+
+        !["Evaluation - Datasets"](https://github.com/user-attachments/assets/42c900e3-da9d-4891-a064-50ddf4af21e3 )
+
+    2. Click on the **New Evaluation Dataset** button.
+    3. Type in the dataset name, and if you have a CSV file with the required columns, you can upload it to initial the evaluation dataset.
+
+        !["Evaluation - New Evaluation Dataset"](https://github.com/user-attachments/assets/f5c6d454-04a9-4108-8072-0abedb879b66 )
+
+    4. Click on the **Create** button.
+
+2. Create an evaluation task:
+
+    1. Click on the **Evaluation** in the left panel, and then click the **Tasks** button.
+    2. Click on the **New Evaluation Task** button.
+    3. Type in the task name, select the evaluation dataset, select the evaluation targeting Chat Engine, and type in the run size.
+
+        > **Note:**
+        >
+        > The **Run Size** is a parameter that can cut your dataset into smaller amount to evaluation task.
+        >
+        > - For example, your dataset has 1000 rows, and you set the run size to 100, then the evaluation task will only evaluate the first 100 rows.
+        > - Run size cannot change the evaluation dataset, it only changes the amount of data to evaluation task.
+
+        !["Evaluation - New Evaluation Task"](https://github.com/user-attachments/assets/b8030ae5-0284-4255-a5b5-d55b00c294ed )
+
+    4. Click on the **Create** button.
+
+3. Waiting for the evaluation task to finish, and you can see the evaluation result in the task detail.
+
+    1. Click on the **Evaluation** in the left panel, and then click the **Tasks** button.
+    2. Click on the **Name** of the task you want to see the result.
+    3. Make your insight from the evaluation result.
+
+        !["Evaluation - Task Detail"](https://github.com/user-attachments/assets/21f9f366-dab7-4904-9693-e95c032fb441 )

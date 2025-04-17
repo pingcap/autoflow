@@ -1,0 +1,58 @@
+## FAQ of this RAG app
+
+The FAQ is a collection of useful questions and answers about the
+project. If you have a question that isn't answered here, please
+[open a discussion](https://github.com/pingcap/autoflow/discussions).
+
+export function FAQBox({ title, children }) {
+  return (
+    <details
+      close="true"
+      className="last-of-type:mb-0 rounded-lg p-2 mt-4"
+    >
+      <summary>
+        <strong className="text-lg">{title}</strong>
+      </summary>
+      <div className="nx-p-2">{children}</div>
+    </details>
+  )
+}
+
+
+<FAQBox title="What's the artechitecture or workflow of this Graph RAG app?">
+
+![Graph RAG app architecture](https://github.com/user-attachments/assets/a21e1bb7-3a9f-49ed-aa6a-de8be0ada17f)
+
+</FAQBox>
+
+<FAQBox title="Is this RAG app free?">
+- [Free] The code of this RAG app pingcap/autoflow is open source, it's free to use;
+- [Free] The database of this RAG app is free for **25GiB storage** as we use [TiDB Cloud Serverless](https://www.pingcap.com/tidb-cloud-serverless/?utm_source=tidb.ai&utm_medium=community);
+- [Paid] **But** the token of OpenAI is paid, you should have an account of https://platform.openai.com for an API token.
+</FAQBox>
+
+<FAQBox title="Which LLMs are supported/tested by this RAG app?">
+  AutoFlow uses LLM to extract knowledge graph from docs and generate responses to user queries, so the LLM is the core of this RAG app, the Smarter LLM, the better the performance.
+  Currently the online demo(https://tidb.ai) is using OpenAI as chat model by default, and the following LLMs are supported/tested by this RAG app:
+
+- [gpt-4/gpt-4o/gpt-4o-mini/o1/o1-mini](https://platform.openai.com/docs/models)
+- [gemini-1.5-pro/gemini-2.0-flash](https://gemini.google.com/)
+- [claude-3.5-sonnet](https://claude.ai/)
+- [glm-4-plus](https://bigmodel.cn/)
+- ...
+
+</FAQBox>
+
+<FAQBox title="Can I use a different embedding/reranker API?">
+  Yes
+
+- [Change Default Reranker](/docs/reranker-model)
+- [Change Default Embedding API](/docs/embedding-model)
+
+</FAQBox>
+
+<FAQBox title="Why use TiDB which is a MySQL compatible database to store Knowledge Graph?">
+  - TiDB is a distributed MySQL SQL database, it's easy to scale out and has a good performance;
+  - TiDB is a multi-model and all-in-one database, it supports MySQL SQL, JSON, Vector, and more, which can replace multiple databases;
+  - The performance of TiDB is enough to store and query the Knowledge Graph, as we just search the first-level or second-level neighbors of the node.
+</FAQBox>

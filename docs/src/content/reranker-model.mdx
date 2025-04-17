@@ -1,0 +1,80 @@
+# Configure Reranker Model
+
+In a RAG system, a reranker is a model that re-ranks the retrieved documents based on the user's query. The reranker model is used to improve the relevance of the retrieved documents.
+
+## Configure Reranker Model
+
+After logging in with an admin account, you can configure the Reranker Model in the admin panel.
+
+1. Click on the `Models > Reranker Models` tab;
+2. Click on the `New Reranker Model` button to add a new Reranker;
+
+![reranker-config](https://github.com/user-attachments/assets/f31bf557-16b3-4f7e-9e70-00c9fd7a5b1b "Reranker Config")
+
+3. Input your Reranker information and click `Create Reranker` button;
+
+## Supported Reranker Providers
+
+Currently AutoFlow supports the following reranker providers:
+
+### JinaAI
+
+To learn more about JinaAI reranking, please visit [Jina AI Reranker](https://jina.ai/reranker/).
+
+### Cohere
+
+To learn more about Cohere reranking, please visit [Cohere Rerank](https://cohere.com/rerank/).
+
+### vLLM
+
+To use vLLM rerankers, you need to provide the **base_url** of the reranker API as the following JSON format in **Advanced Settings**:
+
+```json
+{
+    "base_url": "{api_base_url}"
+}
+```
+
+Default config:
+
+```json
+{
+    "base_url": "http://localhost:8000"
+}
+```
+
+To learn more about vLLM reranking, please visit [vLLM Sentence Pair Scoring Models](https://docs.vllm.ai/en/latest/models/supported_models.html#sentence-pair-scoring-task-score).
+
+### Xorbits Inference (Xinference)
+
+To use Xinference rerankers, you need to provide the **base_url** of the reranker API as the following JSON format in **Advanced Settings**:
+
+```json
+{
+    "base_url": "{api_base_url}"
+}
+```
+
+Default config:
+
+```json
+{
+    "base_url": "http://localhost:9997"
+}
+```
+
+To learn more about Xinference reranking, please visit [Xinference Rerank](https://inference.readthedocs.io/en/latest/models/model_abilities/rerank.html).
+
+### Amazon Bedrock
+
+To use Amazon Bedrock rerankers, you'll need to provide a JSON Object of your AWS Credentials, as described in the [AWS CLI config global settings](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html#cli-configure-files-global):
+
+```json
+{
+    "aws_access_key_id": "****",
+    "aws_secret_access_key": "****",
+    "aws_region_name": "us-west-2"
+}
+```
+
+To find more reranking models supported by Amazon Bedrock, please visit [Amazon Bedrock Models Reference](https://docs.aws.amazon.com/bedrock/latest/userguide/foundation-models-reference.html).

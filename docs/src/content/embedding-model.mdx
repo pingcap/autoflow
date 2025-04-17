@@ -1,0 +1,220 @@
+# Embedding Model
+
+import { Callout } from 'nextra/components'
+
+The Embedding Model converts given input into numerical vectors (embeddings) that represent the semantic meaning of the input text.
+
+In Autoflow, we use the Embedding Model to vectorize documents and store them in TiDB. This enables us to leverage TiDB's Vector Search capability to retrieve relevant documents for user queries.
+
+## Configure Embedding Model
+
+After logging in with an admin account, you can configure the Embedding Model in the admin panel.
+
+1. Click on the `Models > Embedding Models` tab;
+2. Click the `New Embedding Model` button, select your preferred embedding model provider, and configure the model parameters.
+
+    ![Add Embedding Model](https://github.com/user-attachments/assets/70c9f8d7-0e6a-46e7-909f-03f94062d5e2)
+
+## Supported Providers
+
+Currently Autoflow supports the following embedding model providers:
+
+### OpenAI
+
+OpenAI provides a variety of Embedding Models, we recommend using the OpenAI `text-embedding-3-small` model due to its performance and compatibility with Autoflow.
+
+**Supported Models**:
+
+| Embedding Model          | Vector Dimensions | Max Tokens |
+| ------------------------ | ----------------- | ---------- |
+| `text-embedding-3-small` | 1536              | 8191       |
+
+
+For more information, see the [OpenAI Embedding Models documentation](https://platform.openai.com/docs/guides/embeddings#embedding-models).
+
+### OpenAI-Like
+
+Autoflow also supports embedding model providers (such as [ZhipuAI](#zhipuai)) that conform to the OpenAI API specification.
+
+You can also use models deployed on local AI model platforms (such as [vLLM](#vllm) and [Xinference](https://inference.readthedocs.io/en/latest/index.html)) that conform to the OpenAI API specification in Autoflow.
+
+To use OpenAI-Like embedding model providers, you need to provide the **base URL** of the embedding API as the following JSON format in **Advanced Settings**:
+
+```json
+{
+    "api_base": "{api_base_url}"
+}
+```
+
+#### ZhipuAI BigModel
+
+For example, the embedding API endpoint for ZhipuAI is:
+
+`https://open.bigmodel.cn/api/paas/v4/embeddings`
+
+You need to set up the base URL in the **Advanced Settings** as follows:
+
+```json
+{
+    "api_base": "https://open.bigmodel.cn/api/paas/v4/"
+}
+```
+
+**Supported Models**:
+
+| Embedding Model | Vector Dimensions | Max Tokens |
+| --------------- | ----------------- | ---------- |
+| `embedding-3`   | 2048              | 8192       |
+
+For more information, see the [ZhipuAI embedding models documentation](https://open.bigmodel.cn/dev/api/vector/embedding-3).
+
+#### vLLM
+
+When serving locally, the default embedding API endpoint for vLLM is:
+
+`http://localhost:8000/v1/embeddings`
+
+You need to set up the base URL in the **Advanced Settings** as follows:
+
+```json
+{
+    "api_base": "http://localhost:8000/v1/"
+}
+```
+
+For more information, see the [vLLM documentation](https://docs.vllm.ai/en/stable/).
+
+### JinaAI
+
+JinaAI provides multimodal multilingual long-context Embedding Models for RAG applications.
+
+**Supported Models**:
+
+| Embedding Model      | Vector Dimensions | Max Tokens |
+| -------------------- | ----------------- | ---------- |
+| `jina-clip-v1`       | 768               | 8192       |
+| `jina-embeddings-v3` | 1024              | 8192       |
+
+For more information, see the [JinaAI embedding models documentation](https://jina.ai/embeddings/).
+
+### Cohere
+
+Cohere provides industry-leading large language models (LLMs) and RAG capabilities tailored to meet the needs of enterprise use cases that solve real-world problems.
+
+**Supported Models**:
+
+| Embedding Model           | Vector Dimensions | Max Tokens |
+| ------------------------- | ----------------- | ---------- |
+| `embed-multilingual-v3.0` | 1024              | 512        |
+
+For more information, see the [Cohere Embed documentation](https://docs.cohere.com/docs/cohere-embed).
+
+### Amazon Bedrock
+
+Amazon Bedrock is a fully managed foundation models service that provides a range of large language models and embedding models.
+
+**Featured Models**:
+
+| Embedding Model                 | Vector Dimensions | Max Tokens |
+| ------------------------------- | ----------------- | ---------- |
+| `amazon.titan-embed-text-v2:0`  | 1024              | 8192       |
+| `amazon.titan-embed-text-v1`    | 1536              | 8192       |
+| `amazon.titan-embed-g1-text-02` | 1536              | 8192       |
+| `cohere.embed-english-v3`       | 1024              | 512        |
+| `cohere.embed-multilingual-v3`  | 1024              | 512        |
+
+To check all embbeding models supported by Bedrock, go to [Bedrock console](https://console.aws.amazon.com/bedrock).
+
+To use Amazon Bedrock, you'll need to provide a JSON Object of your AWS Credentials, as described in the [AWS CLI config global settings](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html#cli-configure-files-global):
+
+```json
+{
+    "aws_access_key_id": "****",
+    "aws_secret_access_key": "****",
+    "aws_region_name": "us-west-2"
+}
+```
+
+For more information, see the [Amazon Bedrock documentation](https://docs.aws.amazon.com/bedrock/).
+
+### Ollama
+
+Ollama is a lightweight framework for building and running large language models and embedding models locally.
+
+**Supported Models**:
+
+| Embedding Model    | Vector Dimensions | Max Tokens |
+| ------------------ | ----------------- | ---------- |
+| `nomic-embed-text` | 768               | 8192       |
+| `bge-m3`           | 1024              | 8192       |
+
+To use Ollama, you'll need to configure the API base URL in the **Advanced Settings**:
+
+```json
+{
+    "base_url": "http://localhost:11434"
+}
+```
+
+For more information, see the [Ollama embedding models documentation](https://ollama.com/blog/embedding-models).
+
+### Gitee AI
+
+Gitee AI is a third-party model provider that offers ready-to-use cutting-edge model APIs for AI developers.
+
+**Supported Models**:
+
+| Embedding Model     | Vector Dimensions | Max Tokens |
+| ------------------- | ----------------- | ---------- |
+| `bge-m3`            | 1024              | 8192       |
+| `bge-large-zh-v1.5` | 1024              | 512        |
+| `bge-small-zh-v1.5` | 512               | 512        |
+
+For more information, see the [Gitee AI embedding models documentation](https://ai.gitee.com/docs/openapi/v1#tag/%E7%89%B9%E5%BE%81%E6%8A%BD%E5%8F%96/POST/embeddings).
+
+### Azure OpenAI
+
+Azure OpenAI is a cloud-based AI service that provides a OpenAI-like API on Azure.
+
+**Supported Models**:
+
+| Embedding Model          | Vector Dimensions | Max Tokens |
+| ------------------------ | ----------------- | ---------- |
+| `text-embedding-3-small` | 1536              | 8191       |
+
+For more information, see:
+
+- [Azure OpenAI documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/reference)
+- [Create and deploy an Azure OpenAI Service resource](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource?pivots=web-portal)
+
+After creating the Azure OpenAI Service resource, you can configure the API base URL in the **Advanced Settings**:
+
+```json
+{
+  "azure_endpoint": "https://<your-resource-name>.openai.azure.com/",
+  "api_version": "<your-api-version>"
+}
+```
+
+You can find those parameters in the [Deployment Tab](https://ai.azure.com/resource/deployments) of your Azure OpenAI Service resource.
+
+![Azure OpenAI Service Deployment Tab - Embedding](https://github.com/user-attachments/assets/af8ab2b7-0f2f-40ef-86ee-124bad2d9598)
+
+
+### Local Embedding Server
+
+Autoflow's local embedding server is a self-hosted embedding service built upon [sentence-transformers](https://www.sentence-transformers.org/) and deployed on your own infrastructure.
+
+You can choose from a variety of pre-trained models from [Hugging Face](https://huggingface.co/models), such as:
+
+| Embedding Model | Vector Dimensions | Max Tokens |
+| --------------- | ----------------- | ---------- |
+| `BAAI/bge-m3`   | 1024              | 8192       |
+
+To configure the Local Embedding Service, set the API URL in the **Advanced Settings**:
+
+```json
+{
+    "api_url": "http://local-embedding-reranker:5001/api/v1/embedding"
+}
+```

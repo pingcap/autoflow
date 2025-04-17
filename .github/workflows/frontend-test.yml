@@ -1,4 +1,4 @@
-name: Verify
+name: Test Frontend
 
 on:
   push:
@@ -15,8 +15,8 @@ on:
       - README.md
 
 jobs:
-  verify-frontend:
-    name: Verify frontend
+  test_frontend:
+    name: Test Frontend
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -24,20 +24,29 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
           run_install: false
           package_json_file: ./frontend/package.json
+
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version-file: ./frontend/.nvmrc
           cache-dependency-path: ./frontend
           cache: 'pnpm'
-      - run: pnpm i --frozen-lockfile
-      - uses: actions/cache@v4
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Cache Next.js Build
+        uses: actions/cache@v4
         with:
           path: |
             ./frontend/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('frontend/**/pnpm-lock.yaml') }}-${{ hashFiles('frontend/**/*.js', 'frontend/**/*.jsx', 'frontend/**/*.ts', 'frontend/**/*.tsx') }}
-      - run: pnpm run verify
+
+      - name: Run Tests
+        run: pnpm run verify

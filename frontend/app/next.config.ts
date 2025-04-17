@@ -1,7 +1,5 @@
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
-
 import { NextConfig } from 'next';
-import nextra from 'nextra';
 
 const nextConfig: NextConfig = {
   output: process.env.STANDALONE ? 'standalone' : undefined,
@@ -32,13 +30,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-const withNextra = nextra({
-  theme: 'nextra-theme-docs',
-  themeConfig: './theme.config.tsx',
-  search: {
-    codeblocks: false,
-  },
-  defaultShowCopyCode: true,
-});
-
-export default withNextra(nextConfig);
+export default nextConfig;

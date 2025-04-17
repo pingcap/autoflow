@@ -125,8 +125,6 @@
     "monaco-editor": "^0.50.0",
     "monaco-editor-webpack-plugin": "^7.1.0",
     "next-sitemap": "^4.2.3",
-    "nextra": "^3.2.5",
-    "nextra-theme-docs": "^3.2.5",
     "postcss": "^8.4.49",
     "react-textarea-autosize": "^8.5.7",
     "remark-directive": "^3.0.0",

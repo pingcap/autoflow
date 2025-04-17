@@ -1,6 +1,7 @@
 import { TotalCard } from '@/components/charts/TotalCard';
 import type { Meta, StoryObj } from '@storybook/react';
-import { GitHubIcon } from 'nextra/icons';
+import { Aperture } from 'lucide-react';
+
 
 const meta = {
   title: 'Components/Charts/TotalCard',
@@ -34,7 +35,7 @@ export const Default: Story = {
   args: {
     title: 'Title',
     isLoading: false,
-    icon: <GitHubIcon />,
+    icon: <Aperture />,
     total: 42,
     children: 'Hahaha',
   },

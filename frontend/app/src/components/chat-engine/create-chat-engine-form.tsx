@@ -215,7 +215,7 @@ function SectionTabTrigger ({ value, required }: { value: string, required?: boo
 function Section ({ title, children }: { title: string, children: ReactNode }) {
   return (
     <FormSection value={title}>
-      <SecondaryNavigatorMain className="space-y-8 max-w-screen-sm px-2" value={title} strategy="hidden">
+      <SecondaryNavigatorMain className="space-y-8 max-w-screen-sm px-2 pb-8" value={title} strategy="hidden">
         {children}
       </SecondaryNavigatorMain>
     </FormSection>

@@ -386,7 +386,7 @@ const externalEngineSchema = z.string().nullable();
 function Section ({ title, children }: { title: string, children: ReactNode }) {
   return (
     <>
-      <SecondaryNavigatorMain className="max-w-screen-sm space-y-8 px-2" value={title} strategy="mount">
+      <SecondaryNavigatorMain className="max-w-screen-sm space-y-8 px-2 pb-8" value={title} strategy="mount">
         {children}
       </SecondaryNavigatorMain>
     </>

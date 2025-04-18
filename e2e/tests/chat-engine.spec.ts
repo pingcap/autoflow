@@ -87,7 +87,7 @@ test.describe('Chat Engine', () => {
         // Knowledge Graph Subsection
         await page.getByRole('spinbutton', { name: 'Depth' }).fill('1'); // Do not use 2 for default value is 2
         await checkCheckbox(page, 'Include Metadata');
-        await checkCheckbox(page, 'Using intent search');
+        await checkCheckbox(page, 'Using Intent Search');
 
         // Goto Generation tab
         await page.getByRole('tab', { name: 'Generation' }).click();

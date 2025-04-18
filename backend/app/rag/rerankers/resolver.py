@@ -88,7 +88,7 @@ def resolve_reranker(
             raise ValueError(f"Got unknown reranker provider: {provider}")
 
 
-# FIXME: Reranker top_n should be config in the retrival config.
+# FIXME: Reranker top_n should be config in the retrieval config.
 def get_default_reranker_model(
     session: Session, top_n: int = None
 ) -> Optional[BaseNodePostprocessor]:

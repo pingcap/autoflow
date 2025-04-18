@@ -159,7 +159,7 @@ class ChatEngineConfig(BaseModel):
         llama_llm = self.get_fast_llama_llm(session)
         return get_dspy_lm_by_llama_llm(llama_llm)
 
-    # FIXME: Reranker top_n should be config in the retrival config.
+    # FIXME: Reranker top_n should be config in the retrieval config.
     def get_reranker(
         self, session: Session, top_n: int = None
     ) -> Optional[BaseNodePostprocessor]:

@@ -207,7 +207,7 @@ def retrieve_kb_knowledge_graph(
         retriever = KnowledgeGraphSimpleRetriever(
             db_session=db_session,
             knowledge_base_id=kb_id,
-            config=request.retrival_config.knowledge_graph,
+            config=request.retrieval_config.knowledge_graph,
         )
         knowledge_graph = retriever.retrieve_knowledge_graph(request.query)
         return KnowledgeGraphRetrievalResult(

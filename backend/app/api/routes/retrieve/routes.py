@@ -14,7 +14,7 @@ from app.rag.retrievers.chunk.fusion_retriever import (
 from app.exceptions import KBNotFound
 from app.rag.retrievers.chunk.schema import ChunksRetrievalResult
 from app.rag.llms.resolver import get_llm_or_default
-from .models import ChunksRetrivalRequest, KnowledgeGraphRetrivalRequest
+from .models import ChunksRetrievalRequest, KnowledgeGraphRetrievalRequest
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 def retrieve_chunks(
     db_session: SessionDep,
     user: CurrentSuperuserDep,
-    request: ChunksRetrivalRequest,
+    request: ChunksRetrievalRequest,
 ) -> ChunksRetrievalResult:
     try:
         config = request.retrieval_config
@@ -49,7 +49,7 @@ def retrieve_chunks(
 def retrieve_knowledge_graph(
     db_session: SessionDep,
     user: CurrentSuperuserDep,
-    request: KnowledgeGraphRetrivalRequest,
+    request: KnowledgeGraphRetrievalRequest,
 ) -> KnowledgeGraphRetrievalResult:
     try:
         config = request.retrieval_config

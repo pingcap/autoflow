@@ -21,7 +21,7 @@ from app.rag.types import MyCBEventType
 from app.rag.llms.dspy import get_dspy_lm_by_llama_llm
 
 
-class FusionRetrivalBaseConfig(BaseModel):
+class FusionRetrievalBaseConfig(BaseModel):
     llm_id: Optional[int] = None
     knowledge_base_ids: List[int]
     use_query_decompose: Optional[bool] = None

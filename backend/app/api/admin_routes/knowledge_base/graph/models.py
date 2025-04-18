@@ -50,7 +50,7 @@ class KBKnowledgeGraphRetrievalConfig(BaseModel):
 class KBRetrieveKnowledgeGraphRequest(BaseModel):
     query: str
     llm_id: int
-    retrival_config: KBKnowledgeGraphRetrievalConfig
+    retrieval_config: KBKnowledgeGraphRetrievalConfig
 
 
 ### Experimental

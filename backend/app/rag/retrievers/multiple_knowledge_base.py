@@ -16,7 +16,7 @@ from sqlmodel import Session
 
 from app.core.config import settings
 from app.rag.knowledge_base.selector import KBSelectMode, MultiKBSelector
-from app.rag.question_gen.query_decomposer import QueryDecomposer
+from app.rag.tools.query_decomposer import QueryDecomposer
 from app.rag.types import MyCBEventType
 from app.rag.llms.dspy import get_dspy_lm_by_llama_llm
 
@@ -83,8 +83,8 @@ class MultiKBFusionRetriever(BaseRetriever):
         return self._fusion(query_bundle.query_str, results)
 
     def _gen_sub_queries(self, query_bundle: QueryBundle) -> List[QueryBundle]:
-        queries = self._query_decomposer.decompose(query_bundle.query_str)
-        return [QueryBundle(r.question) for r in queries.questions]
+        subquestions = self._query_decomposer.decompose(query_bundle.query_str)
+        return [QueryBundle(r.question) for r in subquestions]
 
     def _run_async_queries(
         self, queries: List[QueryBundle]

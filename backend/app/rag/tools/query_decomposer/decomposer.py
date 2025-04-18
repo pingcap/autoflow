@@ -17,14 +17,6 @@ class SubQuestion(BaseModel):
     )
 
 
-class SubQuestions(BaseModel):
-    """Representation of the user's step-by-step questions extracted from the query."""
-
-    questions: List[SubQuestion] = Field(
-        description="List of questions representing a plan to address the user query."
-    )
-
-
 class DecomposeQuery(dspy.Signature):
     """You are an expert in knowledge base graph construction, specializing in building comprehensive knowledge graphs.
     Your current task is to deconstruct the user's query into a series of step-by-step questions.
@@ -51,8 +43,8 @@ class DecomposeQuery(dspy.Signature):
     query: str = dspy.InputField(
         desc="The query text to extract the user's step-by-step questions."
     )
-    subquestions: SubQuestions = dspy.OutputField(
-        desc="Representation of the user's step-by-step questions extracted from the query."
+    subquestions: List[SubQuestion] = dspy.OutputField(
+        desc="List of questions representing a plan to address the user query."
     )
 
 
@@ -73,5 +65,5 @@ class QueryDecomposer:
         if complied_program_path is not None:
             self.decompose_query_prog.load(complied_program_path)
 
-    def decompose(self, query: str) -> SubQuestions:
+    def decompose(self, query: str) -> List[SubQuestion]:
         return self.decompose_query_prog(query=query).subquestions

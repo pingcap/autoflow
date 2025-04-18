@@ -13,13 +13,14 @@ from llama_index.core.base.llms.base import BaseLLM
 from app.rag.indices.knowledge_graph.extractor import Extractor
 from app.rag.llms.provider import LLMProvider
 from app.rag.llms.resolver import resolve_llm
-from app.rag.question_gen.query_decomposer import QueryDecomposer
+from app.rag.tools.query_decomposer import QueryDecomposer
 from app.rag.llms.dspy import get_dspy_lm_by_llama_llm
 
 
 question = "Is TiDB open source? (Yes/No)"
 content = """
-TiDB is a distributed database that you can use the MySQL client to connect to.
+MySQL Client is a client that you can use to connect to the MySQL database.
+TiDB is a mysql-compatible distributed database, so you can use the MySQL client to connect to it.
 """
 
 os.environ["LITELLM_LOG"] = "DEBUG"
@@ -39,7 +40,7 @@ def check_llm_answer_simple_question(llm: BaseLLM):
 
 def check_dspy_lm_decompose_question(lm: dspy.LM):
     decomposer = QueryDecomposer(lm)
-    subquestions = decomposer.decompose("What is TiDB").questions
+    subquestions = decomposer.decompose("What is TiDB")
 
     assert len(subquestions) >= 1
 

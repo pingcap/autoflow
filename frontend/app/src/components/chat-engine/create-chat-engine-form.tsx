@@ -110,19 +110,19 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
                 </field.Basic>
               </SubSection>
               <SubSection title="Knowledge Graph">
-                <field.Contained name="engine_options.knowledge_graph.enabled" label="Enable Knowledge Graph" fallbackValue={defaultChatEngineOptions.knowledge_graph?.enabled} description="Enable knowledge graph functionality to enhance context understanding and relationship mapping between different pieces of information">
+                <field.Contained name="engine_options.knowledge_graph.enabled" label="Enable Knowledge Graph" fallbackValue={defaultChatEngineOptions.knowledge_graph?.enabled} description="Enable knowledge graph to enrich context information">
                   <FormSwitch />
                 </field.Contained>
                 <field.Basic name="engine_options.knowledge_graph.depth" label="Depth" fallbackValue={defaultChatEngineOptions.knowledge_graph?.depth} validators={{ onBlur: kgGraphDepthSchema, onSubmit: kgGraphDepthSchema }}>
                   <FormInput type="number" min={1} step={1} />
                 </field.Basic>
-                <field.Inline name="engine_options.knowledge_graph.include_meta" label="Include Meta" fallbackValue={defaultChatEngineOptions.knowledge_graph?.include_meta} description="Include metadata information in knowledge graph nodes to provide additional context">
+                <field.Inline name="engine_options.knowledge_graph.include_meta" label="Include Metadata" fallbackValue={defaultChatEngineOptions.knowledge_graph?.include_meta} description="Include metadata information in knowledge graph nodes to provide additional context">
                   <FormCheckbox />
                 </field.Inline>
-                <field.Inline name="engine_options.knowledge_graph.with_degree" label="With Degree" fallbackValue={defaultChatEngineOptions.knowledge_graph?.with_degree} description="Include connection degree information in knowledge graph relationships">
+                <field.Inline name="engine_options.knowledge_graph.with_degree" label="With Degree" fallbackValue={defaultChatEngineOptions.knowledge_graph?.with_degree} description="Include entity in-degree and out-degree information in knowledge graph for weight calculation and ranking">
                   <FormCheckbox />
                 </field.Inline>
-                <field.Inline name="engine_options.knowledge_graph.using_intent_search" label="Using intent search" fallbackValue={defaultChatEngineOptions.knowledge_graph?.using_intent_search} description="Enable intent-based search in knowledge graph traversal for more contextually relevant results">
+                <field.Inline name="engine_options.knowledge_graph.using_intent_search" label="Using Intent Search" fallbackValue={defaultChatEngineOptions.knowledge_graph?.using_intent_search} description="Enable intelligent search that breaks down user question into sub-questions for more comprehensive search results">
                   <FormCheckbox />
                 </field.Inline>
                 {(['intent_graph_knowledge', 'normal_graph_knowledge'] as const).map(name => (
@@ -244,9 +244,9 @@ const llmPromptFields = [
 const llmPromptDescriptions: { [P in typeof llmPromptFields[number]]: string } = {
   'condense_question_prompt': 'Template for condensing a conversation history and follow-up question into a standalone question',
   'text_qa_prompt': 'Template for generating answers based on provided context and question',
-  'intent_graph_knowledge': 'Template for extracting knowledge from intent-based graph traversal',
-  'normal_graph_knowledge': 'Template for processing knowledge from standard graph traversal',
-  'clarifying_question_prompt': 'Template for generating clarifying questions when user input is ambiguous',
-  'generate_goal_prompt': 'Template for generating conversation goals based on user input',
+  'intent_graph_knowledge': 'Template for processing and extracting knowledge from graph-based traversal methods',
+  'normal_graph_knowledge': 'Template for processing and extracting knowledge from graph-based traversal methods',
+  'clarifying_question_prompt': 'Template for generating clarifying questions when the user\'s input needs more context or specificity',
+  'generate_goal_prompt': 'Template used to generate conversation goals and objectives based on user input',
   'further_questions_prompt': 'Template for generating follow-up questions to continue the conversation',
 }; 

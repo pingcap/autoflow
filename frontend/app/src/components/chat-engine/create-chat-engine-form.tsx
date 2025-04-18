@@ -138,22 +138,22 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
                 <field.Contained unimportant name="engine_options.clarify_question" label="Clarify Question" description="Allow ChatBot to check if user input is ambiguous and ask clarifying questions">
                   <FormSwitch />
                 </field.Contained>
-                <field.Basic name="engine_options.llm.clarifying_question_prompt" label="Clarify Question Prompt" fallbackValue={defaultChatEngineOptions.llm?.clarifying_question_prompt} description={llmPromptDescriptions.clarifying_question_prompt}>
+                <field.Basic name="engine_options.llm.clarifying_question_prompt" label="" fallbackValue={defaultChatEngineOptions.llm?.clarifying_question_prompt} description={llmPromptDescriptions.clarifying_question_prompt}>
                   <PromptInput />
                 </field.Basic>
               </SubSection>
               <SubSection title="Rewrite Question">
-                <field.Basic name="engine_options.llm.condense_question_prompt" label="Rewrite Question Prompt" fallbackValue={defaultChatEngineOptions.llm?.condense_question_prompt} description={llmPromptDescriptions.condense_question_prompt}>
+                <field.Basic name="engine_options.llm.condense_question_prompt" label="" fallbackValue={defaultChatEngineOptions.llm?.condense_question_prompt} description={llmPromptDescriptions.condense_question_prompt}>
                   <PromptInput />
                 </field.Basic>
               </SubSection>
               <SubSection title="Answer Question">
-                <field.Basic name="engine_options.llm.text_qa_prompt" label="Answer Question Prompt" fallbackValue={defaultChatEngineOptions.llm?.text_qa_prompt} description={llmPromptDescriptions.text_qa_prompt}>
+                <field.Basic name="engine_options.llm.text_qa_prompt" label="" fallbackValue={defaultChatEngineOptions.llm?.text_qa_prompt} description={llmPromptDescriptions.text_qa_prompt}>
                   <PromptInput />
                 </field.Basic>
               </SubSection>
               <SubSection title="Recommend More Questions">
-                <field.Basic name="engine_options.llm.further_questions_prompt" label="Further Questions Prompt" fallbackValue={defaultChatEngineOptions.llm?.further_questions_prompt} description={llmPromptDescriptions.further_questions_prompt}>
+                <field.Basic name="engine_options.llm.further_questions_prompt" label="" fallbackValue={defaultChatEngineOptions.llm?.further_questions_prompt} description={llmPromptDescriptions.further_questions_prompt}>
                   <PromptInput />
                 </field.Basic>
               </SubSection>
@@ -242,11 +242,11 @@ const llmPromptFields = [
 ] as const;
 
 const llmPromptDescriptions: { [P in typeof llmPromptFields[number]]: string } = {
-  'condense_question_prompt': 'Template for condensing a conversation history and follow-up question into a standalone question',
-  'text_qa_prompt': 'Template for generating answers based on provided context and question',
-  'intent_graph_knowledge': 'Template for processing and extracting knowledge from graph-based traversal methods',
-  'normal_graph_knowledge': 'Template for processing and extracting knowledge from graph-based traversal methods',
-  'clarifying_question_prompt': 'Template for generating clarifying questions when the user\'s input needs more context or specificity',
-  'generate_goal_prompt': 'Template used to generate conversation goals and objectives based on user input',
-  'further_questions_prompt': 'Template for generating follow-up questions to continue the conversation',
+  'condense_question_prompt': 'Prompt template for condensing a conversation history and follow-up question into a standalone question',
+  'text_qa_prompt': 'Prompt template for generating answers based on provided context and question',
+  'intent_graph_knowledge': 'Prompt template for processing and extracting knowledge from graph-based traversal methods',
+  'normal_graph_knowledge': 'Prompt template for processing and extracting knowledge from graph-based traversal methods',
+  'clarifying_question_prompt': 'Prompt template for generating clarifying questions when the user\'s input needs more context or specificity',
+  'generate_goal_prompt': 'Prompt template for generating conversation goals and objectives based on user input',
+  'further_questions_prompt': 'Prompt template for generating follow-up questions to continue the conversation',
 }; 

@@ -44,8 +44,10 @@ test.describe('Chat Engine', () => {
             }],
           },
           knowledge_graph: {
-            enabled: false,
-          }
+            enabled: true,
+          },
+          hide_sources: false,
+          clarify_question: false,
         });
         expect(chatEngine.llm_id).toBeNull();
         expect(chatEngine.fast_llm_id).toBeNull();
@@ -114,7 +116,7 @@ test.describe('Chat Engine', () => {
             }],
           },
           knowledge_graph: {
-            enabled: false,
+            enabled: true,
             depth: 1,
             include_meta: true,
             using_intent_search: true,

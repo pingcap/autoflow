@@ -97,10 +97,20 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
 
             <Section title="Retrieval">
               <SubSection title="Knowledge Sources">
-                <field.Basic required name="engine_options.knowledge_base.linked_knowledge_bases" label="Knowledge Bases" validators={{ onChange: kbSchema, onSubmit: kbSchema }}>
+                <field.Basic
+                  required
+                  name="engine_options.knowledge_base.linked_knowledge_bases"
+                  label="Knowledge Bases"
+                  validators={{ onChange: kbSchema, onSubmit: kbSchema }}
+                >
                   <KBListSelectForObjectValue />
                 </field.Basic>
-                <field.Inline name="engine_options.hide_sources" label="Hide Sources" description="Hide knowledge sources in chat responses">
+                <field.Inline
+                  name="engine_options.hide_sources"
+                  label="Hide Sources"
+                  description="Hide knowledge sources in chat responses"
+                  defaultValue={defaultChatEngineOptions.hide_sources}
+                >
                   <FormCheckbox />
                 </field.Inline>
               </SubSection>
@@ -110,7 +120,12 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
                 </field.Basic>
               </SubSection>
               <SubSection title="Knowledge Graph">
-                <field.Contained name="engine_options.knowledge_graph.enabled" label="Enable Knowledge Graph" fallbackValue={defaultChatEngineOptions.knowledge_graph?.enabled} description="Enable knowledge graph to enrich context information">
+                <field.Contained
+                  name="engine_options.knowledge_graph.enabled"
+                  label="Enable Knowledge Graph"
+                  description="Enable knowledge graph to enrich context information"
+                  defaultValue={defaultChatEngineOptions.knowledge_graph?.enabled}
+                >
                   <FormSwitch />
                 </field.Contained>
                 <field.Basic name="engine_options.knowledge_graph.depth" label="Depth" fallbackValue={defaultChatEngineOptions.knowledge_graph?.depth} validators={{ onBlur: kgGraphDepthSchema, onSubmit: kgGraphDepthSchema }}>
@@ -135,7 +150,13 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
 
             <Section title="Generation">
               <SubSection title="Clarify Question">
-                <field.Contained unimportant name="engine_options.clarify_question" label="Clarify Question" description="Allow ChatBot to check if user input is ambiguous and ask clarifying questions">
+                <field.Contained
+                  unimportant
+                  name="engine_options.clarify_question"
+                  label="Clarify Question"
+                  description="Allow ChatBot to check if user input is ambiguous and ask clarifying questions"
+                  defaultValue={defaultChatEngineOptions.clarify_question}
+                >
                   <FormSwitch />
                 </field.Contained>
                 <field.Basic name="engine_options.llm.clarifying_question_prompt" label="" fallbackValue={defaultChatEngineOptions.llm?.clarifying_question_prompt} description={llmPromptDescriptions.clarifying_question_prompt}>

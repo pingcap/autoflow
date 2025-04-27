@@ -9,8 +9,6 @@ from llama_index.core.storage.docstore.types import RefDocInfo
 from llama_index.core.storage.storage_context import StorageContext
 from llama_index.core.schema import BaseNode, TransformComponent
 import llama_index.core.instrumentation as instrument
-from app.rag.indices.knowledge_graph.extractor import SimpleGraphExtractor
-from app.rag.indices.knowledge_graph.graph_store import KnowledgeGraphStore
 
 
 logger = logging.getLogger(__name__)

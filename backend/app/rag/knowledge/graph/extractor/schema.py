@@ -108,11 +108,3 @@ class EntityCovariateOutput(BaseModel):
             "The attributes (which is a comprehensive json TREE, the first field is always: 'topic') to claim the entity. "
         )
     )
-
-
-class DecomposedFactors(BaseModel):
-    """Decomposed factors extracted from the query to form the knowledge graph"""
-
-    relationships: List[RelationshipReasoning] = Field(
-        description="List of relationships to represent critical concepts and their relationships extracted from the query."
-    )

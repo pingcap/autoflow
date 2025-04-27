@@ -10,7 +10,7 @@ from litellm import verbose_logger
 from llama_index.core import PromptTemplate
 from llama_index.core.base.llms.base import BaseLLM
 
-from app.rag.indices.knowledge_graph.extractor import Extractor
+from app.rag.knowledge.graph.extractor.extractor import Extractor
 from app.rag.llms.provider import LLMProvider
 from app.rag.llms.resolver import resolve_llm
 from app.rag.tools.query_decomposer import QueryDecomposer

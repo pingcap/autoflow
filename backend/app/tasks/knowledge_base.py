@@ -13,13 +13,9 @@ from app.models import (
 from app.rag.datasource import get_data_source_loader
 from app.repositories import knowledge_base_repo, document_repo
 from .build_index import build_index_for_document
-from ..models.chunk import get_kb_chunk_model
-from ..models.entity import get_kb_entity_model
-from ..models.relationship import get_kb_relationship_model
-from ..rag.knowledge_base.index_store import (
-    get_kb_tidb_vector_store,
-    get_kb_tidb_graph_store,
-)
+from ..models.chunk import get_dynamic_chunk_model
+from ..models.entity import get_dynamic_entity_model
+from ..models.relationship import get_dynamic_relationship_model
 from ..repositories.chunk import ChunkRepo
 from ..repositories.graph import GraphRepo
 
@@ -182,9 +178,9 @@ def purge_kb_datasource_related_resources(kb_id: int, datasource_id: int):
         )
         assert datasource.deleted_at is not None
 
-        chunk_model = get_kb_chunk_model(kb)
-        entity_model = get_kb_entity_model(kb)
-        relationship_model = get_kb_relationship_model(kb)
+        chunk_model = get_dynamic_chunk_model(kb)
+        entity_model = get_dynamic_entity_model(kb)
+        relationship_model = get_dynamic_relationship_model(kb)
 
         chunk_repo = ChunkRepo(chunk_model)
         graph_repo = GraphRepo(entity_model, relationship_model, chunk_model)

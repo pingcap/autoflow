@@ -9,7 +9,7 @@ from app.rag.retrievers.knowledge_graph.schema import (
     KnowledgeGraphRetrievalResult,
 )
 from app.rag.retrievers.chunk.fusion_retriever import (
-    ChunkFusionRetriever,
+    KBChunkRetriever,
 )
 from app.exceptions import KBNotFound
 from app.rag.retrievers.chunk.schema import ChunksRetrievalResult
@@ -29,7 +29,7 @@ def retrieve_chunks(
     try:
         config = request.retrieval_config
         llm = get_llm_or_default(db_session, config.llm_id)
-        retriever = ChunkFusionRetriever(
+        retriever = KBChunkRetriever(
             db_session=db_session,
             knowledge_base_ids=config.knowledge_base_ids,
             llm=llm,

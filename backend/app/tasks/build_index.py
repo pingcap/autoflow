@@ -10,10 +10,10 @@ from app.models import (
     DocIndexTaskStatus,
     KgIndexStatus,
 )
-from app.models.chunk import get_kb_chunk_model
+from app.models.chunk import get_dynamic_chunk_model
 from app.models.knowledge_base import IndexMethod
 from app.rag.build_index import IndexService
-from app.rag.knowledge_base.config import get_kb_llm, get_kb_embed_model
+from app.rag.knowledge.config import get_kb_llm, get_kb_embed_model
 from app.repositories import knowledge_base_repo
 from app.repositories.chunk import ChunkRepo
 
@@ -86,7 +86,7 @@ def build_index_for_document(self, knowledge_base_id: int, document_id: int):
         if IndexMethod.KNOWLEDGE_GRAPH not in kb.index_methods:
             return
 
-        chunk_repo = ChunkRepo(get_kb_chunk_model(kb))
+        chunk_repo = ChunkRepo(get_dynamic_chunk_model(kb))
         chunks = chunk_repo.get_document_chunks(session, document_id)
         for chunk in chunks:
             build_kg_index_for_chunk.delay(knowledge_base_id, chunk.id)
@@ -98,7 +98,7 @@ def build_kg_index_for_chunk(knowledge_base_id: int, chunk_id: UUID):
         kb = knowledge_base_repo.must_get(session, knowledge_base_id)
 
         # Check chunk.
-        chunk_model = get_kb_chunk_model(kb)
+        chunk_model = get_dynamic_chunk_model(kb)
         db_chunk = session.get(chunk_model, chunk_id)
         if db_chunk is None:
             logger.error(f"Chunk #{chunk_id} is not found")

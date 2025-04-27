@@ -12,6 +12,7 @@ from app.api.admin_routes.knowledge_base.models import (
     KGIndexError,
     KnowledgeBaseUpdate,
 )
+from app.core.db import Scoped_Session
 from app.exceptions import KBDataSourceNotFound, KBNotFound
 from app.models import (
     KnowledgeBase,
@@ -22,7 +23,7 @@ from app.models import (
     KnowledgeBaseDataSource,
 )
 from app.models.chat_engine import ChatEngine
-from app.models.chunk import get_kb_chunk_model
+from app.models.chunk import get_dynamic_chunk_model
 from app.models.data_source import DataSource
 from app.models.knowledge_base import IndexMethod
 from app.repositories.base_repo import BaseRepo
@@ -64,6 +65,7 @@ class KnowledgeBaseRepo(BaseRepo):
     def get_by_ids(
         self, session: Session, knowledge_base_ids: List[int]
     ) -> List[KnowledgeBase]:
+        with Scoped_Session
         return session.exec(
             select(KnowledgeBase).where(KnowledgeBase.id.in_(knowledge_base_ids))
         ).all()
@@ -127,7 +129,7 @@ class KnowledgeBaseRepo(BaseRepo):
         )
 
     def count_chunks(self, session: Session, kb: KnowledgeBase):
-        chunk_repo = ChunkRepo(get_kb_chunk_model(kb))
+        chunk_repo = ChunkRepo(get_dynamic_chunk_model(kb))
         return chunk_repo.count(session)
 
     def count_relationships(self, session: Session, kb: KnowledgeBase):
@@ -158,7 +160,7 @@ class KnowledgeBaseRepo(BaseRepo):
         self, session: Session, kb: KnowledgeBase
     ) -> dict:
         # FIXME: Maybe we should count the documents (instead of chunks) like vector index?
-        chunk_model = get_kb_chunk_model(kb)
+        chunk_model = get_dynamic_chunk_model(kb)
         stmt = (
             select(chunk_model.index_status, func.count(chunk_model.id))
             .where(chunk_model.document.has(Document.knowledge_base_id == kb.id))
@@ -212,7 +214,7 @@ class KnowledgeBaseRepo(BaseRepo):
     def set_failed_chunks_status_to_pending(
         self, session: Session, kb: KnowledgeBase
     ) -> list[int]:
-        chunk_model = get_kb_chunk_model(kb)
+        chunk_model = get_dynamic_chunk_model(kb)
         stmt = select(chunk_model.id).where(
             chunk_model.document.has(Document.knowledge_base_id == kb.id),
             chunk_model.index_status == KgIndexStatus.FAILED,
@@ -267,7 +269,7 @@ class KnowledgeBaseRepo(BaseRepo):
         kb: KnowledgeBase,
         params: Params | None = Params(),
     ) -> Page[KGIndexError]:
-        chunk_model = get_kb_chunk_model(kb)
+        chunk_model = get_dynamic_chunk_model(kb)
         query = (
             select(
                 Document.id,

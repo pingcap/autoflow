@@ -31,7 +31,7 @@ from app.rag.retrievers.knowledge_graph.schema import (
     StoredKnowledgeGraph,
     RetrievedSubGraph,
 )
-from app.rag.knowledge_base.index_store import get_kb_tidb_graph_store
+from app.rag.knowledge.base import KnowledgeBase
 from app.repositories import knowledge_base_repo
 
 from app.rag.chat.config import (
@@ -119,16 +119,18 @@ def get_graph_data_from_chat_message(
 
     # For forward compatibility.
     if "version" not in graph_data:
-        kb = engine_config.get_knowledge_bases(db_session)[0]
-        graph_store = get_kb_tidb_graph_store(db_session, kb)
-        return graph_store.get_subgraph_by_relationship_ids(graph_data["relationships"])
+        kb_model = engine_config.get_knowledge_bases(db_session)[0]
+        kb = KnowledgeBase.load_from_db(db_session, kb_model)
+        return kb.graph_store.get_subgraph_by_relationship_ids(
+            graph_data["relationships"]
+        )
 
     # Stored Knowledge Graph -> Retrieved Knowledge Graph
     stored_kg = StoredKnowledgeGraph.model_validate(graph_data)
     if stored_kg.knowledge_base_id is not None:
-        kb = knowledge_base_repo.must_get(db_session, stored_kg.knowledge_base_id)
-        graph_store = get_kb_tidb_graph_store(db_session, kb)
-        retrieved_kg = graph_store.get_subgraph_by_relationship_ids(
+        kb_model = knowledge_base_repo.must_get(db_session, stored_kg.knowledge_base_id)
+        kb = KnowledgeBase.load_from_db(db_session, kb_model)
+        retrieved_kg = kb.graph_store.get_subgraph_by_relationship_ids(
             ids=stored_kg.relationships, query=stored_kg.query
         )
         return retrieved_kg
@@ -140,10 +142,10 @@ def get_graph_data_from_chat_message(
         subgraphs = []
 
         for kb_id in stored_kg.knowledge_base_ids:
-            kb = knowledge_base_repo.must_get(db_session, kb_id)
-            knowledge_base_set.add(kb.to_descriptor())
-            kg_store = get_kb_tidb_graph_store(db_session, kb)
-            kg_store_map[kb_id] = kg_store
+            kb_model = knowledge_base_repo.must_get(db_session, kb_id)
+            kb = KnowledgeBase.load_from_db(db_session, kb_model)
+            knowledge_base_set.add(kb_model.to_descriptor())
+            kg_store_map[kb_id] = kb.graph_store
 
         for stored_subgraph in stored_kg.subgraphs:
             kg_store = kg_store_map.get(stored_subgraph.knowledge_base_id)

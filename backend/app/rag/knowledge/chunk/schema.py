@@ -6,9 +6,14 @@ from pydantic import BaseModel
 from app.models import Document
 
 
+class QueryDecomposerConfig(BaseModel):
+    enabled: bool = True
+    llm_id: int = None
+
+
 class RerankerConfig(BaseModel):
     enabled: bool = True
-    model_id: int = None
+    reranker_id: int = None
     top_n: int = 10
 
 
@@ -17,20 +22,15 @@ class MetadataFilterConfig(BaseModel):
     filters: Dict[str, Any] = None
 
 
-class VectorSearchRetrieverConfig(BaseModel):
-    top_k: int = 10
+class KBChunkRetrieverConfig(BaseModel):
+    knowledge_base_ids: list[int] = None
+    query_decomposer: Optional[QueryDecomposerConfig] = None
     similarity_top_k: Optional[int] = None
-    oversampling_factor: Optional[int] = 5
+    num_candidates: int = 10
     reranker: Optional[RerankerConfig] = None
     metadata_filter: Optional[MetadataFilterConfig] = None
-
-
-class KBChunkRetrievalConfig(BaseModel):
-    knowledge_base_ids: list[int] = None
-
-
-class ChunkRetrievalConfig(BaseModel):
-    knowledge_base_ids: list[int] = None
+    top_k: int = 10
+    full_document: bool = False
 
 
 # Retrieved Chunks

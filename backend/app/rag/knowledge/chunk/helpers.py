@@ -2,7 +2,7 @@ from typing import List
 
 from llama_index.core.schema import NodeWithScore
 
-from app.rag.retrievers.chunk.schema import RetrievedChunk
+from app.rag.knowledge.chunk.schema import RetrievedChunk
 
 
 def map_nodes_to_chunks(nodes_with_score: List[NodeWithScore]) -> List[RetrievedChunk]:

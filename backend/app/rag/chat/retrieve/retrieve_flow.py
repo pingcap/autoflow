@@ -21,7 +21,7 @@ from app.rag.retrievers.knowledge_graph.schema import (
     KnowledgeGraphRetrievalResult,
     KnowledgeGraphRetrieverConfig,
 )
-from app.rag.retrievers.chunk.fusion_retriever import ChunkFusionRetriever
+from app.rag.retrievers.chunk.fusion_retriever import KBChunkRetriever
 from app.repositories import document_repo
 
 dispatcher = get_dispatcher(__name__)
@@ -130,7 +130,7 @@ class RetrieveFlow:
         )
 
     def search_relevant_chunks(self, user_question: str) -> List[NodeWithScore]:
-        retriever = ChunkFusionRetriever(
+        retriever = KBChunkRetriever(
             db_session=self.db_session,
             knowledge_base_ids=self.knowledge_base_ids,
             llm=self._llm,

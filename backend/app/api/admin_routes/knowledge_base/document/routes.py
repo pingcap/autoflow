@@ -8,10 +8,10 @@ from sqlmodel import Session
 from app.api.admin_routes.knowledge_base.models import ChunkItem
 from app.api.deps import SessionDep, CurrentSuperuserDep
 from app.models import Document
-from app.models.chunk import Chunk, KgIndexStatus, get_kb_chunk_model
+from app.models.chunk import Chunk, KgIndexStatus, get_dynamic_chunk_model
 from app.models.document import DocIndexTaskStatus
-from app.models.entity import get_kb_entity_model
-from app.models.relationship import get_kb_relationship_model
+from app.models.entity import get_dynamic_entity_model
+from app.models.relationship import get_dynamic_relationship_model
 from app.repositories import knowledge_base_repo, document_repo
 from app.repositories.chunk import ChunkRepo
 from app.api.admin_routes.knowledge_base.document.models import (
@@ -79,7 +79,7 @@ def list_kb_document_chunks(
 ) -> list[ChunkItem]:
     try:
         kb = knowledge_base_repo.must_get(session, kb_id)
-        chunk_repo = ChunkRepo(get_kb_chunk_model(kb))
+        chunk_repo = ChunkRepo(get_dynamic_chunk_model(kb))
         return chunk_repo.get_document_chunks(session, doc_id)
     except HTTPException:
         raise
@@ -100,9 +100,9 @@ def remove_kb_document(
         doc = document_repo.must_get(session, document_id)
         assert doc.knowledge_base_id == kb.id
 
-        chunk_model = get_kb_chunk_model(kb)
-        entity_model = get_kb_entity_model(kb)
-        relationship_model = get_kb_relationship_model(kb)
+        chunk_model = get_dynamic_chunk_model(kb)
+        entity_model = get_dynamic_entity_model(kb)
+        relationship_model = get_dynamic_relationship_model(kb)
 
         chunk_repo = ChunkRepo(chunk_model)
         graph_repo = GraphRepo(entity_model, relationship_model, chunk_model)
@@ -177,7 +177,7 @@ def rebuild_kb_document_index_by_ids(
     reindex_completed_task: bool = False,
 ) -> RebuildIndexResult:
     kb = knowledge_base_repo.must_get(db_session, kb_id)
-    kb_chunk_repo = ChunkRepo(get_kb_chunk_model(kb))
+    kb_chunk_repo = ChunkRepo(get_dynamic_chunk_model(kb))
 
     # Retry failed vector index tasks.
     documents = document_repo.fetch_by_ids(db_session, document_ids)

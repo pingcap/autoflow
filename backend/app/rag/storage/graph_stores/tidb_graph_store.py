@@ -8,6 +8,7 @@ from collections import defaultdict
 
 from dspy import Predict
 from llama_index.core.embeddings.utils import EmbedType, resolve_embed_model
+
 from llama_index.embeddings.openai import OpenAIEmbedding, OpenAIEmbeddingModelType
 import sqlalchemy
 from sqlmodel import Session, asc, func, select, text, SQLModel
@@ -16,7 +17,7 @@ from tidb_vector.sqlalchemy import VectorAdaptor
 from sqlalchemy import or_, desc
 
 from app.core.db import engine
-from app.rag.indices.knowledge_graph.graph_store.helpers import (
+from app.rag.storage.graph_stores.helpers import (
     get_entity_description_embedding,
     get_relationship_description_embedding,
     calculate_relationship_score,
@@ -26,22 +27,10 @@ from app.rag.indices.knowledge_graph.graph_store.helpers import (
     DEFAULT_WEIGHT_COEFFICIENT_CONFIG,
     DEFAULT_DEGREE_COEFFICIENT,
 )
-from app.rag.indices.knowledge_graph.graph_store.schema import KnowledgeGraphStore
-from app.rag.indices.knowledge_graph.schema import (
+from app.rag.knowledge.graph.extractor.schema import (
     Entity,
     Relationship,
     SynopsisEntity,
-)
-from app.rag.retrievers.knowledge_graph.schema import (
-    RetrievedEntity,
-    RetrievedRelationship,
-    RetrievedKnowledgeGraph,
-)
-from app.models import (
-    Entity as DBEntity,
-    Relationship as DBRelationship,
-    Chunk as DBChunk,
-    KnowledgeBase,
 )
 from app.models import EntityType
 
@@ -82,19 +71,19 @@ class MergeEntitiesProgram(dspy.Module):
         return pred
 
 
-class TiDBGraphStore(KnowledgeGraphStore):
+class TiDBGraphStore:
     def __init__(
         self,
-        knowledge_base: KnowledgeBase,
+        knowledge_base_id: str,
         dspy_lm: dspy.LM,
         session: Optional[Session] = None,
         embed_model: Optional[EmbedType] = None,
         description_similarity_threshold=0.9,
-        entity_db_model: Type[SQLModel] = DBEntity,
-        relationship_db_model: Type[SQLModel] = DBRelationship,
-        chunk_db_model: Type[SQLModel] = DBChunk,
+        entity_db_model: Optional[Type[SQLModel]] = None,
+        relationship_db_model: Optional[Type[SQLModel]] = None,
+        chunk_db_model: Optional[Type[SQLModel]] = None,
     ):
-        self.knowledge_base = knowledge_base
+        self.knowledge_base_id = knowledge_base_id
         self._session = session
         self._owns_session = session is None
         if self._session is None:
@@ -112,27 +101,28 @@ class TiDBGraphStore(KnowledgeGraphStore):
         self.description_cosine_distance_threshold = (
             1 - description_similarity_threshold
         )
-        self._entity_model = entity_db_model
-        self._relationship_model = relationship_db_model
-        self._chunk_model = chunk_db_model
+        self._entity_db_model = entity_db_model
+        self._relationship_db_model = relationship_db_model
+        self._chunk_db_model = chunk_db_model
 
     def ensure_table_schema(self) -> None:
         inspector = sqlalchemy.inspect(engine)
         existed_table_names = inspector.get_table_names()
-        entities_table_name = self._entity_model.__tablename__
-        relationships_table_name = self._relationship_model.__tablename__
+        entities_table_name = self._entity_db_model.__tablename__
+        relationships_table_name = self._relationship_db_model.__tablename__
 
         if entities_table_name not in existed_table_names:
-            self._entity_model.metadata.create_all(
-                engine, tables=[self._entity_model.__table__]
+            self._entity_db_model.metadata.create_all(
+                engine, tables=[self._entity_db_model.__table__]
             )
 
             # Add HNSW index to accelerate ann queries.
             VectorAdaptor(engine).create_vector_index(
-                self._entity_model.description_vec, tidb_vector.DistanceMetric.COSINE
+                self._entity_db_model.description_vec,
+                tidb_vector.DistanceMetric.COSINE,
             )
             VectorAdaptor(engine).create_vector_index(
-                self._entity_model.meta_vec, tidb_vector.DistanceMetric.COSINE
+                self._entity_db_model.meta_vec, tidb_vector.DistanceMetric.COSINE
             )
 
             logger.info(
@@ -165,12 +155,12 @@ class TiDBGraphStore(KnowledgeGraphStore):
     def drop_table_schema(self) -> None:
         inspector = sqlalchemy.inspect(engine)
         existed_table_names = inspector.get_table_names()
-        relationships_table_name = self._relationship_model.__tablename__
-        entities_table_name = self._entity_model.__tablename__
+        relationships_table_name = self._relationship_db_model.__tablename__
+        entities_table_name = self._entity_db_model.__tablename__
 
         if relationships_table_name in existed_table_names:
-            self._relationship_model.metadata.drop_all(
-                engine, tables=[self._relationship_model.__table__]
+            self._relationship_db_model.metadata.drop_all(
+                engine, tables=[self._relationship_db_model.__table__]
             )
             logger.info(
                 f"Relationships table <{relationships_table_name}> has been dropped successfully."
@@ -181,8 +171,8 @@ class TiDBGraphStore(KnowledgeGraphStore):
             )
 
         if entities_table_name in existed_table_names:
-            self._entity_model.metadata.drop_all(
-                engine, tables=[self._entity_model.__table__]
+            self._entity_db_model.metadata.drop_all(
+                engine, tables=[self._entity_db_model.__table__]
             )
             logger.info(
                 f"Entities table <{entities_table_name}> has been dropped successfully."
@@ -336,7 +326,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
             relationships.append(
                 RetrievedRelationship(
                     id=rel.id,
-                    knowledge_base_id=self.knowledge_base.id,
+                    knowledge_base_id=self.knowledge_base_id,
                     source_entity_id=rel.source_entity_id,
                     target_entity_id=rel.target_entity_id,
                     description=rel.description,
@@ -351,7 +341,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
             entities.append(
                 RetrievedEntity(
                     id=entity.id,
-                    knowledge_base_id=self.knowledge_base.id,
+                    knowledge_base_id=self.knowledge_base_id,
                     name=entity.name,
                     description=entity.description,
                     meta=entity.meta,
@@ -360,7 +350,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
             )
 
         return RetrievedKnowledgeGraph(
-            knowledge_base=self.knowledge_base.to_descriptor(),
+            knowledge_base_id=self.knowledge_base_id,
             entities=entities,
             relationships=relationships,
             **kwargs,
@@ -564,7 +554,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
         entities = [
             RetrievedEntity(
                 id=e.id,
-                knowledge_base_id=self.knowledge_base.id,
+                knowledge_base_id=self.knowledge_base_id,
                 name=e.name,
                 description=e.description,
                 meta=e.meta if include_meta else None,
@@ -575,7 +565,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
         relationships = [
             RetrievedRelationship(
                 id=r.id,
-                knowledge_base_id=self.knowledge_base.id,
+                knowledge_base_id=self.knowledge_base_id,
                 source_entity_id=r.source_entity_id,
                 target_entity_id=r.target_entity_id,
                 rag_description=f"{r.source_entity.name} -> {r.description} -> {r.target_entity.name}",
@@ -1110,3 +1100,183 @@ class TiDBGraphStore(KnowledgeGraphStore):
             }
             for chunk in chunks
         ]
+
+        def get_entity(self, session: Session, entity_id: int) -> Optional[SQLModel]:
+        return session.get(self._entity_db_model, entity_id)
+
+    def update_entity(
+        self, session: Session, entity: SQLModel, new_entity: dict
+    ) -> SQLModel:
+        old_entity_dict = entity.screenshot()
+        for key, value in new_entity.items():
+            if value is not None:
+                setattr(entity, key, value)
+                flag_modified(entity, key)
+        entity.description_vec = get_entity_description_embedding(
+            entity.name, entity.description, self._embed_model
+        )
+        entity.meta_vec = get_entity_metadata_embedding(entity.meta, self._embed_model)
+        for relationship in session.exec(
+            select(self._relationship_db_model)
+            .options(
+                joinedload(self._relationship_db_model.source_entity),
+                joinedload(self._relationship_db_model.target_entity),
+            )
+            .where(
+                (self._relationship_db_model.source_entity_id == entity.id)
+                | (self._relationship_db_model.target_entity_id == entity.id)
+            )
+        ):
+            relationship.description_vec = get_relationship_description_embedding(
+                relationship.source_entity.name,
+                relationship.source_entity.description,
+                relationship.target_entity.name,
+                relationship.target_entity.description,
+                relationship.description,
+                self._embed_model,
+            )
+            session.add(relationship)
+        session.commit()
+        session.refresh(entity)
+        new_entity_dict = entity.screenshot()
+        create_staff_action_log(
+            session, "update", "entity", entity.id, old_entity_dict, new_entity_dict
+        )
+        return entity
+
+    def get_entity_subgraph(
+        self, session: Session, entity: SQLModel
+    ) -> Tuple[list, list]:
+        """
+        Get the subgraph of an entity, including all related relationships and entities.
+        """
+        relationships_queryset = session.exec(
+            select(self._relationship_db_model)
+            .options(
+                joinedload(self._relationship_db_model.source_entity),
+                joinedload(self._relationship_db_model.target_entity),
+            )
+            .where(
+                (self._relationship_db_model.source_entity_id == entity.id)
+                | (self._relationship_db_model.target_entity_id == entity.id)
+            )
+        )
+        relationships = []
+        entities = []
+        entities_set = set()
+        for relationship in relationships_queryset:
+            entities_set.add(relationship.source_entity)
+            entities_set.add(relationship.target_entity)
+            relationships.append(relationship.screenshot())
+
+        for entity in entities_set:
+            entities.append(entity.screenshot())
+
+        return relationships, entities
+
+    def get_relationship(
+        self, session: Session, relationship_id: int
+    ) -> Optional[SQLModel]:
+        return session.get(self._relationship_db_model, relationship_id)
+
+    def update_relationship(
+        self, session: Session, relationship: SQLModel, new_relationship: dict
+    ) -> SQLModel:
+        old_relationship_dict = relationship.screenshot()
+        for key, value in new_relationship.items():
+            if value is not None:
+                setattr(relationship, key, value)
+                flag_modified(relationship, key)
+        relationship.description_vec = get_relationship_description_embedding(
+            relationship.source_entity.name,
+            relationship.source_entity.description,
+            relationship.target_entity.name,
+            relationship.target_entity.description,
+            relationship.description,
+            self._embed_model,
+        )
+        session.commit()
+        session.refresh(relationship)
+        new_relationship_dict = relationship.screenshot()
+        # FIXME: some error when create staff action log
+        create_staff_action_log(
+            session,
+            "update",
+            "relationship",
+            relationship.id,
+            old_relationship_dict,
+            new_relationship_dict,
+        )
+        return relationship
+
+    def search_similar_entities(
+        self, session: Session, query: str, top_k: int = 10
+    ) -> list:
+        embedding = get_query_embedding(query, self._embed_model)
+        return session.exec(
+            select(self._entity_db_model)
+            .where(self._entity_db_model.entity_type == EntityType.original)
+            .order_by(self._entity_db_model.description_vec.cosine_distance(embedding))
+            .limit(top_k)
+        ).all()
+
+    def create_synopsis_entity(
+        self,
+        session: Session,
+        name: str,
+        description: str,
+        topic: str,
+        meta: dict,
+        related_entities_ids: List[int],
+    ) -> SQLModel:
+        # with session.begin():
+        synopsis_entity = self._entity_db_model(
+            name=name,
+            description=description,
+            description_vec=get_entity_description_embedding(
+                name, description, self._embed_model
+            ),
+            meta=meta,
+            meta_vec=get_entity_metadata_embedding(meta, self._embed_model),
+            entity_type=EntityType.synopsis,
+            synopsis_info={
+                "entities": related_entities_ids,
+                "topic": topic,
+            },
+        )
+        session.add(synopsis_entity)
+        graph_store = TiDBGraphStore(
+            knowledge_base=self.knowledge_base_id,
+            dspy_lm=None,
+            session=session,
+            embed_model=self._embed_model,
+            entity_db_model=self._entity_db_model,
+            relationship_db_model=self._relationship_db_model,
+        )
+        for related_entity in session.exec(
+            select(self._entity_db_model).where(
+                self._entity_db_model.id.in_(related_entities_ids)
+            )
+        ).all():
+            graph_store.create_relationship(
+                synopsis_entity,
+                related_entity,
+                RelationshipAIModel(
+                    source_entity=synopsis_entity.name,
+                    target_entity=related_entity.name,
+                    relationship_desc=f"{related_entity.name} is a part of synopsis entity (name={synopsis_entity.name}, topic={topic})",
+                ),
+                {"relationship_type": EntityType.synopsis.value},
+                commit=False,
+            )
+        session.commit()
+        create_staff_action_log(
+            session,
+            "create_synopsis_entity",
+            "entity",
+            synopsis_entity.id,
+            {},
+            synopsis_entity.screenshot(),
+            commit=False,
+        )
+        return synopsis_entity

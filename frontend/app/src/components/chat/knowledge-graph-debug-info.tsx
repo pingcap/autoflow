@@ -50,7 +50,7 @@ export function KnowledgeGraphDebugInfo ({ group }: { group: ChatMessageGroup })
 
           if (kbLinked.length === 1) {
             return (
-              <Link href={`/knowledge-bases/${kbLinked}/knowledge-graph-explorer?query=${encodeURIComponent(`message-subgraph:${group.user.id}`)}`} className="absolute top-2 right-2 text-xs underline">
+              <Link href={`/knowledge-bases/${kbLinked[0].id}/knowledge-graph-explorer?query=${encodeURIComponent(`message-subgraph:${group.user.id}`)}`} className="absolute top-2 right-2 text-xs underline">
                 <PencilIcon className="w-3 h-3 mr-1 inline-block" />
                 Edit graph
               </Link>

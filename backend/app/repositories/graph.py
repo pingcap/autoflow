@@ -4,9 +4,9 @@ from sqlmodel import Session, select, func, delete, SQLModel
 
 from app.models.document import Document
 from app.models.knowledge_base import KnowledgeBase
-from app.models.chunk import get_kb_chunk_model
-from app.models.entity import get_kb_entity_model
-from app.models.relationship import get_kb_relationship_model
+from app.models.chunk import get_dynamic_chunk_model
+from app.models.entity import get_dynamic_entity_model
+from app.models.relationship import get_dynamic_relationship_model
 
 
 class GraphRepo:
@@ -65,7 +65,7 @@ class GraphRepo:
 
 
 def get_kb_graph_repo(kb: KnowledgeBase) -> GraphRepo:
-    chunk_model = get_kb_chunk_model(kb)
-    entity_model = get_kb_entity_model(kb)
-    relationship_model = get_kb_relationship_model(kb)
+    chunk_model = get_dynamic_chunk_model(kb)
+    entity_model = get_dynamic_entity_model(kb)
+    relationship_model = get_dynamic_relationship_model(kb)
     return GraphRepo(entity_model, relationship_model, chunk_model)

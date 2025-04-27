@@ -11,17 +11,14 @@ from sqlmodel import Session
 from app.models.knowledge_base import (
     ChunkSplitter,
     ChunkingMode,
-    KnowledgeBase,
+    KnowledgeBase as DBKnowledgeBase,
     SentenceSplitterOptions,
     GeneralChunkingConfig,
     ChunkSplitterConfig,
     MarkdownNodeParserOptions,
     AdvancedChunkingConfig,
 )
-from app.rag.knowledge_base.index_store import (
-    get_kb_tidb_vector_store,
-    get_kb_tidb_graph_store,
-)
+from app.rag.knowledge.base import KnowledgeBase
 from app.rag.indices.knowledge_graph import KnowledgeGraphIndex
 from app.models import Document, Chunk
 from app.rag.node_parser.file.markdown import MarkdownNodeParser
@@ -40,7 +37,7 @@ class IndexService:
         self,
         llm: LLM,
         embed_model: Optional[EmbedType] = None,
-        knowledge_base: Optional[KnowledgeBase] = None,
+        knowledge_base: Optional[DBKnowledgeBase] = None,
     ):
         self._llm = llm
         self._dspy_lm = get_dspy_lm_by_llama_llm(llm)
@@ -60,7 +57,8 @@ class IndexService:
         3. embedding text nodes.
         4. Insert nodes into `chunks` table.
         """
-        vector_store = get_kb_tidb_vector_store(session, self._knowledge_base)
+        kb = KnowledgeBase.load_from_db(session, self._knowledge_base)
+        vector_store = kb.vector_store
         transformations = self._get_transformations(db_document)
         vector_index = VectorStoreIndex.from_vector_store(
             vector_store,
@@ -144,7 +142,8 @@ class IndexService:
         3. insert entities and relations into `entities` and `relations` table.
         """
 
-        graph_store = get_kb_tidb_graph_store(session, self._knowledge_base)
+        kb = KnowledgeBase.load_from_db(session, self._knowledge_base)
+        graph_store = kb.graph_store
         graph_index: KnowledgeGraphIndex = KnowledgeGraphIndex.from_existing(
             dspy_lm=self._dspy_lm,
             kg_store=graph_store,

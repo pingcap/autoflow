@@ -7,7 +7,7 @@ from typing import Mapping, Optional, List
 from dspy import Predict
 from llama_index.core.schema import BaseNode
 
-from app.rag.indices.knowledge_graph.schema import (
+from app.rag.knowledge.graph.extractor.schema import (
     Entity,
     Relationship,
     KnowledgeGraph,

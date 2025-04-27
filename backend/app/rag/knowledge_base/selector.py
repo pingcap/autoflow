@@ -29,8 +29,8 @@ class MultiKBSelector:
         self,
         llm: LLM,
         select_mode: KBSelectMode = KBSelectMode.ALL,
-        retrievers: List[BaseRetriever] = list,
-        retriever_choices: List[ToolMetadata] = list,
+        retrievers: List[BaseRetriever] = [],
+        retriever_choices: List[ToolMetadata] = [],
         callback_manager: CallbackManager = CallbackManager([]),
     ):
         if select_mode == KBSelectMode.ALL:

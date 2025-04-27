@@ -227,6 +227,7 @@ class ChatFlow:
                     db_user_message=db_user_message,
                     response_text=need_clarify_response,
                     knowledge_graph=knowledge_graph,
+                    source_documents=[],
                 )
                 return None, []
 
@@ -247,7 +248,6 @@ class ChatFlow:
             db_user_message=db_user_message,
             response_text=response_text,
             knowledge_graph=knowledge_graph,
-            source_documents=source_documents,
         )
 
         return response_text, source_documents
@@ -329,7 +329,7 @@ class ChatFlow:
     def _refine_user_question(
         self,
         user_question: str,
-        chat_history: Optional[List[ChatMessage]] = list,
+        chat_history: Optional[List[ChatMessage]] = [],
         refined_question_prompt: Optional[str] = None,
         knowledge_graph_context: str = "",
         annotation_silent: bool = False,
@@ -377,7 +377,7 @@ class ChatFlow:
     def _clarify_question(
         self,
         user_question: str,
-        chat_history: Optional[List[ChatMessage]] = list,
+        chat_history: Optional[List[ChatMessage]] = [],
         knowledge_graph_context: str = "",
     ) -> Generator[ChatEvent, None, Tuple[bool, str]]:
         """
@@ -577,7 +577,7 @@ class ChatFlow:
         db_user_message: ChatMessage,
         response_text: str,
         knowledge_graph: KnowledgeGraphRetrievalResult = KnowledgeGraphRetrievalResult(),
-        source_documents: Optional[List[SourceDocument]] = list,
+        source_documents: Optional[List[SourceDocument]] = [],
         annotation_silent: bool = False,
     ):
         if not annotation_silent:
@@ -627,14 +627,20 @@ class ChatFlow:
         goal, response_format = self.user_question, {}
         if settings.ENABLE_QUESTION_CACHE and len(self.chat_history) == 0:
             try:
-                logger.info(f"start to find_best_answer_for_question with question: {self.user_question}")
+                logger.info(
+                    f"start to find_best_answer_for_question with question: {self.user_question}"
+                )
                 cache_messages = chat_repo.find_best_answer_for_question(
                     self.db_session, self.user_question
                 )
                 if cache_messages and len(cache_messages) > 0:
-                    logger.info(f"find_best_answer_for_question result {len(cache_messages)} for question {self.user_question}")
+                    logger.info(
+                        f"find_best_answer_for_question result {len(cache_messages)} for question {self.user_question}"
+                    )
             except Exception as e:
-                logger.error(f"Failed to find best answer for question {self.user_question}: {e}")
+                logger.error(
+                    f"Failed to find best answer for question {self.user_question}: {e}"
+                )
 
         if not cache_messages or len(cache_messages) == 0:
             try:
@@ -643,10 +649,11 @@ class ChatFlow:
 
                 # 2. Check if the goal provided enough context information or need to clarify.
                 if self.engine_config.clarify_question:
-                    need_clarify, need_clarify_response = (
-                        yield from self._clarify_question(
-                            user_question=goal, chat_history=self.chat_history
-                        )
+                    (
+                        need_clarify,
+                        need_clarify_response,
+                    ) = yield from self._clarify_question(
+                        user_question=goal, chat_history=self.chat_history
                     )
                     if need_clarify:
                         yield from self._chat_finish(

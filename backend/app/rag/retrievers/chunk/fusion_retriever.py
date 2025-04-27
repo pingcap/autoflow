@@ -3,7 +3,6 @@ from llama_index.core import QueryBundle
 from llama_index.core.callbacks import CallbackManager
 from llama_index.core.llms import LLM
 from llama_index.core.schema import NodeWithScore
-from llama_index.core.tools import ToolMetadata
 from sqlmodel import Session
 from app.rag.retrievers.chunk.simple_retriever import (
     ChunkSimpleRetriever,
@@ -16,7 +15,6 @@ from app.rag.retrievers.chunk.schema import (
 )
 from app.rag.retrievers.chunk.helpers import map_nodes_to_chunks
 from app.rag.retrievers.multiple_knowledge_base import MultiKBFusionRetriever
-from app.rag.knowledge_base.selector import KBSelectMode
 from app.repositories import knowledge_base_repo, document_repo
 
 
@@ -27,15 +25,12 @@ class ChunkFusionRetriever(MultiKBFusionRetriever, ChunkRetriever):
         knowledge_base_ids: List[int],
         llm: LLM,
         use_query_decompose: bool = False,
-        kb_select_mode: KBSelectMode = KBSelectMode.ALL,
-        use_async: bool = True,
         config: VectorSearchRetrieverConfig = VectorSearchRetrieverConfig(),
         callback_manager: Optional[CallbackManager] = CallbackManager([]),
         **kwargs,
     ):
         # Prepare vector search retrievers for knowledge bases.
         retrievers = []
-        retriever_choices = []
         knowledge_bases = knowledge_base_repo.get_by_ids(db_session, knowledge_base_ids)
         for kb in knowledge_bases:
             retrievers.append(
@@ -46,21 +41,12 @@ class ChunkFusionRetriever(MultiKBFusionRetriever, ChunkRetriever):
                     db_session=db_session,
                 )
             )
-            retriever_choices.append(
-                ToolMetadata(
-                    name=kb.name,
-                    description=kb.description,
-                )
-            )
 
         super().__init__(
             db_session=db_session,
             retrievers=retrievers,
-            retriever_choices=retriever_choices,
             llm=llm,
             use_query_decompose=use_query_decompose,
-            kb_select_mode=kb_select_mode,
-            use_async=use_async,
             callback_manager=callback_manager,
             **kwargs,
         )

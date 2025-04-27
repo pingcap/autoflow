@@ -34,7 +34,6 @@ def retrieve_chunks(
             knowledge_base_ids=config.knowledge_base_ids,
             llm=llm,
             use_query_decompose=config.use_query_decompose,
-            kb_select_mode=config.kb_select_mode,
             config=config.vector_search,
         )
         return retriever.retrieve_chunks(request.query, config.full_documents)
@@ -59,7 +58,6 @@ def retrieve_knowledge_graph(
             knowledge_base_ids=config.knowledge_base_ids,
             llm=llm,
             use_query_decompose=config.use_query_decompose,
-            kb_select_mode=config.kb_select_mode,
             config=config.knowledge_graph,
         )
         return retriever.retrieve_knowledge_graph(request.query)

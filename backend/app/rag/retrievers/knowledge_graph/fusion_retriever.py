@@ -4,13 +4,11 @@ from sqlmodel import Session
 from typing import List, Optional, Dict, Tuple
 from llama_index.core import QueryBundle
 from llama_index.core.callbacks import CallbackManager
-from llama_index.core.llms import LLM
 from llama_index.core.schema import NodeWithScore
-from llama_index.core.tools import ToolMetadata
+from llama_index.core.llms import LLM
 
 from app.models import KnowledgeBase
 from app.rag.retrievers.multiple_knowledge_base import MultiKBFusionRetriever
-from app.rag.knowledge_base.selector import KBSelectMode
 from app.rag.retrievers.knowledge_graph.simple_retriever import (
     KnowledgeGraphSimpleRetriever,
 )
@@ -35,8 +33,6 @@ class KnowledgeGraphFusionRetriever(MultiKBFusionRetriever, KnowledgeGraphRetrie
         knowledge_base_ids: List[int],
         llm: LLM,
         use_query_decompose: bool = False,
-        kb_select_mode: KBSelectMode = KBSelectMode.ALL,
-        use_async: bool = True,
         config: KnowledgeGraphRetrieverConfig = KnowledgeGraphRetrieverConfig(),
         callback_manager: Optional[CallbackManager] = CallbackManager([]),
         **kwargs,
@@ -45,7 +41,6 @@ class KnowledgeGraphFusionRetriever(MultiKBFusionRetriever, KnowledgeGraphRetrie
 
         # Prepare knowledge graph retrievers for knowledge bases.
         retrievers = []
-        retriever_choices = []
         knowledge_bases = knowledge_base_repo.get_by_ids(db_session, knowledge_base_ids)
         self.knowledge_bases = knowledge_bases
         for kb in knowledge_bases:
@@ -58,21 +53,12 @@ class KnowledgeGraphFusionRetriever(MultiKBFusionRetriever, KnowledgeGraphRetrie
                     callback_manager=callback_manager,
                 )
             )
-            retriever_choices.append(
-                ToolMetadata(
-                    name=kb.name,
-                    description=kb.description,
-                )
-            )
 
         super().__init__(
             db_session=db_session,
             retrievers=retrievers,
-            retriever_choices=retriever_choices,
             llm=llm,
             use_query_decompose=use_query_decompose,
-            kb_select_mode=kb_select_mode,
-            use_async=use_async,
             callback_manager=callback_manager,
             **kwargs,
         )

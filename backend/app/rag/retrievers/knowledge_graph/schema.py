@@ -64,8 +64,10 @@ class RetrievedEntity(BaseModel):
         description="Type of the entity", default=EntityType.original
     )
     name: str = Field(description="Name of the entity")
-    description: str = Field(description="Description of the entity")
-    meta: Optional[Mapping[str, Any]] = Field(description="Metadata of the entity")
+    description: str = Field(description="Description of the entity", default="")
+    meta: Optional[Mapping[str, Any]] = Field(
+        description="Metadata of the entity", default={}
+    )
 
     @property
     def global_id(self) -> str:

@@ -1,4 +1,4 @@
-from typing import Optional, Any, List, Dict
+from typing import Optional, Any
 from datetime import datetime
 
 from sqlmodel import (
@@ -29,7 +29,7 @@ class SemanticCache(SQLModel, table=True):
             VectorType(settings.EMBEDDING_DIMS), comment="hnsw(distance=cosine)"
         )
     )
-    meta: List | Dict = Field(default={}, sa_column=Column(JSON))
+    meta: dict = Field(default_factory=dict, sa_column=Column(JSON))
     created_at: datetime = Field(
         sa_column=Column(DateTime, server_default=func.now(), nullable=True)
     )

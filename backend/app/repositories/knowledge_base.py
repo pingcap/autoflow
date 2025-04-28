@@ -3,7 +3,7 @@ from datetime import datetime, UTC
 
 from sqlalchemy import delete
 from sqlalchemy.orm.attributes import flag_modified
-from sqlmodel import select, Session, func, update
+from sqlmodel import SQLModel, select, Session, func, update
 from fastapi_pagination import Params, Page
 from fastapi_pagination.ext.sqlmodel import paginate
 
@@ -18,7 +18,6 @@ from app.models import (
     Document,
     DocIndexTaskStatus,
     KgIndexStatus,
-    Chunk,
     KnowledgeBaseDataSource,
 )
 from app.models.chat_engine import ChatEngine
@@ -197,7 +196,7 @@ class KnowledgeBaseRepo(BaseRepo):
     def batch_update_chunk_status(
         self,
         session: Session,
-        chunk_model: Type[Chunk],
+        chunk_model: Type[SQLModel],
         chunk_ids: list[int],
         status: KgIndexStatus,
     ):

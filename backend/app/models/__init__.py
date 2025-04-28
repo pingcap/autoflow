@@ -1,10 +1,10 @@
 # flake8: noqa
 from .entity import (
     EntityType,
-    Entity,
     EntityPublic,
+    get_kb_entity_model,
 )
-from .relationship import Relationship, RelationshipPublic
+from .relationship import RelationshipPublic, get_kb_relationship_model
 from .feedback import (
     Feedback,
     FeedbackType,
@@ -18,7 +18,7 @@ from .chat_engine import ChatEngine, ChatEngineUpdate
 from .chat import Chat, ChatUpdate, ChatVisibility, ChatFilters, ChatOrigin
 from .chat_message import ChatMessage
 from .document import Document, DocIndexTaskStatus
-from .chunk import Chunk, KgIndexStatus
+from .chunk import KgIndexStatus, get_kb_chunk_model
 from .auth import User, UserSession
 from .api_key import ApiKey, PublicApiKey
 from .site_setting import SiteSetting

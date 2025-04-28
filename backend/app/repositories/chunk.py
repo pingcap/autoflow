@@ -5,13 +5,12 @@ from sqlmodel import Session, select, SQLModel
 from app.repositories.base_repo import BaseRepo
 
 from app.models import (
-    Chunk as DBChunk,
     Document as DBDocument,
 )
 
 
 class ChunkRepo(BaseRepo):
-    def __init__(self, chunk_model: Type[SQLModel] = DBChunk):
+    def __init__(self, chunk_model: Type[SQLModel]):
         self.model_cls = chunk_model
 
     def document_exists_chunks(self, session: Session, document_id: int) -> bool:
@@ -59,6 +58,3 @@ class ChunkRepo(BaseRepo):
     def delete_by_document(self, session: Session, document_id: int):
         stmt = delete(self.model_cls).where(self.model_cls.document_id == document_id)
         session.exec(stmt)
-
-
-chunk_repo = ChunkRepo()

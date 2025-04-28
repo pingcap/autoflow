@@ -24,7 +24,6 @@ from sqlmodel import (
 )
 from tidb_vector.sqlalchemy import VectorAdaptor
 from app.core.db import engine
-from app.models import Chunk
 
 
 logger = logging.getLogger(__name__)
@@ -53,8 +52,8 @@ class TiDBVectorStore(BasePydanticVectorStore):
 
     def __init__(
         self,
+        chunk_db_model: Type[SQLModel],
         session: Optional[Session] = None,
-        chunk_db_model: Type[SQLModel] = Chunk,
         oversampling_factor: int = 1,
         **kwargs: Any,
     ) -> None:

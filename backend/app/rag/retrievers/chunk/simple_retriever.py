@@ -9,9 +9,9 @@ from sqlmodel import Session
 from llama_index.core.retrievers import BaseRetriever
 from llama_index.core.schema import NodeWithScore, QueryBundle
 import llama_index.core.instrumentation as instrument
+from sqlmodel import SQLModel
 
 from app.models.chunk import get_kb_chunk_model
-from app.models.patch.sql_model import SQLModel
 from app.rag.knowledge_base.config import get_kb_embed_model
 from app.rag.rerankers.resolver import resolve_reranker_by_id
 from app.rag.retrievers.chunk.schema import (

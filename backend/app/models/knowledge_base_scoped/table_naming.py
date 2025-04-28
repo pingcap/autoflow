@@ -1,8 +1,12 @@
+import logging
 import re
 
 from app.models.knowledge_base import KnowledgeBase
 from app.models.embed_model import DEFAULT_VECTOR_DIMENSION
-from app.models.knowledge_base_scoped.registry import logger
+
+
+logger = logging.getLogger(__name__)
+
 
 DEFAULT_CHUNKS_TABLE_NAME = "chunks"
 DEFAULT_ENTITIES_TABLE_NAME = "entities"

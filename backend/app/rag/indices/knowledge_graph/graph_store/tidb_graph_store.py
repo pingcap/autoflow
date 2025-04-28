@@ -38,12 +38,9 @@ from app.rag.retrievers.knowledge_graph.schema import (
     RetrievedKnowledgeGraph,
 )
 from app.models import (
-    Entity as DBEntity,
-    Relationship as DBRelationship,
-    Chunk as DBChunk,
     KnowledgeBase,
+    EntityType,
 )
-from app.models import EntityType
 
 logger = logging.getLogger(__name__)
 
@@ -87,12 +84,12 @@ class TiDBGraphStore(KnowledgeGraphStore):
         self,
         knowledge_base: KnowledgeBase,
         dspy_lm: dspy.LM,
+        entity_db_model: Type[SQLModel],
+        relationship_db_model: Type[SQLModel],
+        chunk_db_model: Type[SQLModel],
         session: Optional[Session] = None,
         embed_model: Optional[EmbedType] = None,
         description_similarity_threshold=0.9,
-        entity_db_model: Type[SQLModel] = DBEntity,
-        relationship_db_model: Type[SQLModel] = DBRelationship,
-        chunk_db_model: Type[SQLModel] = DBChunk,
     ):
         self.knowledge_base = knowledge_base
         self._session = session

@@ -8,7 +8,7 @@ from sqlmodel import Session
 from app.api.admin_routes.knowledge_base.models import ChunkItem
 from app.api.deps import SessionDep, CurrentSuperuserDep
 from app.models import Document
-from app.models.chunk import Chunk, KgIndexStatus, get_kb_chunk_model
+from app.models.chunk import KgIndexStatus, get_kb_chunk_model
 from app.models.document import DocIndexTaskStatus
 from app.models.entity import get_kb_entity_model
 from app.models.relationship import get_kb_relationship_model
@@ -198,7 +198,7 @@ def rebuild_kb_document_index_by_ids(
         build_index_for_document.delay(kb.id, doc.id)
 
     # Retry failed kg index tasks.
-    chunks: list[Chunk] = kb_chunk_repo.fetch_by_document_ids(db_session, document_ids)
+    chunks = kb_chunk_repo.fetch_by_document_ids(db_session, document_ids)
     reindex_chunk_ids = []
     ignore_chunk_ids = []
     for chunk in chunks:

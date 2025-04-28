@@ -27,11 +27,11 @@ class EntityType(str, enum.Enum):
 
 class EntityPublic(BaseModel):
     id: int
+    entity_type: EntityType = Field(default=EntityType.original)
     name: str
-    description: str
-    meta: Dict
-    entity_type: EntityType
-    synopsis_info: Dict
+    description: Optional[str] = Field(default=None)
+    meta: Optional[dict] = Field(default=None)
+    synopsis_info: Optional[dict] = Field(default=None)
 
 
 def get_kb_entity_model(kb: KnowledgeBase) -> Type[SQLModel]:

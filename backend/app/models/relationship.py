@@ -11,7 +11,7 @@ from sqlmodel import (
     Relationship as SQLRelationship,
 )
 from tidb_vector.sqlalchemy import VectorType
-from app.models.entity import EntityPublic, get_kb_entity_model
+from app.models.entity import get_kb_entity_model
 from app.models.knowledge_base import KnowledgeBase
 from app.models.knowledge_base_scoped.table_naming import get_kb_vector_dims
 from app.utils.namespace import format_namespace
@@ -20,10 +20,10 @@ from app.utils.namespace import format_namespace
 class RelationshipPublic(BaseModel):
     id: int
     description: str
+    source_entity_id: int
+    target_entity_id: int
     meta: dict = Field(default_factory=dict)
     weight: Optional[int] = Field(default=0)
-    source_entity: EntityPublic
-    target_entity: EntityPublic
     last_modified_at: Optional[datetime] = Field(default=None)
     document_id: Optional[int] = Field(default=None)
     chunk_id: Optional[UUID] = Field(default=None)

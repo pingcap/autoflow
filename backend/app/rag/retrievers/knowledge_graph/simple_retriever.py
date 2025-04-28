@@ -5,6 +5,8 @@ from llama_index.core import QueryBundle
 from llama_index.core.callbacks import CallbackManager
 from llama_index.core.retrievers import BaseRetriever
 from llama_index.core.schema import NodeWithScore
+
+from app.models.chunk import get_kb_chunk_model
 from app.models.entity import get_kb_entity_model
 from app.models.relationship import get_kb_relationship_model
 from app.rag.retrievers.knowledge_graph.schema import (
@@ -35,6 +37,7 @@ class KnowledgeGraphSimpleRetriever(BaseRetriever, KnowledgeGraphRetriever):
         )
         self.embed_model = get_kb_embed_model(db_session, self.knowledge_base)
         self.embed_model.callback_manager = callback_manager
+        self.chunk_db_model = get_kb_chunk_model(self.knowledge_base)
         self.entity_db_model = get_kb_entity_model(self.knowledge_base)
         self.relationship_db_model = get_kb_relationship_model(self.knowledge_base)
         # TODO: remove it
@@ -46,6 +49,7 @@ class KnowledgeGraphSimpleRetriever(BaseRetriever, KnowledgeGraphRetriever):
             embed_model=self.embed_model,
             entity_db_model=self.entity_db_model,
             relationship_db_model=self.relationship_db_model,
+            chunk_db_model=self.chunk_db_model,
         )
 
     def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:

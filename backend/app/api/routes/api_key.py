@@ -21,7 +21,7 @@ class CreateApiKeyResponse(BaseModel):
 async def create_api_key(
     session: AsyncSessionDep, user: CurrentSuperuserDep, request: CreateApiKeyRequest
 ) -> CreateApiKeyResponse:
-    _, raw_api_key = await api_key_manager.create_api_key(
+    _, raw_api_key = await api_key_manager.acreate_api_key(
         session, user, request.description
     )
     return CreateApiKeyResponse(api_key=raw_api_key)

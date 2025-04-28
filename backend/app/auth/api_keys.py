@@ -5,7 +5,7 @@ import hashlib
 from typing import Optional, Tuple
 
 from fastapi import Request
-from sqlmodel import select
+from sqlmodel import Session, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from fastapi_pagination import Params, Page
 from fastapi_pagination.ext.sqlmodel import paginate
@@ -49,7 +49,7 @@ def encrypt_api_key(api_key: str) -> str:
 
 
 class ApiKeyManager:
-    async def create_api_key(
+    async def acreate_api_key(
         self, session: AsyncSession, user: User, description: str
     ) -> Tuple[ApiKey, str]:
         api_key = generate_api_key()
@@ -63,6 +63,22 @@ class ApiKeyManager:
         session.add(api_key_obj)
         await session.commit()
         await session.refresh(api_key_obj)
+        return api_key_obj, api_key
+
+    def create_api_key(
+        self, session: Session, user: User, description: str
+    ) -> Tuple[ApiKey, str]:
+        api_key = generate_api_key()
+        hashed_api_key = encrypt_api_key(api_key)
+        api_key_obj = ApiKey(
+            hashed_secret=hashed_api_key,
+            api_key_display=api_key[:7] + "...." + api_key[-3:],
+            user_id=user.id,
+            description=description,
+        )
+        session.add(api_key_obj)
+        session.commit()
+        session.refresh(api_key_obj)
         return api_key_obj, api_key
 
     async def get_active_user_by_raw_api_key(

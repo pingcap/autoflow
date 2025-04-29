@@ -106,7 +106,7 @@ class MarkdownNodeParser(NodeParser):
                             and sn.metadata[f"Header_{_hl}"] not in sn.text
                         ):
                             sn.text = (
-                                f'{"#" * _hl} {sn.metadata[f"Header_{_hl}"]}\n\n'
+                                f"{'#' * _hl} {sn.metadata[f'Header_{_hl}']}\n\n"
                                 + sn.text
                             )
                 n = build_nodes_from_splits([sn.text], node, id_func=self.id_func)[0]

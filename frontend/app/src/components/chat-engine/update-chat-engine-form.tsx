@@ -171,7 +171,18 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
               </field.Basic>
             </GeneralSettingsField>
           </SubSection>
-          <SubSection title="Recommend More Questions">
+          <SubSection title="Further Questions">
+            <GeneralSettingsField accessor={optionAccessor('further_questions')} schema={z.boolean().nullable().optional()}>
+              <field.Contained
+                unimportant
+                name="value"
+                label="Show Further Questions"
+                fallbackValue={defaultChatEngineOptions.further_questions}
+                description="Show suggested follow-up questions after each answer"
+              >
+                <FormSwitch />
+              </field.Contained>
+            </GeneralSettingsField>
             <GeneralSettingsField accessor={llmAccessor.further_questions_prompt} schema={llmSchema}>
               <field.Basic name="value" label="" description="Template for generating follow-up questions to continue the conversation" fallbackValue={defaultChatEngineOptions.llm?.further_questions_prompt}>
                 <PromptInput />

@@ -173,7 +173,16 @@ export function CreateChatEngineForm ({ defaultChatEngineOptions }: { defaultCha
                   <PromptInput />
                 </field.Basic>
               </SubSection>
-              <SubSection title="Recommend More Questions">
+              <SubSection title="Further Questions">
+                <field.Contained
+                  unimportant
+                  name="engine_options.further_questions"
+                  label="Show Further Questions"
+                  description="Show suggested follow-up questions after each answer"
+                  defaultValue={defaultChatEngineOptions.further_questions}
+                >
+                  <FormSwitch />
+                </field.Contained>
                 <field.Basic name="engine_options.llm.further_questions_prompt" label="" fallbackValue={defaultChatEngineOptions.llm?.further_questions_prompt} description={llmPromptDescriptions.further_questions_prompt}>
                   <PromptInput />
                 </field.Basic>

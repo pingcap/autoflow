@@ -123,7 +123,10 @@ function ConversationMessageGroup ({ group, isLastGroup }: { group: ChatMessageG
 
       <MessageVerify assistant={group.assistant} />
 
-      {!params && isLastGroup && group.hasLastAssistantMessage && <MessageRecommendQuestions assistant={group.assistant} />}
+      {/* Only show recommend questions if enabled in engine_options */}
+      {!params && isLastGroup && group.hasLastAssistantMessage && engine_options?.further_questions !== false && (
+        <MessageRecommendQuestions assistant={group.assistant} />
+      )}
     </section>
   );
 }

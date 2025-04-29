@@ -28,6 +28,7 @@ export interface ChatEngineOptions {
     stream_chat_api_url?: string | null
   } | null;
   clarify_question?: boolean | null;
+  further_questions?: boolean | null;
   knowledge_base?: ChatEngineKnowledgeBaseOptions | null;
   knowledge_graph?: ChatEngineKnowledgeGraphOptions | null;
   llm?: ChatEngineLLMOptions | null;
@@ -54,9 +55,7 @@ export interface ChatEngineKnowledgeGraphOptions {
 
 export type ChatEngineLLMOptions = {
   condense_question_prompt?: string | null
-  condense_answer_prompt?: string | null
   text_qa_prompt?: string | null
-  refine_prompt?: string | null
   intent_graph_knowledge?: string | null
   normal_graph_knowledge?: string | null
   clarifying_question_prompt?: string | null
@@ -87,9 +86,7 @@ const kgOptionsSchema = z.object({
 const llmOptionsSchema =
   z.object({
     condense_question_prompt: z.string().nullable().optional(),
-    condense_answer_prompt: z.string().nullable().optional(),
     text_qa_prompt: z.string().nullable().optional(),
-    refine_prompt: z.string().nullable().optional(),
     intent_graph_knowledge: z.string().nullable().optional(),
     normal_graph_knowledge: z.string().nullable().optional(),
     clarifying_question_prompt: z.string().nullable().optional(),
@@ -105,6 +102,7 @@ const chatEngineOptionsSchema = z.object({
     stream_chat_api_url: z.string().optional().nullable(),
   }).nullable().optional(),
   clarify_question: z.boolean().nullable().optional(),
+  further_questions: z.boolean().nullable().optional(),
   knowledge_base: kbOptionsSchema.nullable().optional(),
   knowledge_graph: kgOptionsSchema.nullable().optional(),
   llm: llmOptionsSchema.nullable().optional(),

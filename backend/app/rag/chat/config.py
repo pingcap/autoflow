@@ -27,7 +27,6 @@ from app.rag.default_prompt import (
     DEFAULT_NORMAL_GRAPH_KNOWLEDGE,
     DEFAULT_CONDENSE_QUESTION_PROMPT,
     DEFAULT_TEXT_QA_PROMPT,
-    DEFAULT_REFINE_PROMPT,
     DEFAULT_FURTHER_QUESTIONS_PROMPT,
     DEFAULT_GENERATE_GOAL_PROMPT,
     DEFAULT_CLARIFYING_QUESTION_PROMPT,
@@ -43,7 +42,6 @@ class LLMOption(BaseModel):
     condense_question_prompt: str = DEFAULT_CONDENSE_QUESTION_PROMPT
     clarifying_question_prompt: str = DEFAULT_CLARIFYING_QUESTION_PROMPT
     text_qa_prompt: str = DEFAULT_TEXT_QA_PROMPT
-    refine_prompt: str = DEFAULT_REFINE_PROMPT
     further_questions_prompt: str = DEFAULT_FURTHER_QUESTIONS_PROMPT
     generate_goal_prompt: str = DEFAULT_GENERATE_GOAL_PROMPT
 
@@ -84,6 +82,7 @@ class ChatEngineConfig(BaseModel):
 
     refine_question_with_kg: bool = True
     clarify_question: bool = False
+    further_questions: bool = False
 
     post_verification_url: Optional[str] = None
     post_verification_token: Optional[str] = None

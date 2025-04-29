@@ -48,6 +48,7 @@ test.describe('Chat Engine', () => {
           },
           hide_sources: false,
           clarify_question: false,
+          further_questions: false,
         });
         expect(chatEngine.llm_id).toBeNull();
         expect(chatEngine.fast_llm_id).toBeNull();
@@ -123,6 +124,7 @@ test.describe('Chat Engine', () => {
           },
           hide_sources: true,
           clarify_question: true,
+          further_questions: false,
         });
         expect(chatEngine.llm_id).toBe(1);
         expect(chatEngine.fast_llm_id).toBe(1);

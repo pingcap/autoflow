@@ -51,7 +51,7 @@ def resolve_llm(
             from llama_index.llms.google_genai import GoogleGenAI
 
             return GoogleGenAI(model=model, api_key=credentials, **config)
-        case LLMProvider.VERTEX_AI:
+        case LLMProvider.VERTEX_AI | LLMProvider.ANTHROPIC_VERTEX:
             from llama_index.llms.google_genai import GoogleGenAI
             from llama_index.llms.google_genai.base import VertexAIConfig
             from google.oauth2 import service_account

@@ -8,6 +8,7 @@ class LLMProvider(str, enum.Enum):
     OPENAI = "openai"
     GEMINI = "gemini"
     VERTEX_AI = "vertex_ai"
+    ANTHROPIC_VERTEX = "anthropic_vertex"  # Deprecated, use VERTEX_AI instead
     OPENAI_LIKE = "openai_like"
     BEDROCK = "bedrock"
     OLLAMA = "ollama"

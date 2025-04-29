@@ -57,16 +57,21 @@ export function KnowledgeBaseSettingsForm ({ knowledgeBase }: { knowledgeBase: K
           <EmbeddingModelSelect />
         </field.Basic>
       </GeneralSettingsField>
-      <GeneralSettingsField readonly accessor={vectorAccessor} schema={vectorSchema}>
-        <field.Contained name="value" label="Vector Index" description="/// TBD">
-          <FormSwitch />
-        </field.Contained>
-      </GeneralSettingsField>
-      <GeneralSettingsField readonly accessor={kgAccessor} schema={kgSchema}>
-        <field.Contained name="value" label="Knowledge Graph Index" description="/// TBD">
-          <FormSwitch />
-        </field.Contained>
-      </GeneralSettingsField>
+      <div className="space-y-2">
+        <div className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Index Methods</div>
+        <div className="space-y-2 pt-2">
+          <GeneralSettingsField readonly accessor={vectorAccessor} schema={vectorSchema}>
+            <field.Contained name="value" label="Vector Index" description="Use vector embedding to represent documents so that relevant documents can be retrieved based on their semantics">
+              <FormSwitch />
+            </field.Contained>
+          </GeneralSettingsField>
+          <GeneralSettingsField readonly accessor={kgAccessor} schema={kgSchema}>
+            <field.Contained name="value" label="Knowledge Graph Index" description="Extract the entities and relationships form the documents and use knowledge graphs to represent, enhance the logic and reasoning capabilities of the retrieval process">
+              <FormSwitch />
+            </field.Contained>
+          </GeneralSettingsField>
+        </div>
+      </div>
       <KnowledgeBaseChunkingConfigFields />
       <GeneralSettingsField readonly schema={createdAtSchema} accessor={createdAtAccessor}>
         <field.Basic name="value" label="Created At">

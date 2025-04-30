@@ -47,9 +47,9 @@ def get_dspy_lm_by_llama_llm(llama_llm: BaseLLM) -> dspy.LM:
                     vertex_location=llama_llm._location,
                     vertex_credentials=llama_llm._credentials,
                 )
-        case "Bedrock_LLM":
+        case "Bedrock_Converse_LLM":
             return dspy.LM(
-                model=f"bedrock/{llama_llm.model}",
+                model=f"bedrock/converse/{llama_llm.model}",
                 # Notice: Bedrock's default max_tokens is 512, which is too small for the application.
                 max_tokens=llama_llm.max_tokens or 8192,
                 aws_access_key_id=llama_llm.aws_access_key_id,

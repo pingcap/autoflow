@@ -1216,7 +1216,7 @@ wheels = [
 
 [[package]]
 name = "dspy"
-version = "2.6.13"
+version = "2.6.21"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -1230,19 +1230,21 @@ dependencies = [
     { name = "json-repair" },
     { name = "litellm" },
     { name = "magicattr" },
+    { name = "numpy" },
     { name = "openai" },
     { name = "optuna" },
     { name = "pandas" },
     { name = "pydantic" },
     { name = "regex" },
     { name = "requests" },
+    { name = "rich" },
     { name = "tenacity" },
     { name = "tqdm" },
     { name = "ujson" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2c/37/3e6c6929a39ef96ce20f2eb3773f2743267c52f02e55059b1f11bef40ebf/dspy-2.6.13.tar.gz", hash = "sha256:66aa1919364f631ee48abad8e9c387d83e0884805106b79ec5b22cb023bbaf04", size = 194148 }
+sdist = { url = "https://files.pythonhosted.org/packages/e6/bb/ec528f54f47e973a468851325e3ce9b90f0506c4f5a2d402e732cc4bcad6/dspy-2.6.21.tar.gz", hash = "sha256:aad87b9819fa1553974d2ecbedf54e20565597e111e4b5d2b3908454cef1b00d", size = 213022 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9e/27/2a2832ca6111e219c7bacd15d82fc32b6e77ecabf31a4234e54f131a8e28/dspy-2.6.13-py3-none-any.whl", hash = "sha256:3151dd5125f2db7ab453fa27349262ad3f9602e95d8bdd298b53ec622d4352a3", size = 247632 },
+    { url = "https://files.pythonhosted.org/packages/6d/5c/d4413641f17cf7cb84fa65a2419be23fac01f41ca142545c71ce6aab5d63/dspy-2.6.21-py3-none-any.whl", hash = "sha256:5b9ed662f6cc57c1ff7c1df69d60d42db9734b883d6774eb450c378726369a8b", size = 270397 },
 ]
 
 [[package]]
@@ -2458,7 +2460,7 @@ wheels = [
 
 [[package]]
 name = "litellm"
-version = "1.66.1"
+version = "1.67.4.post1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -2473,10 +2475,7 @@ dependencies = [
     { name = "tiktoken" },
     { name = "tokenizers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c1/21/12562c37310254456afdd277454dac4d14b8b40796216e8a438a9e1c5e86/litellm-1.66.1.tar.gz", hash = "sha256:98f7add913e5eae2131dd412ee27532d9a309defd9dbb64f6c6c42ea8a2af068", size = 7203211 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e9/33/fdc4615ca621940406e3b0b303e900bc2868cfcd8c62c4a6f5e7d2f6a56c/litellm-1.66.1-py3-none-any.whl", hash = "sha256:1f601fea3f086c1d2d91be60b9db115082a2f3a697e4e0def72f8b9c777c7232", size = 7559553 },
-]
+sdist = { url = "https://files.pythonhosted.org/packages/4d/89/bacf75633dd43d6c5536380fb652c4af25046c29f5c6e5fdb4e8fe5af505/litellm-1.67.4.post1.tar.gz", hash = "sha256:057f2505f82d8c3f83d705c375b0d1931de998b13e239a6b06e16ee351fda648", size = 7243930 }
 
 [[package]]
 name = "llama-cloud"
@@ -2733,6 +2732,20 @@ wheels = [
 ]
 
 [[package]]
+name = "llama-index-llms-bedrock-converse"
+version = "0.4.15"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aioboto3" },
+    { name = "boto3" },
+    { name = "llama-index-core" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/78/69/6ee42ea38c1ec5de3edf74579ad353421752b428c4aff00ae2cea665b47d/llama_index_llms_bedrock_converse-0.4.15.tar.gz", hash = "sha256:274c0e0ac20c6dac2250102a26100a3bb856b819030116fcec22148be66d0204", size = 12649 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6d/fe/53b9dea69bc5d25389f58d13e143c46f16bd381a0ce2c4698a47037b8bf6/llama_index_llms_bedrock_converse-0.4.15-py3-none-any.whl", hash = "sha256:d4a7dc20d83cc5691ac9f8fb83cd2d2ebe98046dfacbe27e33c57fb40e7bfdfe", size = 13131 },
+]
+
+[[package]]
 name = "llama-index-llms-google-genai"
 version = "0.1.7"
 source = { registry = "https://pypi.org/simple" }
@@ -2952,7 +2965,7 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/8c/de/8eb6fffecd9c5f129461edcdd7e1ac944f9de15783e3d89c84ed6e0374bc/lxml-5.3.2-cp310-cp310-musllinux_1_2_ppc64le.whl", hash = "sha256:aa837e6ee9534de8d63bc4c1249e83882a7ac22bd24523f83fad68e6ffdf41ae", size = 5652903 },
     { url = "https://files.pythonhosted.org/packages/95/79/80f4102a08495c100014593680f3f0f7bd7c1333b13520aed855fc993326/lxml-5.3.2-cp310-cp310-musllinux_1_2_s390x.whl", hash = "sha256:da4c9223319400b97a2acdfb10926b807e51b69eb7eb80aad4942c0516934858", size = 5491813 },
     { url = "https://files.pythonhosted.org/packages/15/f5/9b1f7edf6565ee31e4300edb1bcc61eaebe50a3cff4053c0206d8dc772f2/lxml-5.3.2-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:dc0e9bdb3aa4d1de703a437576007d366b54f52c9897cae1a3716bb44fc1fc85", size = 5227837 },
-    { url = "https://files.pythonhosted.org/packages/5c/17/c31d94364c02e3492215658917f5590c00edce8074aeb06d05b7771465d9/lxml-5.3.2-cp310-cp310-win32.whl", hash = "sha256:5f94909a1022c8ea12711db7e08752ca7cf83e5b57a87b59e8a583c5f35016ad", size = 3477533 },
+    { url = "https://files.pythonhosted.org/packages/dd/53/a187c4ccfcd5fbfca01e6c96da39499d8b801ab5dcf57717db95d7a968a8/lxml-5.3.2-cp310-cp310-win32.win32.whl", hash = "sha256:dd755a0a78dd0b2c43f972e7b51a43be518ebc130c9f1a7c4480cf08b4385486", size = 3477533 },
     { url = "https://files.pythonhosted.org/packages/f2/2c/397c5a9d76a7a0faf9e5b13143ae1a7e223e71d2197a45da71c21aacb3d4/lxml-5.3.2-cp310-cp310-win_amd64.whl", hash = "sha256:d64ea1686474074b38da13ae218d9fde0d1dc6525266976808f41ac98d9d7980", size = 3805160 },
     { url = "https://files.pythonhosted.org/packages/84/b8/2b727f5a90902f7cc5548349f563b60911ca05f3b92e35dfa751349f265f/lxml-5.3.2-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:9d61a7d0d208ace43986a92b111e035881c4ed45b1f5b7a270070acae8b0bfb4", size = 8163457 },
     { url = "https://files.pythonhosted.org/packages/91/84/23135b2dc72b3440d68c8f39ace2bb00fe78e3a2255f7c74f7e76f22498e/lxml-5.3.2-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:856dfd7eda0b75c29ac80a31a6411ca12209183e866c33faf46e77ace3ce8a79", size = 4433445 },
@@ -5397,6 +5410,7 @@ dependencies = [
     { name = "jinja2" },
     { name = "langchain-openai" },
     { name = "langfuse" },
+    { name = "litellm" },
     { name = "llama-index" },
     { name = "llama-index-embeddings-azure-openai" },
     { name = "llama-index-embeddings-bedrock" },
@@ -5405,6 +5419,7 @@ dependencies = [
     { name = "llama-index-embeddings-ollama" },
     { name = "llama-index-llms-azure-openai" },
     { name = "llama-index-llms-bedrock" },
+    { name = "llama-index-llms-bedrock-converse" },
     { name = "llama-index-llms-google-genai" },
     { name = "llama-index-llms-ollama" },
     { name = "llama-index-llms-openai" },
@@ -5452,7 +5467,7 @@ requires-dist = [
     { name = "colorama", specifier = ">=0.4.6" },
     { name = "deepdiff", specifier = ">=7.0.1" },
     { name = "deepeval", specifier = ">=0.21.73" },
-    { name = "dspy", specifier = ">=2.6.13" },
+    { name = "dspy", specifier = ">=2.6.21" },
     { name = "fastapi", specifier = ">=0.115.6" },
     { name = "fastapi-cli", specifier = ">=0.0.5" },
     { name = "fastapi-pagination", specifier = ">=0.12.25" },
@@ -5464,6 +5479,7 @@ requires-dist = [
     { name = "jinja2", specifier = ">=3.1.4" },
     { name = "langchain-openai", specifier = ">=0.2.9" },
     { name = "langfuse", specifier = ">=2.59.1" },
+    { name = "litellm", specifier = ">=1.67.4" },
     { name = "llama-index", specifier = ">=0.12.16" },
     { name = "llama-index-embeddings-azure-openai", specifier = ">=0.3.0" },
     { name = "llama-index-embeddings-bedrock", specifier = ">=0.4.0" },
@@ -5471,7 +5487,8 @@ requires-dist = [
     { name = "llama-index-embeddings-jinaai", specifier = ">=0.4.0" },
     { name = "llama-index-embeddings-ollama", specifier = ">=0.5.0" },
     { name = "llama-index-llms-azure-openai", specifier = ">=0.3.0" },
-    { name = "llama-index-llms-bedrock", specifier = ">=0.3.3" },
+    { name = "llama-index-llms-bedrock", specifier = ">=0.3.8" },
+    { name = "llama-index-llms-bedrock-converse", specifier = ">=0.4.15" },
     { name = "llama-index-llms-google-genai", specifier = ">=0.1.6" },
     { name = "llama-index-llms-ollama", specifier = ">=0.5.0" },
     { name = "llama-index-llms-openai", specifier = ">=0.3.13" },

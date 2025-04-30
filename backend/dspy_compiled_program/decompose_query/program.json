@@ -1,6 +1,5 @@
 {
-  "prog.predictor": {
-    "lm": null,
+  "prog": {
     "traces": [],
     "train": [],
     "demos": [
@@ -40,7 +39,22 @@
         "subquestions": "{\"questions\":[{\"question\":\"Chat2query is returning an error message saying 'Query timeout expired'.\",\"reasoning\":\"The main problem the user is facing.\"},{\"question\":\"The reason why not to locate the SQL query in the slow query log.\",\"reasoning\":\"The secondary problem the user is facing.\"}]}"
       }
     ],
-    "signature_instructions": "You are an expert in knowledge base graph construction, specializing in building comprehensive knowledge graphs.\nYour current task is to deconstruct the user's query into a series of step-by-step questions.\n\n## Instructions:\n\n1. Dependency Analysis:\n\n    - Analyze the user's query to identify the underlying dependencies and relationships between different components.\n    - Construct a dependency graph that visually represents these relationships.\n\n2. Question Breakdown: Divide the query into a sequence of step-by-step questions necessary to address the main query comprehensively.\n\n3. Provide Reasoning: Explain the rationale behind each question.\n\n4. Constraints:\n    - Limit the output to no more than 5 questions to maintain focus and relevance.\n    - Ensure accuracy by reflecting the user's true intentions based on the provided query.\n    - Ground all questions in factual information derived directly from the user's input.",
-    "signature_prefix": "Subquestions:"
+    "signature": {
+      "instructions": "You are an expert in knowledge base graph construction, specializing in building comprehensive knowledge graphs.\nYour current task is to deconstruct the user's query into a series of step-by-step questions.\n\n## Instructions:\n\n1. Dependency Analysis:\n\n    - Analyze the user's query to identify the underlying dependencies and relationships between different components.\n    - Construct a dependency graph that visually represents these relationships.\n\n2. Question Breakdown: Divide the query into a sequence of step-by-step questions necessary to address the main query comprehensively.\n\n3. Provide Reasoning: Explain the rationale behind each question.\n\n4. Constraints:\n    - Limit the output to no more than 5 questions to maintain focus and relevance.\n    - Ensure accuracy by reflecting the user's true intentions based on the provided query.\n    - Ground all questions in factual information derived directly from the user's input.\n\nPlease only response in JSON format.",
+      "fields": [
+        {
+          "prefix": "Query:",
+          "description": "The query text to extract the user's step-by-step questions."
+        },
+        {
+          "prefix": "Subquestions:",
+          "description": "Representation of the user's step-by-step questions extracted from the query."
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {}
   }
 }

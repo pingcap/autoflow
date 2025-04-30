@@ -1,6 +1,8 @@
 import logging
 from typing import List
 
+import dspy
+from llama_index.core.base.llms.types import ChatMessage
 from fastapi import APIRouter, Depends
 from fastapi_pagination import Params, Page
 from pydantic import BaseModel
@@ -9,6 +11,7 @@ from sqlalchemy import update
 from app.api.deps import CurrentSuperuserDep, SessionDep
 from app.exceptions import InternalServerError, LLMNotFound
 from app.models import AdminLLM, LLM, ChatEngine, KnowledgeBase
+from app.rag.llms.dspy import get_dspy_lm_by_llama_llm
 from app.repositories.llm import llm_repo
 from app.rag.llms.provider import (
     LLMProviderOption,
@@ -65,7 +68,15 @@ def test_llm(
             config=db_llm.config,
             credentials=db_llm.credentials,
         )
-        llm.complete("Who are you?")
+        llm.chat([ChatMessage(role="user", content="Who are you?")])
+
+        # Test with dspy LM.
+        dspy_lm = get_dspy_lm_by_llama_llm(llm)
+        with dspy.context(lm=dspy_lm):
+            math = dspy.Predict("question -> answer: float")
+            prediction = math(question="1 + 1 = ?")
+            assert prediction.answer == 2
+
         success = True
         error = ""
     except Exception as e:

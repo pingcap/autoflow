@@ -679,9 +679,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
                 query = query.where(relationships_alias.meta[k] == v)
 
         if visited_relationships:
-            query = query.where(
-                self._relationship_model.id.notin_(visited_relationships)
-            )
+            query = query.where(subquery.c.id.notin_(visited_relationships))
 
         if distance_range != (0.0, 1.0):
             # embedding_distance between the range
@@ -692,9 +690,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
             ).params(min_distance=distance_range[0], max_distance=distance_range[1])
 
         if visited_entities:
-            query = query.where(
-                self._relationship_model.source_entity_id.in_(visited_entities)
-            )
+            query = query.where(subquery.c.source_entity_id.in_(visited_entities))
 
         query = query.order_by(asc("embedding_distance")).limit(limit)
 

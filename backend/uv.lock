@@ -243,15 +243,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/76/74/5d90ad14d55fbe3f9c474fdcb6e34b4bed99e3be8efac98734a5ddce88c1/anthropic-0.49.0-py3-none-any.whl", hash = "sha256:bbc17ad4e7094988d2fa86b87753ded8dce12498f4b85fe5810f208f454a8375", size = 243368 },
 ]
 
-[package.optional-dependencies]
-bedrock = [
-    { name = "boto3" },
-    { name = "botocore" },
-]
-vertex = [
-    { name = "google-auth" },
-]
-
 [[package]]
 name = "anyio"
 version = "4.9.0"
@@ -2690,19 +2681,6 @@ wheels = [
 ]
 
 [[package]]
-name = "llama-index-llms-anthropic"
-version = "0.6.10"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "anthropic", extra = ["bedrock", "vertex"] },
-    { name = "llama-index-core" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/96/a3/021d0d5a2c6e7e06b89a97026cf0d4fea56877f14294c8086bb37dc3cd46/llama_index_llms_anthropic-0.6.10.tar.gz", hash = "sha256:2b1e88319825dc1a2c7f28a146b197726b7ecba39ff6bde1732368c834f0f16c", size = 11570 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/6a/07/b1334f2e3f03d6085f4d9dbab4a46ffbf4f817fbb267de56b5d8077b3edc/llama_index_llms_anthropic-0.6.10-py3-none-any.whl", hash = "sha256:cb1eb525816016a4d179c717d6a0569c8c8bb74e80f4da9ec1628ccd5e54d3ee", size = 11040 },
-]
-
-[[package]]
 name = "llama-index-llms-azure-openai"
 version = "0.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2715,20 +2693,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/0c/cf/23c516c5a61c9b7a481c383862ebd99cc5e6a35f820dab871bb12b453b71/llama_index_llms_azure_openai-0.3.2.tar.gz", hash = "sha256:c6ae4e6d896abc784a1d60e02a537c91e019317de69d02256424eab80c988646", size = 6287 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ce/2f/efab9bd63f7f3dd9ec83c945c9516beffcff14ffd4a8187150b46e69124b/llama_index_llms_azure_openai-0.3.2-py3-none-any.whl", hash = "sha256:1a831035129042327f50d243a17918c481dfae39fd5a7ddaaaa0a712fb18ab8e", size = 7283 },
-]
-
-[[package]]
-name = "llama-index-llms-bedrock"
-version = "0.3.8"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "boto3" },
-    { name = "llama-index-core" },
-    { name = "llama-index-llms-anthropic" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ae/b1/f7172ba0c6d808863ea545a2b99c7b4a51b8109caba9df67e44cd8971ca5/llama_index_llms_bedrock-0.3.8.tar.gz", hash = "sha256:8ca2914842a1d09079c35429b15dc50659d697ae84a15a89076a12f90505800e", size = 10771 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ff/2f/7fc5206467151f64764bae61abd0fbbb8392fe84def15b1467f7fb174d7b/llama_index_llms_bedrock-0.3.8-py3-none-any.whl", hash = "sha256:58b804a206146bd7228590a4ee92ce13806a21040d92cb61e3046f2ee64f66cd", size = 11516 },
 ]
 
 [[package]]
@@ -5418,7 +5382,6 @@ dependencies = [
     { name = "llama-index-embeddings-jinaai" },
     { name = "llama-index-embeddings-ollama" },
     { name = "llama-index-llms-azure-openai" },
-    { name = "llama-index-llms-bedrock" },
     { name = "llama-index-llms-bedrock-converse" },
     { name = "llama-index-llms-google-genai" },
     { name = "llama-index-llms-ollama" },
@@ -5487,7 +5450,6 @@ requires-dist = [
     { name = "llama-index-embeddings-jinaai", specifier = ">=0.4.0" },
     { name = "llama-index-embeddings-ollama", specifier = ">=0.5.0" },
     { name = "llama-index-llms-azure-openai", specifier = ">=0.3.0" },
-    { name = "llama-index-llms-bedrock", specifier = ">=0.3.8" },
     { name = "llama-index-llms-bedrock-converse", specifier = ">=0.4.15" },
     { name = "llama-index-llms-google-genai", specifier = ">=0.1.6" },
     { name = "llama-index-llms-ollama", specifier = ">=0.5.0" },

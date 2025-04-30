@@ -248,6 +248,7 @@ class ChatFlow:
             db_user_message=db_user_message,
             response_text=response_text,
             knowledge_graph=knowledge_graph,
+            source_documents=source_documents,
         )
 
         return response_text, source_documents

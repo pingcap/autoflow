@@ -21,7 +21,7 @@
 AutoFlow is an open source graph rag (graphrag: knowledge graph rag) based knowledge base tool built on top of [TiDB Vector](https://www.pingcap.com/ai?utm_source=tidb.ai&utm_medium=community) and [LlamaIndex](https://github.com/run-llama/llama_index) and [DSPy](https://github.com/stanfordnlp/dspy).
 
 - **Live Demo**: [https://tidb.ai](https://tidb.ai?utm_source=tidb.ai&utm_medium=community)
-- **Deployment Docs**: [Deployment Docs](https://tidb.ai/docs/?utm_source=github&utm_medium=tidb.ai)
+- **Deployment Docs**: [Deployment Docs](https://autoflow.tidb.ai/?utm_source=github&utm_medium=tidb.ai)
 
 ## Features
 
@@ -35,7 +35,7 @@ AutoFlow is an open source graph rag (graphrag: knowledge graph rag) based knowl
 
 ## Deploy
 
-- [Deploy with Docker Compose](https://tidb.ai/docs/deploy-with-docker) (with: 4 CPU cores and 8GB RAM)
+- [Deploy with Docker Compose](https://autoflow.tidb.ai/deploy-with-docker) (with: 4 CPU cores and 8GB RAM)
 
 ## Tech Stack
 

@@ -25,7 +25,7 @@ website:
   homepage_footer_links:
     default:
       - text: "Release Notes"
-        href: "https://tidb.ai/docs/changelog"
+        href: "https://autoflow.tidb.ai/releases"
       - text: "Powered by TiDB"
         href: "https://tidb.cloud/ai"
       - text: "© 2024 PingCAP"

@@ -35,7 +35,7 @@ export default async function RootLayout({ children }) {
           </span>
         </div>
       }
-      logoLink="/docs"
+      logoLink="/"
       projectLink="https://github.com/pingcap/autoflow"
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

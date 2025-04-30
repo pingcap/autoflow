@@ -17,7 +17,7 @@ In this section, you should have some prerequisites software installed on your l
 
 #### Setting up your development environment
 
-Setting up the project on your local machine is the first step to contributing to the project. You can clone the project from the GitHub repository and then start the project on your local machine. You can follow the instructions in the [Deployment Guide](https://tidb.ai/docs/deploy-with-docker) file to set up the project on your local machine.
+Setting up the project on your local machine is the first step to contributing to the project. You can clone the project from the GitHub repository and then start the project on your local machine. You can follow the instructions in the [Deployment Guide](https://autoflow.tidb.ai/deploy-with-docker) file to set up the project on your local machine.
 
 To test your local changes, you can build and run the project using:
 

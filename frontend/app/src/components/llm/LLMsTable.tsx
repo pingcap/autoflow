@@ -46,7 +46,7 @@ const columns: ColumnDef<LLM, any>[] = [
       const { model, provider } = row.original;
       return (
         <>
-          <strong>{provider}</strong>:<span>{model}</span>
+          <strong>{provider}</strong>/<span>{model}</span>
         </>
       );
     },

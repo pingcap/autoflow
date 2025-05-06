@@ -1,26 +1,20 @@
-import logging
 from typing import List
 
-import dspy
-from llama_index.core.base.llms.types import ChatMessage
 from fastapi import APIRouter, Depends
-from fastapi_pagination import Params, Page
+from fastapi_pagination import Page, Params
+from llama_index.core.base.llms.types import ChatMessage
 from pydantic import BaseModel
 from sqlalchemy import update
 
 from app.api.deps import CurrentSuperuserDep, SessionDep
-from app.exceptions import InternalServerError, LLMNotFound
-from app.models import AdminLLM, LLM, ChatEngine, KnowledgeBase
-from app.rag.llms.dspy import get_dspy_lm_by_llama_llm
-from app.repositories.llm import llm_repo
-from app.rag.llms.provider import (
-    LLMProviderOption,
-    llm_provider_options,
-)
+from app.logger import logger
+from app.models import AdminLLM, ChatEngine, KnowledgeBase, LLM, LLMUpdate
+from app.rag.llms.provider import LLMProviderOption, llm_provider_options
 from app.rag.llms.resolver import resolve_llm
+from app.repositories.llm import llm_repo
+
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
 
 
 @router.get("/admin/llms/provider/options")
@@ -28,27 +22,22 @@ def list_llm_provider_options(user: CurrentSuperuserDep) -> List[LLMProviderOpti
     return llm_provider_options
 
 
-@router.get("/admin/llms/options", deprecated=True)
-def get_llm_options(user: CurrentSuperuserDep) -> List[LLMProviderOption]:
-    return llm_provider_options
-
-
 @router.get("/admin/llms")
 def list_llms(
-    session: SessionDep,
+    db_session: SessionDep,
     user: CurrentSuperuserDep,
     params: Params = Depends(),
 ) -> Page[AdminLLM]:
-    return llm_repo.paginate(session, params)
+    return llm_repo.paginate(db_session, params)
 
 
 @router.post("/admin/llms")
 def create_llm(
-    llm: LLM,
-    session: SessionDep,
+    db_session: SessionDep,
     user: CurrentSuperuserDep,
+    llm: LLM,
 ) -> AdminLLM:
-    return llm_repo.create(session, llm)
+    return llm_repo.create(db_session, llm)
 
 
 class LLMTestResult(BaseModel):
@@ -71,6 +60,9 @@ def test_llm(
         llm.chat([ChatMessage(role="user", content="Who are you?")])
 
         # Test with dspy LM.
+        import dspy
+        from app.rag.llms.dspy import get_dspy_lm_by_llama_llm
+
         dspy_lm = get_dspy_lm_by_llama_llm(llm)
         with dspy.context(lm=dspy_lm):
             math = dspy.Predict("question -> answer: float")
@@ -80,65 +72,62 @@ def test_llm(
         success = True
         error = ""
     except Exception as e:
-        logger.debug(e)
+        logger.error(f"Failed to test LLM: {e}")
         success = False
         error = str(e)
     return LLMTestResult(success=success, error=error)
 
 
 @router.get("/admin/llms/{llm_id}")
-def get_llm_detail(
-    session: SessionDep,
+def get_llm(
+    db_session: SessionDep,
     user: CurrentSuperuserDep,
     llm_id: int,
 ) -> AdminLLM:
-    try:
-        return llm_repo.must_get(session, llm_id)
-    except LLMNotFound as e:
-        raise e
-    except Exception as e:
-        logger.exception(e)
-        raise InternalServerError()
+    return llm_repo.must_get(db_session, llm_id)
+
+
+@router.put("/admin/llms/{llm_id}")
+def update_llm(
+    db_session: SessionDep,
+    user: CurrentSuperuserDep,
+    llm_id: int,
+    llm_update: LLMUpdate,
+) -> AdminLLM:
+    llm = llm_repo.must_get(db_session, llm_id)
+    return llm_repo.update(db_session, llm, llm_update)
 
 
 @router.delete("/admin/llms/{llm_id}")
 def delete_llm(
-    llm_id: int,
-    session: SessionDep,
+    db_session: SessionDep,
     user: CurrentSuperuserDep,
+    llm_id: int,
 ) -> AdminLLM:
-    llm = llm_repo.must_get(session, llm_id)
+    llm = llm_repo.must_get(db_session, llm_id)
 
-    # FIXME: Should be replaced with a new LLM or prohibit users from operating,
-    #  If the current LLM is used by a Chat Engine or Knowledge Base.
-
-    session.exec(
+    # TODO: Support to specify a new LLM to replace the current LLM.
+    db_session.exec(
         update(ChatEngine).where(ChatEngine.llm_id == llm_id).values(llm_id=None)
     )
-    session.exec(
+    db_session.exec(
         update(ChatEngine)
         .where(ChatEngine.fast_llm_id == llm_id)
         .values(fast_llm_id=None)
     )
-    session.exec(
+    db_session.exec(
         update(KnowledgeBase).where(KnowledgeBase.llm_id == llm_id).values(llm_id=None)
     )
-    session.delete(llm)
-    session.commit()
+
+    # TODO: Should using soft deletion.
+    db_session.delete(llm)
+    db_session.commit()
     return llm
 
 
 @router.put("/admin/llms/{llm_id}/set_default")
 def set_default_llm(
-    session: SessionDep, user: CurrentSuperuserDep, llm_id: int
+    db_session: SessionDep, user: CurrentSuperuserDep, llm_id: int
 ) -> AdminLLM:
-    try:
-        llm = llm_repo.must_get(session, llm_id)
-        llm_repo.set_default_model(session, llm_id)
-        session.refresh(llm)
-        return llm
-    except LLMNotFound as e:
-        raise e
-    except Exception as e:
-        logger.exception(e)
-        raise InternalServerError()
+    llm = llm_repo.must_get(db_session, llm_id)
+    return llm_repo.set_default(db_session, llm)

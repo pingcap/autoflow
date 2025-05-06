@@ -25,7 +25,7 @@ from .site_setting import SiteSetting
 from .upload import Upload
 from .data_source import DataSource, DataSourceType
 from .knowledge_base import KnowledgeBase, KnowledgeBaseDataSource
-from .llm import LLM, AdminLLM
+from .llm import LLM, AdminLLM, LLMUpdate
 from .embed_model import EmbeddingModel
 from .reranker_model import RerankerModel, AdminRerankerModel
 from .recommend_question import RecommendQuestion

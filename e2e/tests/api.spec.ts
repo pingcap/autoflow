@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+
 import type { APIResponse } from 'playwright-core';
 import { loginViaApi } from '../utils/login';
 
@@ -69,7 +70,7 @@ test.describe('API', () => {
     await expectGetOkStep('/api/v1/admin/feedbacks');
 
     await expectGetOkStep('/api/v1/admin/llms');
-    await expectGetOkStep('/api/v1/admin/llms/options');
+    await expectGetOkStep('/api/v1/admin/llms/provider/options');
 
     await expectGetOkStep('/api/v1/admin/embedding-models');
     await expectGetOkStep('/api/v1/admin/embedding-models/options');

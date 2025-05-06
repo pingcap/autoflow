@@ -165,3 +165,24 @@ class DocumentNotFound(DocumentException):
 
     def __init__(self, document_id: int):
         self.detail = f"document #{document_id} is not found"
+
+
+# Chat engine
+
+
+class ChatEngineException(HTTPException):
+    pass
+
+
+class ChatEngineNotFound(ChatEngineException):
+    status_code = 404
+
+    def __init__(self, chat_engine_id: int):
+        self.detail = f"chat engine #{chat_engine_id} is not found"
+
+
+class DefaultChatEngineCannotBeDeleted(ChatEngineException):
+    status_code = 400
+
+    def __init__(self, chat_engine_id: int):
+        self.detail = f"default chat engine #{chat_engine_id} cannot be deleted"

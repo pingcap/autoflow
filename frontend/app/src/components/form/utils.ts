@@ -1,4 +1,3 @@
-import { getErrorMessage } from '@/lib/errors';
 import type { FieldInfo, FormApi, ValidationErrorMap } from '@tanstack/react-form';
 import { z, ZodError } from 'zod';
 
@@ -14,10 +13,13 @@ export function onSubmitHelper<T> (
     } catch (e) {
       if (e != null && e instanceof ZodError) {
         const { formErrors, fieldErrors } = e.flatten();
-        const rest = applyFormError(formApi, {
-          ...fieldErrors,
-          '.': formErrors,
-        }, 'onSubmit');
+        const rest = applyFormError(formApi, Object.assign(
+          {} as Record<string, string[]>,
+          fieldErrors,
+          formErrors.length > 0 ? {
+            '.': formErrors,
+          } : {},
+        ), 'onSubmit');
         if (rest) {
           setSubmissionError(Object.values(rest).join(' '));
         }

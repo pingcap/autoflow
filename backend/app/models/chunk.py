@@ -18,6 +18,7 @@ from app.models.knowledge_base import KnowledgeBase
 from app.models.knowledge_base_scoped.table_naming import get_kb_vector_dims
 from app.utils.namespace import format_namespace
 from .base import UpdatableBaseModel, UUIDBaseModel
+from app.logger import logger
 
 
 class KgIndexStatus(str, enum.Enum):
@@ -41,6 +42,13 @@ def get_dynamic_chunk_model(
     namespace = format_namespace(namespace)
     chunk_table_name = f"chunks_{namespace}"
     chunk_model_name = f"Chunk_{namespace}_{vector_dimension}"
+
+    logger.info(
+        "Dynamic create chunk model (dimension: %s, table: %s, model: %s)",
+        vector_dimension,
+        chunk_table_name,
+        chunk_model_name,
+    )
 
     class Chunk(UUIDBaseModel, UpdatableBaseModel):
         hash: str = Field(max_length=64)

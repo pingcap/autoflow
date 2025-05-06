@@ -15,6 +15,7 @@ from sqlalchemy import Index
 from app.models.knowledge_base import KnowledgeBase
 from app.models.knowledge_base_scoped.table_naming import get_kb_vector_dims
 from app.utils.namespace import format_namespace
+from app.logger import logger
 
 
 class EntityType(str, enum.Enum):
@@ -47,6 +48,13 @@ def get_dynamic_entity_model(
     namespace = format_namespace(namespace)
     entity_table_name = f"entities_{namespace}"
     entity_model_name = f"Entity_{namespace}_{vector_dimension}"
+
+    logger.info(
+        "Dynamic create entity model (dimension: %s, table: %s, model: %s)",
+        vector_dimension,
+        entity_table_name,
+        entity_model_name,
+    )
 
     class Entity(SQLModel):
         id: Optional[int] = Field(default=None, primary_key=True)

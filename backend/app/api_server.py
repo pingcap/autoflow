@@ -1,56 +1,15 @@
-import logging
-from logging.config import dictConfig
+import app.logger
 import sentry_sdk
 
+from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 from app.api.main import api_router
-from app.core.config import settings, Environment
+from app.core.config import settings
 from app.site_settings import SiteSetting
 from app.utils.uuid6 import uuid7
-
-
-dictConfig(
-    {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "formatters": {
-            "default": {
-                "format": "%(asctime)s - %(name)s:%(lineno)d - %(levelname)s - %(message)s",
-            },
-        },
-        "handlers": {
-            "console": {
-                "class": "logging.StreamHandler",
-                "formatter": "default",
-            },
-        },
-        "root": {
-            "level": logging.INFO
-            if settings.ENVIRONMENT != Environment.LOCAL
-            else logging.DEBUG,
-            "handlers": ["console"],
-        },
-        "loggers": {
-            "uvicorn.error": {
-                "level": "ERROR",
-                "handlers": ["console"],
-                "propagate": False,
-            },
-            "uvicorn.access": {
-                "level": "INFO",
-                "handlers": ["console"],
-                "propagate": False,
-            },
-        },
-    }
-)
-
-
-logger = logging.getLogger(__name__)
 
 
 load_dotenv()

@@ -1,12 +1,12 @@
 'use client';;
-import { use } from "react";
 
-import { getEmbeddingModel } from '@/api/embedding-models';
 import { AdminPageHeading } from '@/components/admin-page-heading';
 import { ConfigViewer } from '@/components/config-viewer';
 import { DateFormat } from '@/components/date-format';
-import { OptionDetail } from '@/components/option-detail';
 import { Loader2Icon } from 'lucide-react';
+import { OptionDetail } from '@/components/option-detail';
+import { getEmbeddingModel } from '@/api/embedding-models';
+import { use } from "react";
 import useSWR from 'swr';
 
 export default function Page(props: { params: Promise<{ id: string }> }) {
@@ -18,7 +18,7 @@ export default function Page(props: { params: Promise<{ id: string }> }) {
       <AdminPageHeading
         breadcrumbs={[
           { title: 'Models' },
-          { title: 'Embedding Models', url: '/embedding-models', docsUrl: '/docs/embedding-model' },
+          { title: 'Embedding Models', url: '/embedding-models', docsUrl: 'https://autoflow.tidb.ai/embedding-model' },
           { title: data ? data.name : <Loader2Icon className="size-4 animate-spin repeat-infinite" /> },
         ]}
       />

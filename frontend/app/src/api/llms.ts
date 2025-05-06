@@ -51,7 +51,7 @@ const llmOptionSchema = providerOptionSchema.and(z.object({
 })) satisfies ZodType<LlmOption, any, any>;
 
 export async function listLlmOptions () {
-  return await fetch(requestUrl(`/api/v1/admin/llms/provider/options`), {
+  return await fetch(requestUrl(`/api/v1/admin/llms/providers/options`), {
     headers: {
       ...await authenticationHeaders(),
     },

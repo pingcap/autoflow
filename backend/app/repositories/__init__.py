@@ -8,4 +8,4 @@ from .data_source import data_source_repo
 from .knowledge_base import knowledge_base_repo
 from .feedback import feedback_repo
 from .llm import llm_repo
-from .embedding_model import embed_model_repo
+from .embedding_model import embedding_model_repo

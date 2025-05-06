@@ -1,13 +1,14 @@
 'use client';;
-import { use } from "react";
 
-import { getKnowledgeBaseDocument, getKnowledgeBaseDocumentChunks } from '@/api/knowledge-base';
-import { AdminPageHeading } from '@/components/admin-page-heading';
-import { DateFormat } from '@/components/date-format';
-import { CodeInput } from '@/components/form/widgets/CodeInput';
-import { useKnowledgeBase } from '@/components/knowledge-base/hooks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { getKnowledgeBaseDocument, getKnowledgeBaseDocumentChunks } from '@/api/knowledge-base';
+
+import { AdminPageHeading } from '@/components/admin-page-heading';
+import { CodeInput } from '@/components/form/widgets/CodeInput';
+import { DateFormat } from '@/components/date-format';
 import { Loader2Icon } from 'lucide-react';
+import { use } from "react";
+import { useKnowledgeBase } from '@/components/knowledge-base/hooks';
 import useSWR from 'swr';
 
 export default function DocumentChunksPage(props: { params: Promise<{ id: string, documentId: string }> }) {
@@ -26,7 +27,7 @@ export default function DocumentChunksPage(props: { params: Promise<{ id: string
     <>
       <AdminPageHeading
         breadcrumbs={[
-          { title: 'Knowledge Bases', url: '/knowledge-bases', docsUrl: '/docs/knowledge-base' },
+          { title: 'Knowledge Bases', url: '/knowledge-bases', docsUrl: 'https://autoflow.tidb.ai/knowledge-base' },
           { title: knowledgeBase?.name ?? <Loader2Icon className="size-4 animate-spin repeat-infinite" />, url: `/knowledge-bases/${kbId}` },
           { title: document?.name ?? <Loader2Icon className="size-4 animate-spin repeat-infinite" /> },
           { title: 'Chunks' },

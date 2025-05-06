@@ -9,7 +9,7 @@ export default function Page () {
       <AdminPageHeading
         breadcrumbs={[
           { title: 'Models' },
-          { title: 'LLMs', docsUrl: '/docs/llm' },
+          { title: 'LLMs', docsUrl: 'https://autoflow.tidb.ai/llm' },
         ]}
       />
       <NextLink href="/llms/create">

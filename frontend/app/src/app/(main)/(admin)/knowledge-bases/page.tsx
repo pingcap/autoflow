@@ -1,10 +1,11 @@
 'use client';
 
+import { KnowledgeBaseCard, KnowledgeBaseCardPlaceholder } from '@/components/knowledge-base/knowledge-base-card';
+
 import { AdminPageHeading } from '@/components/admin-page-heading';
 import KnowledgeBaseEmptyState from '@/components/knowledge-base/empty-state';
-import { useAllKnowledgeBases } from '@/components/knowledge-base/hooks';
-import { KnowledgeBaseCard, KnowledgeBaseCardPlaceholder } from '@/components/knowledge-base/knowledge-base-card';
 import { NextLink } from '@/components/nextjs/NextLink';
+import { useAllKnowledgeBases } from '@/components/knowledge-base/hooks';
 
 export default function KnowledgeBasesPage () {
   const { data: knowledgeBases, isLoading } = useAllKnowledgeBases();
@@ -13,7 +14,7 @@ export default function KnowledgeBasesPage () {
     <>
       <AdminPageHeading
         breadcrumbs={[
-          { title: 'Knowledge Bases', docsUrl: '/docs/knowledge-base' },
+          { title: 'Knowledge Bases', docsUrl: 'https://autoflow.tidb.ai/knowledge-base' },
         ]}
       />
       <NextLink href="/knowledge-bases/new">

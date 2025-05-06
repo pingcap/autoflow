@@ -9,6 +9,8 @@ from sqlmodel import select, Session
 
 from app.exceptions import DefaultLLMNotFound, LLMNotFound
 from app.models import LLM, LLMUpdate
+from app.models.chat_engine import ChatEngine
+from app.models.knowledge_base import KnowledgeBase
 from app.repositories.base_repo import BaseRepo
 
 
@@ -30,11 +32,18 @@ class LLMRepo(BaseRepo):
             raise LLMNotFound(llm_id)
         return db_llm
 
+    def exists_any_model(self, session: Session) -> bool:
+        stmt = select(LLM).with_for_update().limit(1)
+        return session.exec(stmt).one_or_none() is not None
+
     def create(self, session: Session, llm: LLM) -> LLM:
         # If there is no exiting model, the first model is
         # automatically set as the default model.
         if not self.exists_any_model(session):
             llm.is_default = True
+
+        if llm.is_default:
+            self._unset_default(session)
 
         llm.id = None
         session.add(llm)
@@ -43,9 +52,14 @@ class LLMRepo(BaseRepo):
 
         return llm
 
-    def exists_any_model(self, session: Session) -> bool:
-        stmt = select(LLM).with_for_update().limit(1)
-        return session.exec(stmt).one_or_none() is not None
+    def update(self, session: Session, llm: LLM, llm_update: LLMUpdate) -> LLM:
+        for field, value in llm_update.model_dump(exclude_unset=True).items():
+            setattr(llm, field, value)
+            flag_modified(llm, field)
+
+        session.commit()
+        session.refresh(llm)
+        return llm
 
     # Default model
 
@@ -78,15 +92,24 @@ class LLMRepo(BaseRepo):
         session.refresh(llm)
         return llm
 
-    def update(self, session: Session, llm: LLM, llm_update: LLMUpdate) -> LLM:
-        for field, value in llm_update.model_dump(exclude_unset=True).items():
-            setattr(llm, field, value)
-            flag_modified(llm, field)
+    def delete(self, session: Session, llm: LLM):
+        # TODO: Support to specify a new LLM to replace the current LLM.
+        session.exec(
+            update(ChatEngine).where(ChatEngine.llm_id == llm.id).values(llm_id=None)
+        )
+        session.exec(
+            update(ChatEngine)
+            .where(ChatEngine.fast_llm_id == llm.id)
+            .values(fast_llm_id=None)
+        )
+        session.exec(
+            update(KnowledgeBase)
+            .where(KnowledgeBase.llm_id == llm.id)
+            .values(llm_id=None)
+        )
 
-        session.add(llm)
+        session.delete(llm)
         session.commit()
-        session.refresh(llm)
-        return llm
 
 
 llm_repo = LLMRepo()

@@ -4,6 +4,7 @@ from sqlmodel import Field, Column, JSON, String
 
 from .base import UpdatableBaseModel, AESEncryptedColumn
 from app.rag.rerankers.provider import RerankerProvider
+from pydantic import BaseModel
 
 
 class BaseRerankerModel(UpdatableBaseModel):
@@ -24,3 +25,10 @@ class RerankerModel(BaseRerankerModel, table=True):
 
 class AdminRerankerModel(BaseRerankerModel):
     id: int
+
+
+class RerankerModelUpdate(BaseModel):
+    name: Optional[str] = None
+    config: Optional[dict | list] = None
+    credentials: Optional[str | dict] = None
+    top_n: Optional[int] = None

@@ -27,4 +27,4 @@ class AdminLLM(BaseLLM):
 class LLMUpdate(BaseModel):
     name: Optional[str] = None
     config: Optional[dict] = None
-    credentials: Optional[dict] = None
+    credentials: Optional[str | dict] = None

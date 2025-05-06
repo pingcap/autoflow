@@ -1,14 +1,15 @@
 'use client';
 
 import { deleteReranker, getReranker } from '@/api/rerankers';
+import { use, useTransition } from 'react';
+
 import { AdminPageHeading } from '@/components/admin-page-heading';
 import { ConfigViewer } from '@/components/config-viewer';
 import { DangerousActionButton } from '@/components/dangerous-action-button';
 import { DateFormat } from '@/components/date-format';
-import { OptionDetail } from '@/components/option-detail';
 import { Loader2Icon } from 'lucide-react';
+import { OptionDetail } from '@/components/option-detail';
 import { useRouter } from 'next/navigation';
-import { useTransition, use } from 'react';
 import useSWR from 'swr';
 
 export default function Page(props: { params: Promise<{ id: string }> }) {
@@ -22,7 +23,7 @@ export default function Page(props: { params: Promise<{ id: string }> }) {
       <AdminPageHeading
         breadcrumbs={[
           { title: 'Models' },
-          { title: 'Reranker Models', url: '/reranker-models', docsUrl: '/docs/reranker-model' },
+          { title: 'Reranker Models', url: '/reranker-models', docsUrl: 'https://autoflow.tidb.ai/reranker-model' },
           { title: data ? data.name : <Loader2Icon className="size-4 animate-spin repeat-infinite" /> },
         ]}
       />

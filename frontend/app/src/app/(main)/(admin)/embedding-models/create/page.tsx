@@ -14,7 +14,7 @@ export default function Page () {
       <AdminPageHeading
         breadcrumbs={[
           { title: 'Models' },
-          { title: 'Embedding Models', url: '/embedding-models', docsUrl: '/docs/embedding-model' },
+          { title: 'Embedding Models', url: '/embedding-models', docsUrl: 'https://autoflow.tidb.ai/embedding-model' },
           { title: 'Create' },
         ]}
       />

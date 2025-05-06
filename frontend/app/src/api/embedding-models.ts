@@ -53,7 +53,7 @@ const embeddingModelOptionSchema = providerOptionSchema.and(z.object({
 })) satisfies ZodType<EmbeddingModelOption, any, any>;
 
 export async function listEmbeddingModelOptions () {
-  return await fetch(requestUrl(`/api/v1/admin/embedding-models/options`), {
+  return await fetch(requestUrl(`/api/v1/admin/embedding-models/providers/options`), {
     headers: await authenticationHeaders(),
   })
     .then(handleResponse(embeddingModelOptionSchema.array()));

@@ -50,7 +50,7 @@ const rerankerOptionSchema = providerOptionSchema.and(z.object({
 })) satisfies ZodType<RerankerOption, any, any>;
 
 export async function listRerankerOptions () {
-  return await fetch(requestUrl(`/api/v1/admin/reranker-models/options`), {
+  return await fetch(requestUrl(`/api/v1/admin/reranker-models/providers/options`), {
     headers: {
       ...await authenticationHeaders(),
     },

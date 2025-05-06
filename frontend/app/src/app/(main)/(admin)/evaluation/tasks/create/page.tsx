@@ -14,7 +14,7 @@ export default function EvaluationTaskPage () {
     <>
       <AdminPageHeading
         breadcrumbs={[
-          { title: 'Evaluation', docsUrl: '/docs/evaluation' },
+          { title: 'Evaluation', docsUrl: 'https://autoflow.tidb.ai/evaluation' },
           { title: 'Tasks', url: '/evaluation/tasks' },
           { title: 'Create' },
         ]}

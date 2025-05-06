@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Optional, Type
 
 from fastapi_pagination import Params, Page
 from fastapi_pagination.ext.sqlmodel import paginate
@@ -11,20 +11,44 @@ from app.api.admin_routes.embedding_model.models import (
 )
 from app.exceptions import DefaultEmbeddingModelNotFound, EmbeddingModelNotFound
 from app.models import EmbeddingModel
+from app.models.knowledge_base import KnowledgeBase
 from app.repositories.base_repo import BaseRepo
 
 
 class EmbeddingModelRepo(BaseRepo):
     model_cls = EmbeddingModel
 
+    def paginate(
+        self, session: Session, params: Params | None = Params()
+    ) -> Page[EmbeddingModel]:
+        query = select(EmbeddingModel)
+        # Make sure the default model is always on top.
+        query = query.order_by(
+            EmbeddingModel.is_default.desc(), EmbeddingModel.created_at.desc()
+        )
+        return paginate(session, query, params)
+
+    def get(self, session: Session, model_id: int) -> Optional[EmbeddingModel]:
+        return session.get(EmbeddingModel, model_id)
+
+    def must_get(self, session: Session, model_id: int) -> Type[EmbeddingModel]:
+        db_embed_model = self.get(session, model_id)
+        if db_embed_model is None:
+            raise EmbeddingModelNotFound(model_id)
+        return db_embed_model
+
+    def exists_any_model(self, session: Session) -> bool:
+        stmt = select(EmbeddingModel).with_for_update().limit(1)
+        return session.exec(stmt).one_or_none() is not None
+
     def create(self, session: Session, create: EmbeddingModelCreate):
-        # If there is currently no model, the first model is
-        # automatically set as the default model.
+        # If there is currently no model, the first model will be
+        # set as the default model.
         if not self.exists_any_model(session):
             create.is_default = True
 
         if create.is_default:
-            self.unset_default_model(session)
+            self._unset_default(session)
 
         embed_model = EmbeddingModel(
             name=create.name,
@@ -41,32 +65,12 @@ class EmbeddingModelRepo(BaseRepo):
 
         return embed_model
 
-    def exists_any_model(self, session: Session) -> bool:
-        stmt = select(EmbeddingModel).with_for_update().limit(1)
-        return session.exec(stmt).one_or_none() is not None
-
-    def must_get(self, session: Session, model_id: int) -> Type[EmbeddingModel]:
-        db_embed_model = self.get(session, model_id)
-        if db_embed_model is None:
-            raise EmbeddingModelNotFound(model_id)
-        return db_embed_model
-
-    def paginate(
-        self, session: Session, params: Params | None = Params()
-    ) -> Page[EmbeddingModel]:
-        query = select(EmbeddingModel).order_by(EmbeddingModel.created_at.desc())
-        return paginate(session, query, params)
-
     def update(
         self,
         session: Session,
         embed_model: EmbeddingModel,
         partial_update: EmbeddingModelUpdate,
     ) -> EmbeddingModel:
-        set_default = partial_update.is_default
-        if set_default:
-            self.unset_default_model(session)
-
         for field, value in partial_update.model_dump(exclude_unset=True).items():
             setattr(embed_model, field, value)
             flag_modified(embed_model, field)
@@ -74,6 +78,17 @@ class EmbeddingModelRepo(BaseRepo):
         session.commit()
         session.refresh(embed_model)
         return embed_model
+
+    def delete(self, session: Session, model: EmbeddingModel):
+        # TODO: Support to specify a new embedding model to replace the current embedding model.
+        session.exec(
+            update(KnowledgeBase)
+            .where(KnowledgeBase.embedding_model_id == model.id)
+            .values(embedding_model_id=None)
+        )
+
+        session.delete(model)
+        session.commit()
 
     # Default model
 
@@ -90,21 +105,20 @@ class EmbeddingModelRepo(BaseRepo):
             raise DefaultEmbeddingModelNotFound()
         return embed_model
 
-    def unset_default_model(self, session: Session):
+    def _unset_default(self, session: Session):
         session.exec(
             update(EmbeddingModel)
             .values(is_default=False)
             .where(EmbeddingModel.is_default == True)
         )
 
-    def set_default_model(self, session: Session, new_default_model_id: int):
-        self.unset_default_model(session)
-        session.exec(
-            update(EmbeddingModel)
-            .values(is_default=True)
-            .where(EmbeddingModel.id == new_default_model_id)
-        )
+    def set_default(self, session: Session, model: EmbeddingModel):
+        self._unset_default(session)
+        model.is_default = True
+        flag_modified(model, "is_default")
         session.commit()
+        session.refresh(model)
+        return model
 
 
-embed_model_repo = EmbeddingModelRepo()
+embedding_model_repo = EmbeddingModelRepo()

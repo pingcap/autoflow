@@ -13,7 +13,7 @@ from llama_index.embeddings.ollama import OllamaEmbedding
 from app.rag.embeddings.open_like.openai_like_embedding import OpenAILikeEmbedding
 from app.rag.embeddings.local.local_embedding import LocalEmbedding
 
-from app.repositories.embedding_model import embed_model_repo
+from app.repositories.embedding_model import embedding_model_repo
 from app.rag.embeddings.provider import EmbeddingProvider
 
 
@@ -84,7 +84,7 @@ def resolve_embed_model(
 
 
 def get_default_embed_model(session: Session) -> Optional[BaseEmbedding]:
-    db_embed_model = embed_model_repo.get_default(session)
+    db_embed_model = embedding_model_repo.get_default(session)
     if not db_embed_model:
         return None
     return resolve_embed_model(
@@ -96,7 +96,7 @@ def get_default_embed_model(session: Session) -> Optional[BaseEmbedding]:
 
 
 def must_get_default_embed_model(session: Session) -> BaseEmbedding:
-    db_embed_model = embed_model_repo.must_get_default(session)
+    db_embed_model = embedding_model_repo.must_get_default(session)
     return resolve_embed_model(
         db_embed_model.provider,
         db_embed_model.model,

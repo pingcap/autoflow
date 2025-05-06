@@ -1,7 +1,7 @@
 import { AdminPageHeading } from '@/components/admin-page-heading';
 import { NextLink } from '@/components/nextjs/NextLink';
-import RerankerModelsTable from '@/components/reranker/RerankerModelsTable';
 import { PlusIcon } from 'lucide-react';
+import RerankerModelsTable from '@/components/reranker/RerankerModelsTable';
 
 export default function Page () {
   return (
@@ -9,7 +9,7 @@ export default function Page () {
       <AdminPageHeading
         breadcrumbs={[
           { title: 'Models' },
-          { title: 'Reranker Models', docsUrl: '/docs/reranker-model' },
+          { title: 'Reranker Models', docsUrl: 'https://autoflow.tidb.ai/reranker-model' },
         ]}
       />
       <NextLink href="/reranker-models/create">

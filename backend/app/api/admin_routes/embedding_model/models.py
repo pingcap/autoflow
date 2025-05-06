@@ -27,8 +27,7 @@ class EmbeddingModelCreate(BaseModel):
 class EmbeddingModelUpdate(BaseModel):
     name: Optional[str] = None
     config: Optional[dict | list] = None
-    credentials: Optional[Any] = None
-    is_default: Optional[bool] = False
+    credentials: Optional[str | dict] = None
 
 
 class EmbeddingModelItem(BaseModel):

@@ -6,7 +6,7 @@ export default function NotFound () {
     <>
       <AdminPageHeading
         breadcrumbs={[
-          { title: 'Evaluation', docsUrl: '/docs/evaluation' },
+          { title: 'Evaluation', docsUrl: 'https://autoflow.tidb.ai/evaluation' },
           { title: 'Datasets', url: '/evaluation/tasks' },
           { title: <span className="text-destructive">Not Found</span> },
         ]}

@@ -42,7 +42,7 @@ from app.rag.types import (
     ChatMessageSate,
 )
 from app.repositories import chat_engine_repo
-from app.repositories.embedding_model import embed_model_repo
+from app.repositories.embedding_model import embedding_model_repo
 from app.repositories.llm import llm_repo
 from app.site_settings import SiteSetting
 from app.utils.jinja2 import get_prompt_by_jinja2_template
@@ -209,7 +209,7 @@ def check_rag_required_config(session: Session) -> RequiredConfigStatus:
     missing, the RAG application can not complete its work.
     """
     has_default_llm = llm_repo.has_default(session)
-    has_default_embedding_model = embed_model_repo.has_default(session)
+    has_default_embedding_model = embedding_model_repo.has_default(session)
     has_default_chat_engine = chat_engine_repo.has_default(session)
     has_knowledge_base = session.scalar(select(func.count(DBKnowledgeBase.id))) > 0
 

@@ -7,7 +7,7 @@ export default function ChatEnginesPage () {
     <>
       <AdminPageHeading
         breadcrumbs={[
-          { title: 'Chat Engines', docsUrl: '/docs/chat-engine' },
+          { title: 'Chat Engines', docsUrl: 'https://autoflow.tidb.ai/chat-engine' },
         ]}
       />
       <NextLink href="/chat-engines/new">New Chat Engine</NextLink>

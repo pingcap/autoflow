@@ -14,7 +14,7 @@ export default function Page () {
       <AdminPageHeading
         breadcrumbs={[
           { title: 'Models' },
-          { title: 'Reranker Models', url: '/reranker-models', docsUrl: '/docs/reranker-model' },
+          { title: 'Reranker Models', url: '/reranker-models', docsUrl: 'https://autoflow.tidb.ai/reranker-model' },
           { title: 'Create' },
         ]}
       />

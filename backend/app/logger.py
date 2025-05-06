@@ -1,6 +1,6 @@
 import logging
 from logging.config import dictConfig
-from app.core.config import settings, Environment
+from app.core.config import settings
 
 logger = logging.getLogger("api_server")
 
@@ -21,9 +21,7 @@ dictConfig(
             },
         },
         "root": {
-            "level": logging.INFO
-            if settings.ENVIRONMENT != Environment.LOCAL
-            else logging.DEBUG,
+            "level": settings.LOG_LEVEL,
             "handlers": ["console"],
         },
         "loggers": {
@@ -34,6 +32,11 @@ dictConfig(
             },
             "uvicorn.access": {
                 "level": "INFO",
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "sqlalchemy.engine": {
+                "level": settings.SQLALCHEMY_LOG_LEVEL,
                 "handlers": ["console"],
                 "propagate": False,
             },

@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     DOMAIN: str = "localhost"
     ENVIRONMENT: Environment = Environment.LOCAL
+    LOG_LEVEL: str = "INFO"
+    SQLALCHEMY_LOG_LEVEL: str = "WARNING"
 
     SESSION_COOKIE_NAME: str = "session"
     # 90 days

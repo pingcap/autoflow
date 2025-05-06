@@ -19,7 +19,7 @@ export function onSubmitHelper<T> (
           '.': formErrors,
         }, 'onSubmit');
         if (rest) {
-          setSubmissionError(getErrorMessage(rest));
+          setSubmissionError(Object.values(rest).join(' '));
         }
       } else {
         setSubmissionError(e);

@@ -10,6 +10,8 @@ from pydantic import (
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from fastapi.responses import StreamingResponse
 from fastapi_pagination import Params, Page
+from llama_index.core.base.llms.types import ChatMessage, MessageRole
+
 from app.api.deps import SessionDep, OptionalUserDep, CurrentUserDep
 from app.rag.chat.chat_flow import ChatFlow
 from app.rag.retrievers.knowledge_graph.schema import KnowledgeGraphRetrievalResult
@@ -25,7 +27,6 @@ from app.rag.chat.chat_service import (
     get_chat_message_recommend_questions,
     remove_chat_message_recommend_questions,
 )
-from app.rag.types import MessageRole, ChatMessage
 from app.exceptions import InternalServerError
 
 logger = logging.getLogger(__name__)

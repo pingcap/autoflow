@@ -1,8 +1,7 @@
 from typing import List
 
 from llama_index.core import QueryBundle
-
-from app.rag.types import ChatMessage
+from llama_index.core.base.llms.types import ChatMessage
 
 
 def get_query_bundle_from_chat(

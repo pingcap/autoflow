@@ -4,6 +4,7 @@ from datetime import datetime, UTC
 from typing import List, Optional, Generator, Tuple, Any
 from urllib.parse import urljoin
 from uuid import UUID
+import re
 
 import requests
 from langfuse.llama_index import LlamaIndexInstrumentor
@@ -11,6 +12,7 @@ from langfuse.llama_index._context import langfuse_instrumentor_context
 from llama_index.core import get_response_synthesizer
 from llama_index.core.base.llms.types import ChatMessage, MessageRole
 from llama_index.core.schema import NodeWithScore
+
 from sqlmodel import Session
 from app.core.config import settings
 from app.exceptions import ChatNotFound
@@ -27,13 +29,13 @@ from app.rag.chat.stream_protocol import (
     ChatStreamDataPayload,
     ChatStreamMessagePayload,
 )
+from app.rag.llms.prompt import resolve_prompt_template
 from app.rag.llms.dspy import get_dspy_lm_by_llama_llm
 from app.rag.retrievers.knowledge_graph.schema import KnowledgeGraphRetrievalResult
 from app.rag.types import ChatEventType, ChatMessageSate
 from app.rag.utils import parse_goal_response_format
 from app.repositories import chat_repo
 from app.site_settings import SiteSetting
-from app.utils.jinja2 import get_prompt_by_jinja2_template
 from app.utils.tracing import LangfuseContextManager
 
 logger = logging.getLogger(__name__)
@@ -355,14 +357,20 @@ class ChatFlow:
                     ),
                 )
 
+            prompt_template = resolve_prompt_template(
+                template_str=refined_question_prompt,
+                llm=self._fast_llm,
+            )
             refined_question = self._fast_llm.predict(
-                get_prompt_by_jinja2_template(
-                    refined_question_prompt,
-                    graph_knowledges=knowledge_graph_context,
-                    chat_history=chat_history,
-                    question=user_question,
-                    current_date=datetime.now().strftime("%Y-%m-%d"),
-                ),
+                prompt_template,
+                graph_knowledges=knowledge_graph_context,
+                chat_history=chat_history,
+                question=user_question,
+                current_date=datetime.now().strftime("%Y-%m-%d"),
+            )
+            # Notice: Remove the <think>...</think> labels for thinking model (qwen3, deepseek-r1) output.
+            refined_question = re.sub(
+                r"<think>.+?</think>", "", refined_question, flags=re.DOTALL
             )
 
             if not annotation_silent:
@@ -403,15 +411,21 @@ class ChatFlow:
                 "knowledge_graph_context": knowledge_graph_context,
             },
         ) as span:
+            prompt_template = resolve_prompt_template(
+                template_str=self.engine_config.llm.clarifying_question_prompt,
+                llm=self._fast_llm,
+            )
+
+            prediction = self._fast_llm.predict(
+                prompt_template,
+                graph_knowledges=knowledge_graph_context,
+                chat_history=chat_history,
+                question=user_question,
+            )
+            # TODO: using structured output to get the clarity result.
+            # Notice: Remove the <think>...</think> labels for thinking model (qwen3, deepseek-r1) output.
             clarity_result = (
-                self._fast_llm.predict(
-                    prompt=get_prompt_by_jinja2_template(
-                        self.engine_config.llm.clarifying_question_prompt,
-                        graph_knowledges=knowledge_graph_context,
-                        chat_history=chat_history,
-                        question=user_question,
-                    ),
-                )
+                re.sub(r"<think>.+?</think>", "", prediction, flags=re.DOTALL)
                 .strip()
                 .strip(".\"'!")
             )
@@ -468,8 +482,11 @@ class ChatFlow:
             name="generate_answer", input=user_question
         ) as span:
             # Initialize response synthesizer.
-            text_qa_template = get_prompt_by_jinja2_template(
-                self.engine_config.llm.text_qa_prompt,
+            text_qa_template = resolve_prompt_template(
+                template_str=self.engine_config.llm.text_qa_prompt,
+                llm=self._fast_llm,
+            )
+            text_qa_template = text_qa_template.partial_format(
                 current_date=datetime.now().strftime("%Y-%m-%d"),
                 graph_knowledges=knowledge_graph_context,
                 original_question=self.user_question,

@@ -45,7 +45,7 @@ from app.repositories import chat_engine_repo
 from app.repositories.embedding_model import embedding_model_repo
 from app.repositories.llm import llm_repo
 from app.site_settings import SiteSetting
-from app.utils.jinja2 import get_prompt_by_jinja2_template
+from app.rag.llms.prompt import resolve_prompt_template
 
 logger = logging.getLogger(__name__)
 
@@ -283,11 +283,13 @@ def get_chat_message_recommend_questions(
     if questions is not None:
         return questions
 
+    prompt_template = resolve_prompt_template(
+        template_str=chat_engine_config.llm.further_questions_prompt,
+        llm=llm,
+    )
     recommend_questions = llm.predict(
-        prompt=get_prompt_by_jinja2_template(
-            chat_engine_config.llm.further_questions_prompt,
-            chat_message_content=chat_message.content,
-        ),
+        prompt_template,
+        chat_message_content=chat_message.content,
     )
     recommend_question_list = recommend_questions.splitlines()
     recommend_question_list = [
@@ -311,10 +313,8 @@ def get_chat_message_recommend_questions(
         """
         # with format or too long for per question, it's not a question list, generate again
         recommend_questions = llm.predict(
-            prompt=get_prompt_by_jinja2_template(
-                chat_engine_config.llm.further_questions_prompt,
-                chat_message_content=regenerate_content,
-            ),
+            prompt_template,
+            chat_message_content=regenerate_content,
         )
 
     db_session.add(

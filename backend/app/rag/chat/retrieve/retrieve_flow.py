@@ -1,12 +1,11 @@
 import logging
 from datetime import datetime
-import re
 from typing import List, Optional, Tuple
 
 from llama_index.core.instrumentation import get_dispatcher
 from llama_index.core.llms import LLM
 from llama_index.core.schema import NodeWithScore, QueryBundle
-from llama_index.core.prompts import RichPromptTemplate
+from llama_index.core.prompts.rich import RichPromptTemplate
 from pydantic import BaseModel
 from sqlmodel import Session
 
@@ -14,7 +13,6 @@ from app.models import (
     Document as DBDocument,
     KnowledgeBase,
 )
-from app.rag.llms.prompt import resolve_prompt_template
 from app.rag.chat.config import ChatEngineConfig
 from app.rag.retrievers.knowledge_graph.fusion_retriever import (
     KnowledgeGraphFusionRetriever,
@@ -25,7 +23,6 @@ from app.rag.retrievers.knowledge_graph.schema import (
 )
 from app.rag.retrievers.chunk.fusion_retriever import ChunkFusionRetriever
 from app.repositories import document_repo
-from app.rag.llms.prompt import resolve_prompt_template
 
 dispatcher = get_dispatcher(__name__)
 logger = logging.getLogger(__name__)
@@ -123,23 +120,16 @@ class RetrieveFlow:
     def _refine_user_question(
         self, user_question: str, knowledge_graph_context: str
     ) -> str:
-        prompt_template = resolve_prompt_template(
-            self.engine_config.llm.condense_question_prompt,
-            self._fast_llm,
+        prompt_template = RichPromptTemplate(
+            self.engine_config.llm.condense_question_prompt
         )
-
         refined_question = self._fast_llm.predict(
             prompt_template,
             graph_knowledges=knowledge_graph_context,
             question=user_question,
             current_date=datetime.now().strftime("%Y-%m-%d"),
         )
-        # Notice: Remove the <think>...</think> labels for thinking model (qwen3, deepseek-r1) output.
-        return (
-            re.sub(r"<think>.+?</think>", "", refined_question, flags=re.DOTALL)
-            .strip()
-            .strip(".\"'!")
-        )
+        return refined_question.strip().strip(".\"'!")
 
     def search_relevant_chunks(self, user_question: str) -> List[NodeWithScore]:
         retriever = ChunkFusionRetriever(

@@ -45,7 +45,7 @@ from app.repositories import chat_engine_repo
 from app.repositories.embedding_model import embedding_model_repo
 from app.repositories.llm import llm_repo
 from app.site_settings import SiteSetting
-from app.rag.llms.prompt import resolve_prompt_template
+from llama_index.core.prompts.rich import RichPromptTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -283,9 +283,8 @@ def get_chat_message_recommend_questions(
     if questions is not None:
         return questions
 
-    prompt_template = resolve_prompt_template(
-        template_str=chat_engine_config.llm.further_questions_prompt,
-        llm=llm,
+    prompt_template = RichPromptTemplate(
+        chat_engine_config.llm.further_questions_prompt
     )
     recommend_questions = llm.predict(
         prompt_template,

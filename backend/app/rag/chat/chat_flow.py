@@ -4,7 +4,6 @@ from datetime import datetime, UTC
 from typing import List, Optional, Generator, Tuple, Any
 from urllib.parse import urljoin
 from uuid import UUID
-import re
 
 import requests
 from langfuse.llama_index import LlamaIndexInstrumentor
@@ -12,6 +11,7 @@ from langfuse.llama_index._context import langfuse_instrumentor_context
 from llama_index.core import get_response_synthesizer
 from llama_index.core.base.llms.types import ChatMessage, MessageRole
 from llama_index.core.schema import NodeWithScore
+from llama_index.core.prompts.rich import RichPromptTemplate
 
 from sqlmodel import Session
 from app.core.config import settings
@@ -29,7 +29,6 @@ from app.rag.chat.stream_protocol import (
     ChatStreamDataPayload,
     ChatStreamMessagePayload,
 )
-from app.rag.llms.prompt import resolve_prompt_template
 from app.rag.llms.dspy import get_dspy_lm_by_llama_llm
 from app.rag.retrievers.knowledge_graph.schema import KnowledgeGraphRetrievalResult
 from app.rag.types import ChatEventType, ChatMessageSate
@@ -357,20 +356,13 @@ class ChatFlow:
                     ),
                 )
 
-            prompt_template = resolve_prompt_template(
-                template_str=refined_question_prompt,
-                llm=self._fast_llm,
-            )
+            prompt_template = RichPromptTemplate(refined_question_prompt)
             refined_question = self._fast_llm.predict(
                 prompt_template,
                 graph_knowledges=knowledge_graph_context,
                 chat_history=chat_history,
                 question=user_question,
                 current_date=datetime.now().strftime("%Y-%m-%d"),
-            )
-            # Notice: Remove the <think>...</think> labels for thinking model (qwen3, deepseek-r1) output.
-            refined_question = re.sub(
-                r"<think>.+?</think>", "", refined_question, flags=re.DOTALL
             )
 
             if not annotation_silent:
@@ -411,9 +403,8 @@ class ChatFlow:
                 "knowledge_graph_context": knowledge_graph_context,
             },
         ) as span:
-            prompt_template = resolve_prompt_template(
-                template_str=self.engine_config.llm.clarifying_question_prompt,
-                llm=self._fast_llm,
+            prompt_template = RichPromptTemplate(
+                self.engine_config.llm.clarifying_question_prompt
             )
 
             prediction = self._fast_llm.predict(
@@ -423,13 +414,7 @@ class ChatFlow:
                 question=user_question,
             )
             # TODO: using structured output to get the clarity result.
-            # Notice: Remove the <think>...</think> labels for thinking model (qwen3, deepseek-r1) output.
-            clarity_result = (
-                re.sub(r"<think>.+?</think>", "", prediction, flags=re.DOTALL)
-                .strip()
-                .strip(".\"'!")
-            )
-
+            clarity_result = prediction.strip().strip(".\"'!")
             need_clarify = clarity_result.lower() != "false"
             need_clarify_response = clarity_result if need_clarify else ""
 
@@ -482,9 +467,8 @@ class ChatFlow:
             name="generate_answer", input=user_question
         ) as span:
             # Initialize response synthesizer.
-            text_qa_template = resolve_prompt_template(
-                template_str=self.engine_config.llm.text_qa_prompt,
-                llm=self._fast_llm,
+            text_qa_template = RichPromptTemplate(
+                template_str=self.engine_config.llm.text_qa_prompt
             )
             text_qa_template = text_qa_template.partial_format(
                 current_date=datetime.now().strftime("%Y-%m-%d"),

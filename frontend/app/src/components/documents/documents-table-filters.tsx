@@ -48,11 +48,11 @@ export function DocumentsTableFilters ({ knowledgeBaseId, table, onFilterChange 
                   <FormControl>
                     <Input
                       name={field.name}
-                      className="h-8 text-sm w-[500px]"
+                      className="h-8 text-sm w-[300px]"
                       onBlur={field.handleBlur}
                       onChange={ev => field.handleChange(ev.target.value)}
                       value={field.state.value ?? ''}
-                      placeholder="Search name or source..."
+                      placeholder="Search documents"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
@@ -89,14 +89,14 @@ export function DocumentsTableFilters ({ knowledgeBaseId, table, onFilterChange 
         </div>
 
         {/* Bottom row - Filters */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
 
           <FormField
             name="mime_type"
             render={(field) => (
               <FormItem>
                 <Select value={field.state.value ?? ''} name={field.name} onValueChange={field.handleChange}>
-                  <SelectTrigger className="h-8 text-sm font-normal hover:bg-accent min-w-[120px]" onBlur={field.handleBlur}>
+                  <SelectTrigger className="h-8 text-sm font-normal hover:bg-accent" onBlur={field.handleBlur}>
                     <SelectValue placeholder="Document Type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -116,7 +116,7 @@ export function DocumentsTableFilters ({ knowledgeBaseId, table, onFilterChange 
             render={(field) => (
               <FormItem>
                 <Select value={field.state.value ?? ''} name={field.name} onValueChange={field.handleChange}>
-                  <SelectTrigger className="h-8 text-sm font-normal hover:bg-accent min-w-[120px]" onBlur={field.handleBlur}>
+                  <SelectTrigger className="h-8 text-sm font-normal hover:bg-accent" onBlur={field.handleBlur}>
                     <SelectValue placeholder="Index Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -139,7 +139,6 @@ export function DocumentsTableFilters ({ knowledgeBaseId, table, onFilterChange 
                   value={field.state.value ? { from: field.state.value[0], to: field.state.value[1] } : undefined}
                   onChange={(range) => field.handleChange(range ? [range.from, range.to] : undefined)}
                   placeholder="Created Time"
-                  className="w-[180px]"
                   size="sm"
                 />
               </FormItem>
@@ -154,7 +153,6 @@ export function DocumentsTableFilters ({ knowledgeBaseId, table, onFilterChange 
                   value={field.state.value ? { from: field.state.value[0], to: field.state.value[1] } : undefined}
                   onChange={(range) => field.handleChange(range ? [range.from, range.to] : undefined)}
                   placeholder="Updated Time"
-                  className="w-[180px]"
                   size="sm"
                 />
               </FormItem>
@@ -169,7 +167,6 @@ export function DocumentsTableFilters ({ knowledgeBaseId, table, onFilterChange 
                   value={field.state.value ? { from: field.state.value[0], to: field.state.value[1] } : undefined}
                   onChange={(range) => field.handleChange(range ? [range.from, range.to] : undefined)}
                   placeholder="Last Modified Time"
-                  className="w-[180px]"
                   size="sm"
                 />
               </FormItem>

@@ -11,16 +11,39 @@ import { DataTableRemote } from '@/components/data-table-remote';
 import { DocumentPreviewDialog } from '@/components/document-viewer';
 import { DocumentsTableFilters } from '@/components/documents/documents-table-filters';
 import { getErrorMessage } from '@/lib/errors';
-import type { ColumnDef } from '@tanstack/react-table';
+import type { CellContext, ColumnDef } from '@tanstack/react-table';
 import { createColumnHelper } from '@tanstack/table-core';
-import { TrashIcon, UploadIcon, BlocksIcon, WrenchIcon, DownloadIcon } from 'lucide-react';
+import { TrashIcon, UploadIcon, BlocksIcon, WrenchIcon, DownloadIcon, FileDownIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { parseHref } from '@/components/chat/utils';
 
 const helper = createColumnHelper<Document>();
 
+const truncateUrl = (url: string, maxLength: number = 30): string => {
+  if (!url || url.length <= maxLength) return url;
+  const start = url.substring(0, maxLength / 2);
+  const end = url.substring(url.length - maxLength / 2);
+  return `${start}...${end}`;
+};
+
+const href = (cell: CellContext<Document, string>) => {
+  const url = cell.getValue();
+  if (/^https?:\/\//.test(url)) {
+    return <a className="underline" href={url} target="_blank">{url}</a>;
+  } else if (url.startsWith('uploads/')) {
+    return (
+      <a className="underline" {...parseHref(cell.row.original)}>
+        <FileDownIcon className="inline-flex size-4 mr-1 stroke-1" />
+        {truncateUrl(url)}
+      </a>
+    );
+  } else {
+    return <span title={url}>{truncateUrl(url)}</span>;
+  }
+};
 
 
 const getColumns = (kbId: number) => [
@@ -38,10 +61,7 @@ const getColumns = (kbId: number) => [
   }),
   helper.accessor('source_uri', {
     header: "SOURCE URI",
-    cell: link({
-      icon: <DownloadIcon className="size-3" />,
-      truncate: true,
-    }),
+    cell: href,
   }),
   helper.accessor('data_source', { header: "DATA SOURCE", cell: ctx => <DatasourceCell {...ctx.getValue()} /> }),
   helper.accessor('updated_at', { header: "LAST UPDATED", cell: datetime }),

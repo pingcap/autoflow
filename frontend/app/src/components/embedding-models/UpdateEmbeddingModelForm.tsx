@@ -29,7 +29,6 @@ export function UpdateEmbeddingModelForm ({ embeddingModel }: { embeddingModel: 
         readonly={false}
         loading={transitioning}
         onUpdate={async (data, path) => {
-          console.log(data, path);
           if (path[0] === 'is_default') {
             await setDefault('embedding-models', embeddingModel.id);
           } else {

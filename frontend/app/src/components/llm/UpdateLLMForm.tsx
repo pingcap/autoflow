@@ -30,7 +30,6 @@ export function UpdateLlmForm ({ llm }: { llm: LLM }) {
         readonly={false}
         loading={transitioning}
         onUpdate={async (data, path) => {
-          console.log(data, path);
           if (path[0] === 'is_default') {
             await setDefault('llms', llm.id);
           } else {

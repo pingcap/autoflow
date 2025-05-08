@@ -30,7 +30,6 @@ export function UpdateRerankerForm ({ reranker }: { reranker: Reranker }) {
         readonly={false}
         loading={transitioning}
         onUpdate={async (data, path) => {
-          console.log(data, path);
           if (path[0] === 'is_default') {
             await setDefault('embedding-models', reranker.id);
           } else {

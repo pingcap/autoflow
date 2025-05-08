@@ -159,7 +159,7 @@ const updatedAtAccessor = getDatetimeAccessor('updated_at');
 const stringCredentialSchema = z.string().optional();
 const dictCredentialSchema = zodJsonText();
 
-const stringCredentialAccessor = fieldAccessor<UpdateLLM, 'credentials'>('credentials');
+const stringCredentialAccessor = fieldAccessor<UpdateLLM, 'credentials'>('credentials', '');
 const dictCredentialAccessor: GeneralSettingsFieldAccessor<UpdateLLM, string> = {
   path: ['credentials'],
   get (data) {

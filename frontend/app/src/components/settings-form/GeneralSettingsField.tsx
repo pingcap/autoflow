@@ -14,10 +14,10 @@ export interface GeneralSettingsFieldAccessor<Data, FieldData> {
   set: (data: Readonly<Data>, value: FieldData) => Data,
 }
 
-export function fieldAccessor<Data, Key extends keyof Data> (key: Key): GeneralSettingsFieldAccessor<Data, Data[Key]> {
+export function fieldAccessor<Data, Key extends keyof Data> (key: Key, defaultValue?: Data[Key]): GeneralSettingsFieldAccessor<Data, Data[Key]> {
   return {
     path: [key],
-    get: (data) => data[key],
+    get: (data) => data[key] ?? defaultValue as Data[Key],
     set: (data, value) => {
       return {
         ...data,

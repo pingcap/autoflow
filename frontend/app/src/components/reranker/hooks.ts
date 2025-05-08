@@ -1,4 +1,4 @@
-import { listRerankers } from '@/api/rerankers';
+import { listRerankerOptions, listRerankers } from '@/api/rerankers';
 import { listAllHelper } from '@/lib/request';
 import useSWR from 'swr';
 
@@ -13,4 +13,8 @@ export function useReranker (id: number | null | undefined) {
     reranker: data?.find(reranker => reranker.id === id),
     ...rest,
   };
+}
+
+export function useRerankerProviders () {
+  return useSWR('api.rerankers.list-options', listRerankerOptions);
 }

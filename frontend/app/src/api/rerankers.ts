@@ -31,6 +31,13 @@ export interface CreateReranker {
   credentials: string | object;
 }
 
+export interface UpdateReranker {
+  name?: string;
+  config?: any;
+  top_n?: number;
+  credentials?: string | object;
+}
+
 const rerankerSchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -75,6 +82,17 @@ export async function createReranker (create: CreateReranker) {
   return await fetch(requestUrl(`/api/v1/admin/reranker-models`), {
     method: 'POST',
     body: JSON.stringify(create),
+    headers: {
+      'Content-Type': 'application/json',
+      ...await authenticationHeaders(),
+    },
+  }).then(handleResponse(rerankerSchema));
+}
+
+export async function updateReranker (id: number, update: UpdateReranker) {
+  return await fetch(requestUrl(`/api/v1/admin/reranker-models/${id}`), {
+    method: 'PUT',
+    body: JSON.stringify(update),
     headers: {
       'Content-Type': 'application/json',
       ...await authenticationHeaders(),

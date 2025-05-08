@@ -1,13 +1,14 @@
 'use client';
 
 import { setDefault } from '@/api/commons';
-import { listLlms, type LLM } from '@/api/llms';
+import { deleteLlm, listLlms, type LLM } from '@/api/llms';
 import { actions } from '@/components/cells/actions';
 import { DataTableRemote } from '@/components/data-table-remote';
 import { Badge } from '@/components/ui/badge';
 import { getErrorMessage } from '@/lib/errors';
 import type { ColumnDef } from '@tanstack/react-table';
 import { createColumnHelper } from '@tanstack/table-core';
+import { TrashIcon } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
@@ -26,7 +27,7 @@ const helper = createColumnHelper<LLM>();
 const columns: ColumnDef<LLM, any>[] = [
   helper.accessor('id', {
     header: 'ID',
-    cell: ({ row }) => row.original.id
+    cell: ({ row }) => row.original.id,
   }),
   helper.accessor('name', {
     header: 'NAME',
@@ -75,6 +76,17 @@ const columns: ColumnDef<LLM, any>[] = [
             throw e;
           }
         },
+      },
+      {
+        key: 'delete',
+        action: async ({ table, setDropdownOpen }) => {
+          await deleteLlm(row.id);
+          table.reload?.();
+          setDropdownOpen(false);
+        },
+        title: 'Delete',
+        icon: <TrashIcon className="size-3" />,
+        dangerous: {},
       },
     ])),
   }),

@@ -32,6 +32,12 @@ export interface CreateEmbeddingModel {
   credentials: string | object;
 }
 
+export interface UpdateEmbeddingModel {
+  name?: string;
+  config?: any;
+  credentials?: string | object;
+}
+
 export const embeddingModelSummarySchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -77,6 +83,17 @@ export async function createEmbeddingModel (create: CreateEmbeddingModel) {
   return await fetch(requestUrl(`/api/v1/admin/embedding-models`), {
     method: 'POST',
     body: JSON.stringify(create),
+    headers: {
+      'Content-Type': 'application/json',
+      ...await authenticationHeaders(),
+    },
+  }).then(handleResponse(embeddingModelSchema));
+}
+
+export async function updateEmbeddingModel (id: number, update: UpdateEmbeddingModel) {
+  return await fetch(requestUrl(`/api/v1/admin/embedding-models/${id}`), {
+    method: 'PUT',
+    body: JSON.stringify(update),
     headers: {
       'Content-Type': 'application/json',
       ...await authenticationHeaders(),

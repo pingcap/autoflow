@@ -1,6 +1,7 @@
 'use client';
 
-import { type CreateEmbeddingModel, createEmbeddingModel, type EmbeddingModel, listEmbeddingModelOptions, testEmbeddingModel } from '@/api/embedding-models';
+import { type CreateEmbeddingModel, createEmbeddingModel, type EmbeddingModel, testEmbeddingModel } from '@/api/embedding-models';
+import { useEmbeddingModelProviders } from '@/components/embedding-models/hooks';
 import { ProviderSelect } from '@/components/form/biz';
 import { FormInput } from '@/components/form/control-widget';
 import { formFieldLayout } from '@/components/form/field-layout';
@@ -15,7 +16,6 @@ import { zodJsonText } from '@/lib/zod';
 import { useForm } from '@tanstack/react-form';
 import { useId, useState } from 'react';
 import { toast } from 'sonner';
-import useSWR from 'swr';
 import { z } from 'zod';
 
 const unsetForm = z.object({
@@ -39,7 +39,7 @@ const field = formFieldLayout<CreateEmbeddingModel>();
 
 export function CreateEmbeddingModelForm ({ transitioning, onCreated }: { transitioning?: boolean, onCreated?: (embeddingModel: EmbeddingModel) => void }) {
   const id = useId();
-  const { data: options, isLoading, error } = useSWR('api.embedding-models.list-options', listEmbeddingModelOptions);
+  const { data: options, isLoading, error } = useEmbeddingModelProviders();
   const [submissionError, setSubmissionError] = useState<unknown>();
 
   const form = useForm<CreateEmbeddingModel | Omit<CreateEmbeddingModel, 'model' | 'credentials'>>({

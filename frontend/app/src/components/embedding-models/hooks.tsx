@@ -1,4 +1,4 @@
-import { listEmbeddingModels } from '@/api/embedding-models';
+import { listEmbeddingModelOptions, listEmbeddingModels } from '@/api/embedding-models';
 import { listAllHelper } from '@/lib/request';
 import useSWR from 'swr';
 
@@ -13,4 +13,8 @@ export function useEmbeddingModel (id: number | null | undefined) {
     embeddingModel: data?.find(embeddingModel => embeddingModel.id === id),
     ...rest,
   };
+}
+
+export function useEmbeddingModelProviders () {
+  return useSWR('api.embedding-models.list-options', listEmbeddingModelOptions);
 }

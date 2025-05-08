@@ -1,12 +1,13 @@
 'use client';
 
-import { type CreateLLM, createLlm, listLlmOptions, type LLM, testLlm } from '@/api/llms';
+import { type CreateLLM, createLlm, type LLM, testLlm } from '@/api/llms';
 import { ProviderSelect } from '@/components/form/biz';
 import { FormInput } from '@/components/form/control-widget';
 import { formFieldLayout } from '@/components/form/field-layout';
 import { FormRootError } from '@/components/form/root-error';
 import { onSubmitHelper } from '@/components/form/utils';
 import { CodeInput } from '@/components/form/widgets/CodeInput';
+import { useLLMProviders } from '@/components/llm/hooks';
 import { ProviderDescription } from '@/components/provider-description';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Form, formDomEventHandlers, FormSubmit } from '@/components/ui/form.beta';
@@ -15,7 +16,6 @@ import { zodJsonText } from '@/lib/zod';
 import { useForm } from '@tanstack/react-form';
 import { useId, useState } from 'react';
 import { toast } from 'sonner';
-import useSWR from 'swr';
 import { z } from 'zod';
 
 const unsetForm = z.object({
@@ -39,7 +39,7 @@ const field = formFieldLayout<CreateLLM>();
 
 export function CreateLLMForm ({ transitioning, onCreated }: { transitioning?: boolean, onCreated?: (llm: LLM) => void }) {
   const id = useId();
-  const { data: options, isLoading, error } = useSWR('api.llms.list-options', listLlmOptions);
+  const { data: options, isLoading, error } = useLLMProviders();
   const [submissionError, setSubmissionError] = useState<unknown>();
 
   const form = useForm<CreateLLM | Omit<CreateLLM, 'model' | 'credentials'>>({

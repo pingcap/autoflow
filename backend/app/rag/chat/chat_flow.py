@@ -626,7 +626,9 @@ class ChatFlow:
     # TODO: Separate _external_chat() method into another ExternalChatFlow class, but at the same time, we need to
     #  share some common methods through ChatMixin or BaseChatFlow.
     def _external_chat(self) -> Generator[ChatEvent | str, None, None]:
+        ctx = langfuse_instrumentor_context.get().copy()
         db_user_message, db_assistant_message = yield from self._chat_start()
+        langfuse_instrumentor_context.get().update(ctx)
 
         cache_messages = None
         goal, response_format = self.user_question, {}

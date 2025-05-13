@@ -1,6 +1,7 @@
 import enum
 from functools import lru_cache
 
+import sys
 from typing import Optional, Type
 from sqlmodel import (
     Field,
@@ -34,7 +35,7 @@ def get_kb_chunk_model(kb: KnowledgeBase) -> Type[SQLModel]:
     return get_dynamic_chunk_model(vector_dimension, str(kb.id))
 
 
-@lru_cache(maxsize=None)
+@lru_cache(maxsize=sys.maxsize)
 def get_dynamic_chunk_model(
     vector_dimension: int,
     namespace: Optional[str] = None,

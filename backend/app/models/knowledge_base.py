@@ -118,6 +118,8 @@ ChunkingConfig = Union[GeneralChunkingConfig | AdvancedChunkingConfig]
 
 
 class KnowledgeBase(SQLModel, table=True):
+    __tablename__ = "knowledge_bases"
+
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(max_length=255, nullable=False)
     description: Optional[str] = Field(sa_column=Column(MEDIUMTEXT), default=None)
@@ -129,8 +131,7 @@ class KnowledgeBase(SQLModel, table=True):
 
     # Data sources config.
     data_sources: list["DataSource"] = SQLRelationship(
-        link_model=KnowledgeBaseDataSource,
-        default_factory=list,
+        link_model=KnowledgeBaseDataSource
     )
 
     # Index Config.
@@ -174,7 +175,9 @@ class KnowledgeBase(SQLModel, table=True):
     deleted_by: UUID = Field(foreign_key="users.id", nullable=True)
     deleted_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime()))
 
-    __tablename__ = "knowledge_bases"
+    def __init__(self, **kwargs):
+        kwargs.setdefault("data_sources", [])
+        super().__init__(**kwargs)
 
     def __hash__(self):
         return hash(self.id)

@@ -129,7 +129,8 @@ class KnowledgeBase(SQLModel, table=True):
 
     # Data sources config.
     data_sources: list["DataSource"] = SQLRelationship(
-        link_model=KnowledgeBaseDataSource
+        link_model=KnowledgeBaseDataSource,
+        default_factory=list,
     )
 
     # Index Config.

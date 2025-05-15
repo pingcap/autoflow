@@ -125,7 +125,7 @@ def test_bedrock():
 def test_vertex_ai():
     llm = resolve_llm(
         provider=LLMProvider.VERTEX_AI,
-        model="gemini-2.0-flash-001",
+        model="gemini-2.5-flash-preview-04-17-001",
         credentials=json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_CREDENTIALS")),
         config={"location": "us-west1"},
     )
@@ -139,7 +139,7 @@ def test_vertex_ai():
 def test_gemini():
     llm = resolve_llm(
         provider=LLMProvider.GEMINI,
-        model="models/gemini-2.0-flash-001",
+        model="models/gemini-2.5-flash-preview-04-17-001",
         credentials=os.getenv("GEMINI_API_KEY"),
     )
     check_llm_answer_simple_question(llm)

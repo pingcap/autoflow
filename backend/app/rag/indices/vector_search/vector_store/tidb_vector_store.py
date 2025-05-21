@@ -9,6 +9,7 @@ from llama_index.core.vector_stores.types import (
     BasePydanticVectorStore,
     VectorStoreQuery,
     VectorStoreQueryResult,
+    MetadataFilters,
 )
 from llama_index.core.vector_stores.utils import (
     metadata_dict_to_node,
@@ -24,7 +25,7 @@ from sqlmodel import (
 )
 from tidb_vector.sqlalchemy import VectorAdaptor
 from app.core.db import engine
-
+from app.rag.indices.vector_search.filters.filter_evaluator import FilterEvaluator
 
 logger = logging.getLogger(__name__)
 
@@ -178,9 +179,6 @@ class TiDBVectorStore(BasePydanticVectorStore):
         Raises:
             ValueError: If the query embedding is not provided.
         """
-        # TODO:
-        # - Support advanced query filters
-        # - Support both pre-filter and post-filter
         if query.query_embedding is None:
             raise ValueError("Query embedding must be provided.")
 
@@ -194,10 +192,19 @@ class TiDBVectorStore(BasePydanticVectorStore):
             ),
         )
 
-        if query.filters:
-            for f in query.filters.filters:
-                subquery = subquery.stmt(self._chunk_db_model.meta[f.key] == f.value)
+        if query.filters and isinstance(query.filters, MetadataFilters):
+            logger.debug(f"Add metadata filter to vector store query: {query.filters}")
+            filter_condition = FilterEvaluator.build_filter_conditions(query.filters, self._chunk_db_model.meta)
+            if filter_condition is not None:
+                subquery = subquery.where(filter_condition)
 
+        if query.doc_ids and len(query.doc_ids) > 0:
+            logger.debug(f"Add document_id filter to vector store query: {len(query.doc_ids)}")
+            subquery = subquery.where(self._chunk_db_model.document_id.in_(query.doc_ids))
+        else:
+            # No document_id filter, query all chunks
+            logger.debug("No document_id filter, query all chunks from vector store")
+         
         sub = alias(
             subquery.order_by(asc("distance"))
             .limit(query.similarity_top_k * self._oversampling_factor)

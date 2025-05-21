@@ -4,7 +4,7 @@ from typing import List, Optional, Type
 
 from llama_index.core.callbacks import CallbackManager
 from llama_index.core.indices.utils import log_vector_store_query_result
-from llama_index.core.vector_stores import VectorStoreQuery, VectorStoreQueryResult
+from llama_index.core.vector_stores import VectorStoreQuery, VectorStoreQueryResult, MetadataFilters
 from sqlmodel import Session
 from llama_index.core.retrievers import BaseRetriever
 from llama_index.core.schema import NodeWithScore, QueryBundle
@@ -40,6 +40,8 @@ class ChunkSimpleRetriever(BaseRetriever, ChunkRetriever):
         config: VectorSearchRetrieverConfig,
         db_session: Optional[Session] = None,
         callback_manager: CallbackManager = CallbackManager([]),
+        filter_doc_ids: Optional[List[int]] = None,
+        chunk_metadata_filters: Optional[MetadataFilters] = None,
     ):
         super().__init__()
         if not knowledge_base_id:
@@ -51,6 +53,8 @@ class ChunkSimpleRetriever(BaseRetriever, ChunkRetriever):
         self._chunk_db_model = get_kb_chunk_model(self._kb)
         self._embed_model = get_kb_embed_model(db_session, self._kb)
         self._embed_model.callback_manager = callback_manager
+        self._filter_doc_ids = filter_doc_ids
+        self._chunk_metadata_filters = chunk_metadata_filters
 
         # Init vector store.
         self._vector_store = TiDBVectorStore(
@@ -91,6 +95,8 @@ class ChunkSimpleRetriever(BaseRetriever, ChunkRetriever):
                 query_str=query_bundle.query_str,
                 query_embedding=query_bundle.embedding,
                 similarity_top_k=self._config.similarity_top_k or self._config.top_k,
+                doc_ids=self._filter_doc_ids,
+                filters=self._chunk_metadata_filters
             )
         )
         nodes = self._build_node_list_from_query_result(result)

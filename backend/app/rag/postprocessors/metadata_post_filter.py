@@ -1,6 +1,7 @@
 import logging
 
 from typing import Dict, List, Optional, Any, Union
+from app.rag.indices.vector_search.filters.filter_evaluator import FilterEvaluator
 from llama_index.core import QueryBundle
 from llama_index.core.postprocessor.types import BaseNodePostprocessor
 from llama_index.core.schema import BaseNode, NodeWithScore
@@ -55,35 +56,17 @@ class MetadataPostFilter(BaseNodePostprocessor):
 
         filtered_nodes = []
         for node in nodes:
-            # TODO: support advanced post filtering.
             if self.match_all_filters(node.node):
                 filtered_nodes.append(node)
         return filtered_nodes
 
     def match_all_filters(self, node: BaseNode) -> bool:
+        logger.debug(f"Process chunk with match_all_filters: {self.filters}")
         if self.filters is None or not isinstance(self.filters, MetadataFilters):
             return True
 
-        if self.filters.condition != FilterCondition.AND:
-            logger.warning(
-                f"Advanced filtering is not supported yet. "
-                f"Filter condition {self.filters.condition} is ignored."
-            )
+
+        if not self.filters.filters:
             return True
-
-        for f in self.filters.filters:
-            if f.key not in node.metadata:
-                return False
-
-            if f.operator is not None and f.operator != FilterOperator.EQ:
-                logger.warning(
-                    f"Advanced filtering is not supported yet. "
-                    f"Filter operator {f.operator} is ignored."
-                )
-                return True
-
-            value = node.metadata[f.key]
-            if f.value != value:
-                return False
-
-        return True
+        
+        return FilterEvaluator.evaluate_conditions(self.filters, metadata=node.metadata)

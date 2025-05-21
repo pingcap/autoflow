@@ -9,7 +9,6 @@ from llama_index.core.vector_stores.types import (
     MetadataFilter,
     MetadataFilters,
     FilterOperator,
-    FilterCondition,
 )
 
 

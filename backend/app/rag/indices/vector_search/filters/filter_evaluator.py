@@ -153,7 +153,7 @@ class FilterEvaluator:
             elif operator == FilterOperator.NIN:
                 return ~meta_column.in_(filter_value) if sql_mode else value not in filter_value
             elif operator == FilterOperator.CONTAINS:
-                return meta_column.contains(filter_value) if sql_mode else filter_value in value
+                return meta_column.contains(filter_value) if sql_mode else any(item in value for item in filter_value)
             elif operator == FilterOperator.IS_EMPTY:
                 if sql_mode:
                     return or_(
@@ -203,7 +203,7 @@ class FilterEvaluator:
         """
         try:
             if not filters.filters:
-                return None
+                return True
 
             conditions = []
             for f in filters.filters:

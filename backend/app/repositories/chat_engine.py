@@ -15,13 +15,20 @@ from app.repositories.base_repo import BaseRepo
 class ChatEngineRepo(BaseRepo):
     model_cls = ChatEngine
 
-    def get(self, session: Session, id: int) -> Optional[ChatEngine]:
-        return session.exec(
-            select(ChatEngine).where(ChatEngine.id == id, ChatEngine.deleted_at == None)
-        ).first()
+    def get(
+        self, session: Session, id: int, need_public: bool = False
+    ) -> Optional[ChatEngine]:
+        query = select(ChatEngine).where(
+            ChatEngine.id == id, ChatEngine.deleted_at == None
+        )
+        if need_public:
+            query = query.where(ChatEngine.is_public == True)
+        return session.exec(query).first()
 
-    def must_get(self, session: Session, id: int) -> ChatEngine:
-        chat_engine = self.get(session, id)
+    def must_get(
+        self, session: Session, id: int, need_public: bool = False
+    ) -> ChatEngine:
+        chat_engine = self.get(session, id, need_public)
         if chat_engine is None:
             raise ChatEngineNotFound(id)
         return chat_engine
@@ -30,8 +37,11 @@ class ChatEngineRepo(BaseRepo):
         self,
         session: Session,
         params: Params | None = Params(),
+        need_public: bool = False,
     ) -> Page[ChatEngine]:
         query = select(ChatEngine).where(ChatEngine.deleted_at == None)
+        if need_public:
+            query = query.where(ChatEngine.is_public == True)
         # Make sure the default engine is always on top
         query = query.order_by(ChatEngine.is_default.desc(), ChatEngine.name)
         return paginate(session, query, params)

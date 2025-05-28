@@ -36,6 +36,7 @@ class ChatEngine(UpdatableBaseModel, table=True):
         },
     )
     is_default: bool = Field(default=False)
+    is_public: bool = Field(default=False)
     deleted_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime))
 
     __tablename__ = "chat_engines"
@@ -48,3 +49,4 @@ class ChatEngineUpdate(BaseModel):
     reranker_id: Optional[int] = None
     engine_options: Optional[dict] = None
     is_default: Optional[bool] = None
+    is_public: Optional[bool] = None

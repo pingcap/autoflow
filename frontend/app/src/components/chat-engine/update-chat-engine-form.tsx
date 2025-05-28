@@ -227,7 +227,7 @@ export function UpdateChatEngineForm ({ chatEngine, defaultChatEngineOptions }: 
   );
 }
 
-const updatableFields = ['name', 'llm_id', 'fast_llm_id', 'reranker_id', 'engine_options', 'is_default'] as const;
+const updatableFields = ['name', 'llm_id', 'fast_llm_id', 'reranker_id', 'engine_options', 'is_default', 'is_public'] as const;
 
 function optionAccessor<K extends keyof ChatEngineOptions> (key: K): GeneralSettingsFieldAccessor<ChatEngine, ChatEngineOptions[K]> {
   return {

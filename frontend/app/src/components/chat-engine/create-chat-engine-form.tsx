@@ -43,7 +43,6 @@ const schema = z.object({
 const field = formFieldLayout<typeof schema>();
 
 const nameSchema = z.string().min(1);
-const isPublicSchema = z.boolean();
 const kbSchema = z.object({ id: z.number() }).array().min(1);
 const kgGraphDepthSchema = z.number().min(1).optional();
 

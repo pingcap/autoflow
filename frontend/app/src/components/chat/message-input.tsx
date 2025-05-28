@@ -41,8 +41,8 @@ export function MessageInput ({
     onChangeRef.current?.(ev);
   }, []);
 
-  const showShowSelectChatEngine = !!auth.me?.is_superuser && !!onEngineChange;
   const { data, isLoading } = useAllChatEngines();
+  const showShowSelectChatEngine = !!data?.length && !!onEngineChange;
 
   return (
     <div className={cn('bg-background border p-2 rounded-lg', className)}>

@@ -13,6 +13,7 @@ export interface ChatEngine {
   fast_llm_id: number | null;
   reranker_id: number | null;
   is_default: boolean;
+  is_public: boolean;
 }
 
 export interface CreateChatEngineParams {
@@ -134,6 +135,7 @@ const chatEngineSchema = z.object({
   fast_llm_id: z.number().nullable(),
   reranker_id: z.number().nullable(),
   is_default: z.boolean(),
+  is_public: z.boolean(),
 }) satisfies ZodType<ChatEngine, any, any>;
 
 export async function getDefaultChatEngineOptions (): Promise<ChatEngineOptions> {

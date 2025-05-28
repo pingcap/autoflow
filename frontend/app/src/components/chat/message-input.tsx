@@ -41,7 +41,7 @@ export function MessageInput ({
     onChangeRef.current?.(ev);
   }, []);
 
-  const { data, isLoading } = useAllChatEngines();
+  const { data, isLoading } = useAllChatEngines(!auth.me?.is_superuser);
   const showShowSelectChatEngine = !!data?.length && !!onEngineChange;
 
   return (

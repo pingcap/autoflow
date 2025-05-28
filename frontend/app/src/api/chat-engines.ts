@@ -192,3 +192,17 @@ export async function deleteChatEngine (id: number): Promise<void> {
   })
     .then(handleErrors);
 }
+
+export async function listPublicChatEngines ({ page = 1, size = 10 }: PageParams = {}): Promise<Page<ChatEngine>> {
+  return await fetch(requestUrl('/api/v1/chat-engines', { page, size }), {
+    headers: await authenticationHeaders(),
+  })
+    .then(handleResponse(zodPage(chatEngineSchema)));
+}
+
+export async function getPublicChatEngine (id: number): Promise<ChatEngine> {
+  return await fetch(requestUrl(`/api/v1/chat-engines/${id}`), {
+    headers: await authenticationHeaders(),
+  })
+    .then(handleResponse(chatEngineSchema));
+}

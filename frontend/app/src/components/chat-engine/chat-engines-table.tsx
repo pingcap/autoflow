@@ -37,6 +37,10 @@ const columns = [
     header: 'IS DEFAULT',
     cell: boolean 
   }),
+  helper.accessor('is_public', { 
+    header: 'IS PUBLIC',
+    cell: boolean 
+  }),
   helper.display({
     header: 'ACTIONS',
     cell: actions((chatEngine) => [

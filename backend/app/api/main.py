@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from app.api.routes import (
+    chat_engine,
     index,
     chat,
     user,
@@ -62,6 +63,7 @@ api_router.include_router(feedback.router, tags=["chat"])
 api_router.include_router(user.router, tags=["user"])
 api_router.include_router(api_key.router, tags=["auth"])
 api_router.include_router(document.router, tags=["documents"])
+api_router.include_router(chat_engine.router, tags=["chat-engines"])
 api_router.include_router(retrieve_routes.router, tags=["retrieve"])
 api_router.include_router(admin_user_router)
 api_router.include_router(admin_chat_engine.router, tags=["admin/chat-engines"])

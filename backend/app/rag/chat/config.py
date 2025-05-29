@@ -200,6 +200,11 @@ class ChatEngineConfig(BaseModel):
                     "condense_question_prompt",
                     "text_qa_prompt",
                     "refine_prompt",
+                    "intent_graph_knowledge",
+                    "normal_graph_knowledge",
+                    "generate_goal_prompt",
+                    "further_questions_prompt",
+                    "clarifying_question_prompt",
                 ],
                 "post_verification_token": True,
             }

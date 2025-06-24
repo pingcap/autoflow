@@ -7,7 +7,7 @@ authors = [
     { name = "mini256", email = "minianter@gmail.com" }
 ]
 readme = "README.md"
-requires-python = ">= 3.9"
+requires-python = ">= 3.10"
 dependencies = [
     "fastapi>=0.115.6",
     "fastapi-cli>=0.0.5",

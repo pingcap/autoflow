@@ -66,7 +66,7 @@ def check_dspy_lm_extract_graph(lm: dspy.LM):
 def test_openai():
     llm = resolve_llm(
         provider=LLMProvider.OPENAI,
-        model="gpt-4o-mini",
+        model="gpt-4.1-2025-04-14-mini",
         config={},
         credentials=os.getenv("OPENAI_API_KEY"),
     )
@@ -152,11 +152,11 @@ def test_gemini():
 def test_azure_ai():
     llm = resolve_llm(
         provider=LLMProvider.AZURE_OPENAI,
-        model="gpt-4o-mini",
+        model="gpt-4.1-2025-04-14-mini",
         credentials=os.getenv("AZURE_AI_API_KEY"),
         config={
             "azure_endpoint": os.getenv("AZURE_AI_ENDPOINT"),
-            "engine": "gpt-4o",
+            "engine": "gpt-4.1-2025-04-14",
             "api_version": "2025-01-01-preview",
         },
     )

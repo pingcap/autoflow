@@ -77,7 +77,7 @@ class Evaluation:
 
         llm_provider = llm_provider.lower()
         if llm_provider == "openai":
-            self._llama_llm = OpenAI(model="gpt-4o")
+            self._llama_llm = OpenAI(model="gpt-4.1-2025-04-14")
         elif llm_provider == "gemini":
             self._llama_llm = Gemini(model="models/gemini-2.0-flash")
         else:
@@ -86,7 +86,7 @@ class Evaluation:
         self._metrics = {
             "language": LanguageEvaluator(llm=self._llama_llm),
             "toxicity": ToxicityEvaluator(llm=self._llama_llm),
-            "e2e_rag": E2ERagEvaluator(model="gpt-4o"),
+            "e2e_rag": E2ERagEvaluator(model="gpt-4.1-2025-04-14"),
         }
 
     def runeval_dataset(
@@ -162,7 +162,7 @@ class Evaluation:
                 pd.DataFrame(error_list).to_csv(error_file, index=False)
 
         ragas_dataset = EvaluationDataset.from_list(ragas_list)
-        evaluator_llm = LangchainLLMWrapper(ChatOpenAI(model="gpt-4o"))
+        evaluator_llm = LangchainLLMWrapper(ChatOpenAI(model="gpt-4.1-2025-04-14"))
         evaluator_embeddings = LangchainEmbeddingsWrapper(
             OpenAIEmbeddings(model="text-embedding-3-large")
         )

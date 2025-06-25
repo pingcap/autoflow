@@ -91,6 +91,24 @@ export interface GraphSearchParams {
   with_degree?: boolean;
 }
 
+export interface KBRetrieveKnowledgeGraphParams {
+  query: string;
+  llm_id: number;
+  retrieval_config: {
+    knowledge_graph: KnowledgeGraphRetrievalConfig;
+  }
+}
+
+export interface KnowledgeGraphRetrievalConfig {
+  depth?: number;
+  include_meta?: boolean;
+  with_degree?: boolean;
+  metadata_filter?: {
+    enabled?: boolean;
+    filters?: Record<string, any>
+  }
+}
+
 export async function search (kbId: number, params: GraphSearchParams) {
   return await fetch(requestUrl(`/api/v1/admin/knowledge_bases/${kbId}/graph/search`), {
     method: 'post',
@@ -149,6 +167,18 @@ export async function getEntitySubgraph (kbId: number, id: number) {
     },
   })
     .then(handleResponse(knowledgeGraphSchema));
+}
+
+export async function getEntireKnowledgeGraph (kbId: number, params: KBRetrieveKnowledgeGraphParams) {
+  return await fetch(requestUrl(`/api/v1/admin/knowledge_bases/${kbId}/graph/entire_graph`), {
+    method: 'post',
+    headers: {
+      ...await authenticationHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(params),
+  })
+  .then(handleResponse(knowledgeGraphSchema));
 }
 
 export async function getRelationship (kbId: number, id: number) {

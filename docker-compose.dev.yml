@@ -13,6 +13,9 @@ services:
       - .env
     volumes:
       - ./data:/shared/data
+      - ./backend:/app
+      - /app/.venv
+    command: fastapi dev app/api_server.py --host 0.0.0.0 --port 80 --reload
     depends_on:
       - redis
 
@@ -20,12 +23,18 @@ services:
     build:
       context: .
       dockerfile: ./frontend/Dockerfile
+      target: deps
       args:
         BUILDKIT_INLINE_CACHE: 1
     ports:
       - "3001:3000"
     environment:
       BASE_URL: http://backend
+      HOSTNAME: 0.0.0.0
+    volumes:
+      - ./frontend:/tidb.ai/frontend
+      - /tidb.ai/frontend/node_modules
+    command: sh -c "cd /tidb.ai/frontend && pnpm run dev"
     depends_on:
       - backend
 
@@ -41,6 +50,8 @@ services:
       - .env
     volumes:
       - ./data:/shared/data
+      - ./backend:/app
+      - /app/.venv
     command: /usr/bin/supervisord
     depends_on:
       - redis

@@ -312,7 +312,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
             self._session.flush()
 
     def get_subgraph_by_relationship_ids(
-        self, ids: list[int], **kwargs
+            self, ids: list[int], **kwargs
     ) -> RetrievedKnowledgeGraph:
         stmt = (
             select(self._relationship_model)
@@ -1103,3 +1103,60 @@ class TiDBGraphStore(KnowledgeGraphStore):
             }
             for chunk in chunks
         ]
+    
+    def get_entire_knowledge_graph(self) -> RetrievedKnowledgeGraph:
+        """Retrieve all entities and relationships from the knowledge graph store.
+        
+        Returns:
+            RetrievedKnowledgeGraph containing all entities and relationships
+        """
+        # Query all entities
+        entity_query = select(self._entity_model).order_by(self._entity_model.id)
+        db_entities = self._session.exec(entity_query).all()
+        
+        # Query all relationships with their related entities
+        relationship_query = (
+            select(self._relationship_model)
+            .options(
+                joinedload(self._relationship_model.source_entity),
+                joinedload(self._relationship_model.target_entity),
+            )
+            .order_by(self._relationship_model.id)
+        )
+        db_relationships = self._session.exec(relationship_query).all()
+        
+        # Convert entities to RetrievedEntity objects
+        entities = []
+        for entity in db_entities:
+            entities.append(
+                RetrievedEntity(
+                    id=entity.id,
+                    knowledge_base_id=self.knowledge_base.id,
+                    name=entity.name,
+                    description=entity.description,
+                    meta=entity.meta,
+                    entity_type=entity.entity_type,
+                )
+            )
+        
+        # Convert relationships to RetrievedRelationship objects
+        relationships = []
+        for rel in db_relationships:
+            relationships.append(
+                RetrievedRelationship(
+                    id=rel.id,
+                    knowledge_base_id=self.knowledge_base.id,
+                    source_entity_id=rel.source_entity_id,
+                    target_entity_id=rel.target_entity_id,
+                    description=rel.description,
+                    rag_description=f"{rel.source_entity.name} -> {rel.description} -> {rel.target_entity.name}",
+                    meta=rel.meta,
+                    weight=rel.weight,
+                    last_modified_at=rel.last_modified_at,
+                )
+            )
+        return RetrievedKnowledgeGraph(
+            knowledge_base=self.knowledge_base.to_descriptor(),
+            entities=entities,
+            relationships=relationships,
+        )

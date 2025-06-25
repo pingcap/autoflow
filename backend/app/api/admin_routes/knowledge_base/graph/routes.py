@@ -243,3 +243,20 @@ def legacy_search_graph(session: SessionDep, kb_id: int, request: GraphSearchReq
     except Exception as e:
         # TODO: throw InternalServerError
         raise e
+
+@router.post("/admin/knowledge_bases/{kb_id}/graph/entire_graph")
+def get_entire_knowledge_graph(session: SessionDep, kb_id: int):
+    try:
+        kb = knowledge_base_repo.must_get(session, kb_id)
+        graph_store = get_kb_tidb_graph_store(session, kb)
+        retrieved_kg = graph_store.get_entire_knowledge_graph()
+        return {
+            "entities": retrieved_kg.entities,
+            "relationships": retrieved_kg.relationships,
+        }
+
+    except KBNotFound as e:
+        raise e
+    except Exception as e:
+        # TODO: throw InternalServerError
+        raise e

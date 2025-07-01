@@ -21,6 +21,7 @@ import useSWR from 'swr';
 
 export function GraphEditor ({ knowledgeBaseId }: { knowledgeBaseId: number }) {
   const [query, setQuery] = useSearchParam('query', 'sample-question:What is TiDB?');
+  const [graphStyle, setGraphStyle] = useState<'new' | 'legacy'>('new');
 
   const [key, fetcher] = getFetchInfo(knowledgeBaseId, query);
 
@@ -33,6 +34,7 @@ export function GraphEditor ({ knowledgeBaseId }: { knowledgeBaseId: number }) {
   return (
     <div className="p-4 space-y-4">
       <SubgraphSelector knowledgeBaseId={knowledgeBaseId} query={query} onQueryChange={setQuery} />
+      <GraphStyleSelector style={graphStyle} onStyleChange={setGraphStyle} />
       {(error != null) && <Alert variant="destructive">
         <AlertTitle>Failed to fetch subgraph</AlertTitle>
         <AlertDescription>{getErrorMessage(error)}</AlertDescription>
@@ -40,11 +42,12 @@ export function GraphEditor ({ knowledgeBaseId }: { knowledgeBaseId: number }) {
       <div className="w-full flex gap-4">
         <div className="flex-1">
           <NetworkViewer
-            key={query}
+            key={`${query}-${graphStyle}`}
             className="border rounded h-auto aspect-square"
             loading={isLoading}
             loadingTitle={'Loading knowledge graph...'}
             network={network}
+            useCanvasRenderer={graphStyle === 'new'}
             Details={(props) => (
               ref.current && createPortal(
                 <Editor
@@ -118,13 +121,29 @@ function SubgraphSelector ({ knowledgeBaseId, query, onQueryChange }: { knowledg
               }
             }}
           />
-          <Link className={buttonVariants({})} href={`/knowledge-bases/${knowledgeBaseId}/knowledge-graph-explorer/create-synopsis-entity`}>
-            Create Synopsis Entity
-          </Link>
         </>
       )}
+      <Link className={buttonVariants({})} href={`/knowledge-bases/${knowledgeBaseId}/knowledge-graph-explorer/create-synopsis-entity`}>
+        Create Synopsis Entity
+      </Link>
     </div>
   );
+}
+
+function GraphStyleSelector ({ style, onStyleChange }: { style: 'new' | 'legacy', onStyleChange: (style: 'new' | 'legacy') => void }) {
+  return (
+    <div>
+      <Select value={style} onValueChange={(value) => onStyleChange(value as 'new' | 'legacy')}>
+        <SelectTrigger className="w-max">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="legacy">Legacy (SVG)</SelectItem>
+          <SelectItem value="new">New (Canvas)</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  )
 }
 
 function Editor ({ knowledgeBaseId, network, target, onTargetChange, onEnterSubgraph }: NetworkViewerDetailsProps & { knowledgeBaseId: number, onEnterSubgraph: (type: string, entityId: IdType) => void }) {

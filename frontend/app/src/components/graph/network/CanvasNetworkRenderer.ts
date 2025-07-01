@@ -8,10 +8,6 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
   private _graph: any; // ForceGraph instance
   private _ro: ResizeObserver | undefined;
 
-  private _onFocusNode: ((id: IdType) => void) | undefined;
-  private _onFocusLink: ((id: IdType) => void) | undefined;
-  private _onBlurNode: (() => void) | undefined;
-  private _onBlurLink: (() => void) | undefined;
 
   private _onUpdateLink: ((id: IdType) => void) | undefined;
   private _onUpdateNode: ((id: IdType) => void) | undefined;
@@ -68,7 +64,7 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
       return {
         id: node.id,
         index,
-        radius: 8, // Fixed size like graph.js
+        radius: 8, 
         label: options.getNodeLabel?.(node),
         details: options.getNodeDetails?.(node),
         meta: options.getNodeMeta?.(node),
@@ -96,7 +92,6 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
     }
     this._el = container;
 
-    // Get initial container dimensions
     const { width: initialWidth, height: initialHeight } = container.getBoundingClientRect();
 
     // Initialize ForceGraph
@@ -134,17 +129,14 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
       .d3Force("link", d3.forceLink().id((d: any) => d.id).distance(this.linkDefaultDistance))
       .d3Force("charge", d3.forceManyBody().strength(this.chargeDefaultStrength));
 
-    // Set container styling to match legacy renderer
     container.style.overflow = 'hidden';
 
-    // Handle resize
     this._ro = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
       this._graph.width(width).height(height);
     });
     this._ro.observe(container);
 
-    // Set initial data
     this.render();
 
     // Ensure the canvas fills the container after ForceGraph creates it
@@ -170,13 +162,31 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
     if (!this._el) {
       return;
     }
+    
+    // Properly cleanup ForceGraph instance
+    if (this._graph) {
+      this._graph.onNodeClick(null);
+      this._graph.onLinkClick(null);
+      this._graph.onBackgroundClick(null);
+      
+      this._graph.graphData({ nodes: [], links: [] });
+      
+      // The ForceGraph library doesn't have an explicit destroy method,
+      // clearing the container should cleanup the canvas
+      if (this._el) {
+        this._el.innerHTML = '';
+      }
+      
+      this._graph = undefined;
+    }
+    
     this._ro?.disconnect();
     this._ro = undefined;
     this._el = undefined;
   }
 
   private drawNodeWithLabel(node: any, ctx: CanvasRenderingContext2D) {
-    const nodeRadius = 8; // Fixed radius like graph.js
+    const nodeRadius = 8;
     ctx.beginPath();
     ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI, false);
     
@@ -192,7 +202,6 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
     ctx.fillStyle = nodeColor;
     ctx.fill();
 
-    // Add outline for selected or highlighted nodes
     if (this.selectedNode && this.selectedNode.id === node.id) {
       ctx.strokeStyle = this.colors.nodeSelected;
       ctx.lineWidth = 3;
@@ -259,7 +268,6 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
     this.highlightedLinks.clear();
     connectedLinkIds.forEach(linkId => this.highlightedLinks.add(linkId));
     
-    // Update force simulation for highlighting
     this._graph.d3Force("link").distance((link: any) => {
       if (connectedLinkIds.has(link.id)) {
         return this.linkHighlightDistance;
@@ -284,6 +292,32 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
     this.highlightedLinks.clear();
     this._graph.d3Force("link").distance(this.linkDefaultDistance);
     this._graph.d3Force("charge").strength(this.chargeDefaultStrength);
+  }
+
+  focusNode(id: IdType): void {
+    const node = this.nodes.find(n => n.id === id);
+    if (node) {
+      this.selectedNode = node;
+      this.selectedLink = null;
+      this.highlightConnections(node);
+    }
+  }
+
+  blurNode(): void {
+    this.clearHighlight();
+  }
+
+  focusLink(id: IdType): void {
+    const link = this.links.find(l => l.id === id);
+    if (link) {
+      this.selectedLink = link;
+      this.selectedNode = null;
+      this.highlightLink(link);
+    }
+  }
+
+  blurLink(): void {
+    this.clearHighlight();
   }
 
   private calculateAndCacheClusters() {
@@ -343,49 +377,6 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
     return clusters;
   }
 
-  focusNode(id: IdType): void {
-    // Find the node and set it as selected
-    const node = this.nodes.find(n => n.id === id);
-    if (node) {
-      this.selectedNode = node;
-      this.selectedLink = null;
-      this.highlightConnections(node);
-      // Trigger visual update
-      this._graph.nodeColor(this._graph.nodeColor());
-      this._graph.linkColor(this._graph.linkColor());
-    }
-    this._onFocusNode?.(id);
-  }
-
-  blurNode(): void {
-    this.clearHighlight();
-    // Trigger visual update
-    this._graph.nodeColor(this._graph.nodeColor());
-    this._graph.linkColor(this._graph.linkColor());
-    this._onBlurNode?.();
-  }
-
-  focusLink(id: IdType): void {
-    // Find the link and set it as selected
-    const link = this.links.find(l => l.id === id);
-    if (link) {
-      this.selectedLink = link;
-      this.selectedNode = null;
-      this.highlightLink(link);
-      // Trigger visual update
-      this._graph.nodeColor(this._graph.nodeColor());
-      this._graph.linkColor(this._graph.linkColor());
-    }
-    this._onFocusLink?.(id);
-  }
-
-  blurLink(): void {
-    this.clearHighlight();
-    // Trigger visual update
-    this._graph.nodeColor(this._graph.nodeColor());
-    this._graph.linkColor(this._graph.linkColor());
-    this._onBlurLink?.();
-  }
 
   render() {
     // Calculate clusters if needed
@@ -401,37 +392,47 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
     
     this._graph.graphData(graphData);
 
-    // Set up event handlers
-    this._onFocusNode = () => {
-      // Focus logic would go here
+    this._onUpdateNode = (id: IdType) => {
+      const nodeIndex = this.nodes.findIndex(n => n.id === id);
+      if (nodeIndex !== -1) {
+        const networkNode = this.network.node(id);
+        if (networkNode) {
+          this.nodes[nodeIndex].label = this.options.getNodeLabel?.(networkNode);
+          this.nodes[nodeIndex].details = this.options.getNodeDetails?.(networkNode);
+          this.nodes[nodeIndex].meta = this.options.getNodeMeta?.(networkNode);
+          
+          this._graph.graphData({
+            nodes: this.nodes,
+            links: this.links
+          });
+        }
+      }
     };
 
-    this._onFocusLink = () => {
-      // Focus logic would go here  
-    };
-
-    this._onBlurNode = () => {
-      this.clearHighlight();
-    };
-
-    this._onBlurLink = () => {
-      this.clearHighlight();
-    };
-
-    this._onUpdateNode = () => {
-      // Update node logic
-    };
-
-    this._onUpdateLink = () => {
-      // Update link logic
+    this._onUpdateLink = (id: IdType) => {
+      const linkIndex = this.links.findIndex(l => l.id === id);
+      if (linkIndex !== -1) {
+        const networkLink = this.network.link(id);
+        if (networkLink) {
+          this.links[linkIndex].label = this.options.getLinkLabel?.(networkLink);
+          this.links[linkIndex].details = this.options.getLinkDetails?.(networkLink);
+          this.links[linkIndex].meta = this.options.getLinkMeta?.(networkLink);
+          
+          this._graph.graphData({
+            nodes: this.nodes,
+            links: this.links
+          });
+        }
+      }
     };
 
     this.network.on('update:node', this._onUpdateNode);
     this.network.on('update:link', this._onUpdateLink);
 
-    // Zoom to fit after initial render
     setTimeout(() => {
-      this._graph.zoomToFit(400, 50);
+      if (this._graph && this._graph.zoomToFit) {
+        this._graph.zoomToFit(400, 50);
+      }
     }, 1000);
   }
 }

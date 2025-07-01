@@ -13,6 +13,7 @@ export interface NetworkViewerProps {
   loading: boolean;
   loadingTitle: ReactNode;
   Details: FC<NetworkViewerDetailsProps>;
+  useCanvasRenderer?: boolean;
 }
 
 export interface NetworkViewerDetailsProps {
@@ -31,7 +32,7 @@ function randomPosition (radius: number, kbSpacing: number, kbIndex: number, kbC
   };
 }
 
-export function NetworkViewer ({ network, loading, loadingTitle, className, Details }: NetworkViewerProps) {
+export function NetworkViewer ({ network, loading, loadingTitle, className, Details, useCanvasRenderer = false }: NetworkViewerProps) {
   const [target, setTarget] = useState<{ type: string, id: IdType }>();
 
   const knowledgeGraphIndexMap = useMemo(() => {
@@ -145,6 +146,7 @@ export function NetworkViewer ({ network, loading, loadingTitle, className, Deta
           className={cn('w-full h-full overflow-hidden')}
           network={network}
           target={target}
+          useCanvasRenderer={useCanvasRenderer}
           {...networkOptions}
         />
         <Details

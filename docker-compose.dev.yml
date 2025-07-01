@@ -33,7 +33,6 @@ services:
       HOSTNAME: 0.0.0.0
     volumes:
       - ./frontend:/tidb.ai/frontend
-      - /tidb.ai/frontend/node_modules
     command: sh -c "cd /tidb.ai/frontend && pnpm run dev"
     depends_on:
       - backend

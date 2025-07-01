@@ -154,9 +154,14 @@ export class NetworkRenderer<Node extends NetworkNode, Link extends NetworkLink>
     if (!this._el) {
       return;
     }
-    this._el.removeChild(this._graph.node()!);
+    // Safely remove the graph node if it exists and is still a child
+    const graphNode = this._graph.node();
+    if (graphNode && this._el.contains(graphNode)) {
+      this._el.removeChild(graphNode);
+    }
     this._ro?.disconnect();
     this._ro = undefined;
+    this._el = undefined;
   }
 
   private renderGrid (width: number, height: number) {

@@ -42,6 +42,7 @@ export function KnowledgeGraphDebugInfo ({ group }: { group: ChatMessageGroup })
       loading={!shouldFetch || isLoading}
       loadingTitle={shouldFetch ? 'Loading knowledge graph...' : 'Waiting knowledge graph request...'}
       network={network}
+      useCanvasRenderer={true}
       Details={
         ({ target, network }) => {
           if (!canEdit) return null;

@@ -47,10 +47,10 @@ export function NetworkCanvas<Node extends NetworkNode, Link extends NetworkLink
     switch (target.type) {
       case 'node':
         renderer.focusNode(target.id);
-        return () => renderer.blurNode();
+        break;
       case 'link':
         renderer.focusLink(target.id);
-        return () => renderer.blurLink();
+        break;
     }
   }, [target, renderer]);
 

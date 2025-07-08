@@ -1105,10 +1105,12 @@ class TiDBGraphStore(KnowledgeGraphStore):
             ]
 
         document_ids = {
-            rel.meta.get("document_id")
+            rel.document_id
             for rel in relationships
-            if rel.meta.get("document_id") is not None
+            if rel.document_id is not None
         }
+
+        logger.info(f"Getting documents for relationships: {document_ids}")
 
         documents = session.exec(
             select(Document).where(Document.id.in_(document_ids))

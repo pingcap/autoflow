@@ -1081,7 +1081,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
             if rel.meta.get("chunk_id") is not None
         }
 
-        if not chunk_ids:
+        if chunk_ids:
             # Query chunks
             chunks = session.exec(
                 select(self._chunk_model).where(self._chunk_model.id.in_(chunk_ids))

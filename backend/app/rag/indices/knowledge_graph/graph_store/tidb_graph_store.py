@@ -1082,6 +1082,7 @@ class TiDBGraphStore(KnowledgeGraphStore):
         }
 
         if chunk_ids:
+            logger.info(f"Getting chunks for relationships: {chunk_ids}")
             # Query chunks
             chunks = session.exec(
                 select(self._chunk_model).where(self._chunk_model.id.in_(chunk_ids))

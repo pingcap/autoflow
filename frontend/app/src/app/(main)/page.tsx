@@ -65,7 +65,7 @@ export default function Page () {
       </div>
       <div className="lg:h-[var(--ask-referral-height)] h-1/3 flex lg:justify-center justify-end items-center gap-4 lg:flex-row flex-col pb-4 lg:pb-0" style={{ display: 'auto' }}>
         {homepage_footer_links?.map(link => (
-          <NextLink key={link.text} href={link.href} target="_blank" className={cn('font-light text-sm hover:underline opacity-50 flex justify-center', isHighlightedLinkText('font-semibold text-yellow-500 dark:text-yellow-400 opacity-100 underline'))}>
+          <NextLink key={link.text} href={link.href} target="_blank" className={cn('font-light text-sm hover:underline opacity-50 flex justify-center', isHighlightedLinkText(link.text) && 'font-semibold text-yellow-500 dark:text-yellow-400 opacity-100 underline')}>
             {trimHighlightedLinkText(link.text)}
           </NextLink>
         ))}

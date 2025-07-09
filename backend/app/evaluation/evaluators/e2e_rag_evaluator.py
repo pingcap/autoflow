@@ -16,7 +16,7 @@ retry_delay = 2
 
 
 class E2ERagEvaluator:
-    def __init__(self, model="gpt-4o", threshold=0.7) -> None:
+    def __init__(self, model="gpt-4.1-2025-04-14", threshold=0.7) -> None:
         self._model = model
         self._threshold = threshold
 

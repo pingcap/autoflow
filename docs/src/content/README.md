@@ -1,9 +1,10 @@
 <!-- markdownlint-disable MD033 MD041 -->
 
 <div align="center">
-<h1>AutoFlow</h1>
+  <h1>AutoFlow</h1>
+  
   <a href='https://www.pingcap.com/tidb-cloud-serverless/?utm_source=tidb.ai&utm_medium=community'>
-    <img src="https://raw.githubusercontent.com/pingcap/tidb.ai/main/frontend/app/public/nextra/icon-dark.svg" alt="AutoFlow" width =100 height=100></img>
+    <img src="https://raw.githubusercontent.com/pingcap/tidb.ai/main/docs/public/icon-dark.svg" alt="AutoFlow" width =100 height=100></img>
   </a>
 
   <a href="https://trendshift.io/repositories/12294" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12294" alt="pingcap%2Fautoflow | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>

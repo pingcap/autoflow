@@ -221,23 +221,38 @@ class TiDBVectorStore(BasePydanticVectorStore):
         similarities = []
         ids = []
         for row in results:
-            try:
-                node = metadata_dict_to_node(row.meta)
-                node.metadata["document_id"] = row.document_id
-                node.set_content(row.text)
-            except Exception as e:
-                # NOTE: deprecated legacy logic for backward compatibility
-                logger.warning(
-                    f"Failed to parse metadata dict (error: {e}), falling back to legacy logic.",
-                    exc_info=True,
-                )
+            # Check if metadata contains required fields for node reconstruction
+            # to avoid async event loop issues in metadata_dict_to_node
+            if (
+                isinstance(row.meta, dict)
+                and "_node_content" in row.meta
+                and "_node_type" in row.meta
+            ):
+                try:
+                    node = metadata_dict_to_node(row.meta)
+                    node.id_ = str(row.id)
+                    node.metadata["document_id"] = row.document_id
+                    node.set_content(row.text)
+                except Exception as e:
+                    # NOTE: deprecated legacy logic for backward compatibility
+                    logger.warning(
+                        f"Failed to parse metadata dict (error: {e}), falling back to legacy logic.",
+                        exc_info=True,
+                    )
+                    node = TextNode(
+                        id_=str(row.id),
+                        text=row.text,
+                        metadata=row.meta,
+                    )
+            else:
+                # Use legacy logic directly if metadata doesn't contain required fields
                 node = TextNode(
-                    id_=row.id,
+                    id_=str(row.id),
                     text=row.text,
                     metadata=row.meta,
                 )
             similarities.append((1 - row.distance) if row.distance is not None else 0)
-            ids.append(row.id)
+            ids.append(str(row.id))
             nodes.append(node)
         return VectorStoreQueryResult(
             nodes=nodes,

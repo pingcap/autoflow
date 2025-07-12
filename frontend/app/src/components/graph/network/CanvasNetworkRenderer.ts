@@ -8,7 +8,6 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
   private _graph: any; // ForceGraph instance
   private _ro: ResizeObserver | undefined;
 
-
   private _onUpdateLink: ((id: IdType) => void) | undefined;
   private _onUpdateNode: ((id: IdType) => void) | undefined;
 
@@ -21,34 +20,36 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
   private highlightedNodes = new Set<IdType>();
   private highlightedLinks = new Set<IdType>();
 
-
   private readonly linkDefaultDistance = 30;
   private readonly chargeDefaultStrength = -80;
   private readonly linkHighlightDistance = 120;
   private readonly chargeHighlightStrength = -200;
   private readonly linkDefaultWidth = 1;
 
-  // Clustering
-  private clusterMode = 'enabled';
   private clustersCalculated = false;
-
-
-  // Colors
-  private colors = {
-    textColor: '#000000',
-    nodeColor: '#1f77b4',
-    nodeHighlighted: '#18a0b1',
-    nodeSelected: '#72fefb',
-    linkColor: '#999999',
-    linkHighlighted: '#18a0b1',
-    linkSelected: '#72fefb',
-    clusterColors: [
-      '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-      '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
-    ]
-  };
+  
+  private adjacencyMap = new Map<IdType, { connectedNodes: Set<IdType>, connectedLinks: Set<IdType> }>();
+  private adjacencyCalculated = false;
 
   scale = 1;
+  private initialLayoutComplete = false;
+
+  private viewportBounds = { x0: -Infinity, y0: -Infinity, x1: Infinity, y1: Infinity };
+
+  private colors = {
+    textColor: '#000000',
+    nodeHighlighted: '#18a0b1',
+    nodeSelected: '#72fefb',
+    linkDefaultColor: '#999999',
+    linkHighlighted: '#18a0b1',
+    linkSelected: '#72fefb'
+  };
+  private zoomLevels = {
+    veryFar: 0.2,
+    far: 0.3,
+    medium: 0.4,
+    close: 0.8,
+  }
 
   constructor(
     private network: ReadonlyNetwork<Node, Link>,
@@ -60,14 +61,22 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
   private compile(options: NetworkRendererOptions<Node, Link>) {
     const nodeMap = new Map<IdType, number>();
     this.nodes = this.network.nodes().map((node, index) => {
+      const nodeRadius = 8;
+      const fontSize = Math.max(8, nodeRadius * 0.3);
+      const label = options.getNodeLabel?.(node) ?? (node as any).name ?? node.id;
+      const labelColor = options.getNodeLabelColor?.(node) ?? this.colors.textColor;
+      
       nodeMap.set(node.id, index);
       return {
         id: node.id,
         index,
-        radius: 8, 
-        label: options.getNodeLabel?.(node),
+        radius: nodeRadius, 
+        label,
         details: options.getNodeDetails?.(node),
         meta: options.getNodeMeta?.(node),
+        fontSize,
+        fontString: `${fontSize}px Sans-Serif`,
+        labelColor,
         ...options.getNodeInitialAttrs?.(node, index),
       };
     });
@@ -82,8 +91,51 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
     }));
   }
 
-  get massive() {
-    return this.nodes.length > 50 || this.links.length > 50;
+  private updateViewportBounds() {
+    if (!this._graph || !this._el) return;
+    
+    const canvas = this._el.querySelector('canvas');
+    if (!canvas) return;
+
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    const topLeft = this._graph.screen2GraphCoords(0, 0);
+    const bottomRight = this._graph.screen2GraphCoords(width, height);
+    
+    const padding = 100 / this.scale;
+    
+    this.viewportBounds = {
+      x0: topLeft.x - padding,
+      y0: topLeft.y - padding,
+      x1: bottomRight.x + padding,
+      y1: bottomRight.y + padding
+    };
+  }
+
+  private isNodeInViewport(node: any): boolean {
+    const x = node.x ?? 0;
+    const y = node.y ?? 0;
+    return x >= this.viewportBounds.x0 && 
+           x <= this.viewportBounds.x1 && 
+           y >= this.viewportBounds.y0 && 
+           y <= this.viewportBounds.y1;
+  }
+
+  private isLinkInViewport(link: any): boolean {
+    const sourceX = link.source.x ?? 0;
+    const sourceY = link.source.y ?? 0;
+    const targetX = link.target.x ?? 0;
+    const targetY = link.target.y ?? 0;
+    
+    if ((sourceX < this.viewportBounds.x0 && targetX < this.viewportBounds.x0) ||
+        (sourceX > this.viewportBounds.x1 && targetX > this.viewportBounds.x1) ||
+        (sourceY < this.viewportBounds.y0 && targetY < this.viewportBounds.y0) ||
+        (sourceY > this.viewportBounds.y1 && targetY > this.viewportBounds.y1)) {
+      return false;
+    }
+    
+    return true;
   }
 
   mount(container: HTMLElement) {
@@ -94,27 +146,25 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
 
     const { width: initialWidth, height: initialHeight } = container.getBoundingClientRect();
 
-    // Initialize ForceGraph
-    this._graph = (ForceGraph as any)()(container)
+    const graph = new ForceGraph(container)
       .width(initialWidth)
       .height(initialHeight)
       .backgroundColor('transparent')
-      .nodeCanvasObject((node: any, ctx: CanvasRenderingContext2D) => {
-        this.drawNodeWithLabel(node, ctx);
-      })
-      .linkWidth(this.linkDefaultWidth)
-      .linkColor((link: any) => {
-        if (this.selectedLink && this.selectedLink.id === link.id) {
-          return this.colors.linkSelected;
-        } else if (this.highlightedLinks.has(link.id)) {
-          return this.colors.linkHighlighted;
-        } else {
-          return this.colors.linkColor;
+      .autoPauseRedraw(false)
+      .warmupTicks(50)
+      .nodeAutoColorBy('clusterId')
+      .nodeCanvasObject((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+        if (this.isNodeInViewport(node)) {
+          this.drawNodeWithLabel(node, ctx, globalScale);
         }
       })
-      .linkDirectionalArrowLength(6)
-      .linkDirectionalArrowRelPos(1)
-      .linkCurvature(0.1)
+      .linkCanvasObject((link: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+        this.scale = globalScale;
+        if (this.scale > this.zoomLevels.veryFar && this.isLinkInViewport(link)) {
+          this.drawLink(link, ctx);
+        }
+      })
+      .linkCanvasObjectMode(() => 'replace')
       .onNodeClick((node: any, event: MouseEvent) => {
         this.onNodeClick(node, event);
       })
@@ -127,7 +177,31 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
       .d3Force('x', d3.forceX(0).strength(0.05))
       .d3Force('y', d3.forceY(0).strength(0.05))
       .d3Force("link", d3.forceLink().id((d: any) => d.id).distance(this.linkDefaultDistance))
-      .d3Force("charge", d3.forceManyBody().strength(this.chargeDefaultStrength));
+      .d3Force("charge", d3.forceManyBody()
+        .strength(this.chargeDefaultStrength)
+        .theta(1.2)
+      )
+      .onZoom((transform: any) => {
+        this.scale = transform.k;
+      })
+      .onRenderFramePre(() => {
+        this.updateViewportBounds();
+      });
+
+    this._graph = graph;
+
+    setTimeout(() => {
+      this.initialLayoutComplete = true;
+      this._graph.d3Force('x', null);
+      this._graph.d3Force('y', null);
+      this._graph.d3Force("charge").distanceMax(300).strength(0);
+
+      const data = graph.graphData();
+      data.nodes.forEach((node: any) => {
+        node.fx = node.x;
+        node.fy = node.y;
+      });
+    }, 2000);
 
     container.style.overflow = 'hidden';
 
@@ -139,7 +213,6 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
 
     this.render();
 
-    // Ensure the canvas fills the container after ForceGraph creates it
     setTimeout(() => {
       const canvas = container.querySelector('canvas');
       if (canvas) {
@@ -162,8 +235,7 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
     if (!this._el) {
       return;
     }
-    
-    // Properly cleanup ForceGraph instance
+
     if (this._graph) {
       this._graph.onNodeClick(null);
       this._graph.onLinkClick(null);
@@ -171,8 +243,6 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
       
       this._graph.graphData({ nodes: [], links: [] });
       
-      // The ForceGraph library doesn't have an explicit destroy method,
-      // clearing the container should cleanup the canvas
       if (this._el) {
         this._el.innerHTML = '';
       }
@@ -185,23 +255,24 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
     this._el = undefined;
   }
 
-  private drawNodeWithLabel(node: any, ctx: CanvasRenderingContext2D) {
+  private drawNodeWithLabel(node: any, ctx: CanvasRenderingContext2D, globalScale: number) {
     const nodeRadius = 8;
+    const largeNodeRadius = 16;
+    
+    // Use different rendering based on zoom level
+    if (globalScale < this.zoomLevels.veryFar) {
+      ctx.fillStyle = node.color;
+      ctx.fillRect(node.x - nodeRadius/2, node.y - nodeRadius/2, largeNodeRadius, largeNodeRadius);
+      return;
+    }
+
+    // Full circle rendering
     ctx.beginPath();
     ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI, false);
-    
-    const clusterModeOn = this.clusterMode === 'enabled';
-    let nodeColor;
-    if (clusterModeOn && node.clusterId !== undefined) {
-      const clusterId = node.clusterId || 0;
-      nodeColor = this.colors.clusterColors[clusterId % this.colors.clusterColors.length];
-    } else {
-      nodeColor = this.options.getNodeColor?.(this.network.node(node.id) as any) ?? this.colors.nodeColor;
-    }
-    
-    ctx.fillStyle = nodeColor;
+    ctx.fillStyle = node.color;
     ctx.fill();
 
+    // Selection/highlight strokes
     if (this.selectedNode && this.selectedNode.id === node.id) {
       ctx.strokeStyle = this.colors.nodeSelected;
       ctx.lineWidth = 3;
@@ -212,14 +283,71 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
       ctx.stroke();
     }
 
-    // Draw label
-    const label = this.options.getNodeLabel?.(this.network.node(node.id)!) ?? node.name ?? node.id;
-    const fontSize = Math.max(8, nodeRadius * 0.3);
-    ctx.font = `${fontSize}px Sans-Serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = this.options.getNodeLabelColor?.(this.network.node(node.id) as any) ?? this.colors.textColor;
-    ctx.fillText(label, node.x, node.y + nodeRadius + fontSize * 0.7);
+    // Labels only when zoomed in enough
+    if (globalScale >= this.zoomLevels.close) {
+      ctx.font = node.fontString;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = node.labelColor;
+      ctx.fillText(node.label, node.x, node.y + nodeRadius + node.fontSize * 0.7);
+    }
+  }
+
+  private drawLink(link: any, ctx: CanvasRenderingContext2D) {
+    const source = link.source;
+    const target = link.target;
+    
+    // Determine link color
+    let color = this.colors.linkDefaultColor;
+    if (this.selectedLink && this.selectedLink.id === link.id) {
+      color = this.colors.linkSelected;
+    } else if (this.highlightedLinks.has(link.id)) {
+      color = this.colors.linkHighlighted;
+    }
+    
+    ctx.strokeStyle = color;
+    ctx.lineWidth = this.linkDefaultWidth * this.scale;
+    
+    ctx.beginPath();
+    ctx.moveTo(source.x, source.y);
+    ctx.lineTo(target.x, target.y);
+    ctx.stroke();
+    
+    if (this.scale > this.zoomLevels.medium) {
+      this.drawArrow(ctx, source, target, color);
+    }
+  }
+
+  private drawArrow(
+    ctx: CanvasRenderingContext2D,
+    source: any,
+    target: any,
+    color: string
+  ) {
+    const arrowLength = 6;
+    const arrowAngle = Math.PI / 6;
+    
+    const dx = target.x - source.x;
+    const dy = target.y - source.y;
+    const angle = Math.atan2(dy, dx);
+    
+    const targetRadius = target.radius || 8;
+    const arrowX = target.x - Math.cos(angle) * targetRadius;
+    const arrowY = target.y - Math.sin(angle) * targetRadius;
+    
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(arrowX, arrowY);
+    ctx.lineTo(
+      arrowX - arrowLength * Math.cos(angle - arrowAngle),
+      arrowY - arrowLength * Math.sin(angle - arrowAngle)
+    );
+    ctx.lineTo(
+      arrowX - arrowLength * Math.cos(angle + arrowAngle),
+      arrowY - arrowLength * Math.sin(angle + arrowAngle)
+    );
+    ctx.closePath();
+    ctx.fill();
   }
 
   private onNodeClick(node: any, event: MouseEvent) {
@@ -249,24 +377,27 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
   }
 
   private highlightConnections(node: any) {
-    const connectedNodeIds = new Set<IdType>();
-    const connectedLinkIds = new Set<IdType>();
+    const adjacency = this.adjacencyMap.get(node.id);
+    if (!adjacency) {
+      return;
+    }
     
-    this._graph.graphData().links.forEach((link: any) => {
-      if (link.source.id === node.id) {
-        connectedNodeIds.add(link.target.id);
-        connectedLinkIds.add(link.id);
-      } else if (link.target.id === node.id) {
-        connectedNodeIds.add(link.source.id);
-        connectedLinkIds.add(link.id);
-      }
-    });
+    const connectedNodeIds = adjacency.connectedNodes;
+    const connectedLinkIds = adjacency.connectedLinks;
     
     this.highlightedNodes.clear();
     connectedNodeIds.forEach(nodeId => this.highlightedNodes.add(nodeId));
     
     this.highlightedLinks.clear();
     connectedLinkIds.forEach(linkId => this.highlightedLinks.add(linkId));
+
+    const data = this._graph.graphData();
+    data.nodes.forEach((n: any) => {
+      if (connectedNodeIds.has(n.id)) {
+        n.fx = null;
+        n.fy = null;
+      }
+    });
     
     this._graph.d3Force("link").distance((link: any) => {
       if (connectedLinkIds.has(link.id)) {
@@ -279,7 +410,7 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
       if (connectedNodeIds.has(node.id)) {
         return this.chargeHighlightStrength;
       }
-      return this.chargeDefaultStrength;
+      return 0;
     });
 
     this._graph.d3ReheatSimulation();
@@ -290,34 +421,20 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
     this.selectedLink = null;
     this.highlightedNodes.clear();
     this.highlightedLinks.clear();
+    
     this._graph.d3Force("link").distance(this.linkDefaultDistance);
-    this._graph.d3Force("charge").strength(this.chargeDefaultStrength);
-  }
-
-  focusNode(id: IdType): void {
-    const node = this.nodes.find(n => n.id === id);
-    if (node) {
-      this.selectedNode = node;
-      this.selectedLink = null;
-      this.highlightConnections(node);
-    }
-  }
-
-  blurNode(): void {
-    this.clearHighlight();
-  }
-
-  focusLink(id: IdType): void {
-    const link = this.links.find(l => l.id === id);
-    if (link) {
-      this.selectedLink = link;
-      this.selectedNode = null;
-      this.highlightLink(link);
-    }
-  }
-
-  blurLink(): void {
-    this.clearHighlight();
+    if (!this.initialLayoutComplete) return;
+    this._graph.d3Force("charge").strength(0);
+    
+    setTimeout(() => {
+      const data = this._graph.graphData();
+      data.nodes.forEach((n: any) => {
+        n.fx = n.x;
+        n.fy = n.y;
+      });
+    }, 500);
+    
+    this._graph.d3ReheatSimulation();
   }
 
   private calculateAndCacheClusters() {
@@ -327,10 +444,44 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
     const clusters = this.findClusters();
     
     this.nodes.forEach(node => {
-      (node as any).clusterId = clusters.get(node.id) || 0;
+      const clusterId = clusters.get(node.id) || 0;
+      (node as any).clusterId = clusterId;
     });
     
     this.clustersCalculated = true;
+  }
+  
+  private calculateAndCacheAdjacency() {
+    if (!this.nodes || !this.links) {
+      return;
+    }
+    
+    this.adjacencyMap.clear();
+    
+    this.nodes.forEach(node => {
+      this.adjacencyMap.set(node.id, {
+        connectedNodes: new Set<IdType>(),
+        connectedLinks: new Set<IdType>()
+      });
+    });
+    
+    this.links.forEach(link => {
+      const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+      const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+      
+      const sourceAdjacency = this.adjacencyMap.get(sourceId);
+      const targetAdjacency = this.adjacencyMap.get(targetId);
+      
+      if (sourceAdjacency && targetAdjacency) {
+        sourceAdjacency.connectedNodes.add(targetId);
+        targetAdjacency.connectedNodes.add(sourceId);
+        
+        sourceAdjacency.connectedLinks.add(link.id);
+        targetAdjacency.connectedLinks.add(link.id);
+      }
+    });
+    
+    this.adjacencyCalculated = true;
   }
 
   private findClusters(): Map<IdType, number> {
@@ -360,11 +511,11 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
       clusters.set(nodeId, currentClusterId);
       
       const neighbors = adjacencyList.get(nodeId) || [];
-      neighbors.forEach(neighborId => {
+      for (const neighborId of neighbors) {
         if (!visited.has(neighborId)) {
           dfs(neighborId, currentClusterId);
         }
-      });
+      }
     };
 
     this.nodes.forEach(node => {
@@ -377,14 +528,15 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
     return clusters;
   }
 
-
   render() {
-    // Calculate clusters if needed
     if (!this.clustersCalculated) {
       this.calculateAndCacheClusters();
     }
+    
+    if (!this.adjacencyCalculated) {
+      this.calculateAndCacheAdjacency();
+    }
 
-    // Set graph data
     const graphData = {
       nodes: this.nodes,
       links: this.links
@@ -435,4 +587,10 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
       }
     }, 1000);
   }
+
+  // maintain for compatibility with NetworkRenderer
+  focusNode(id: IdType): void {}
+  blurNode(): void {}
+  focusLink(id: IdType): void {}
+  blurLink(): void {}
 }

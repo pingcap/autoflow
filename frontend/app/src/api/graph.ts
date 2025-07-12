@@ -215,12 +215,12 @@ export async function streamEntireKnowledgeGraph (kbId: number): Promise<Knowled
             
             if (data.type === 'entities') {
               entities.push(...data.data);
-              console.log(`Received ${data.data.length} entities, total: ${entities.length}`);
+              // console.log(`Received ${data.data.length} entities, total: ${entities.length}`);
             } else if (data.type === 'relationships') {
               relationships.push(...data.data);
-              console.log(`Received ${data.data.length} relationships, total: ${relationships.length}`);
+              // console.log(`Received ${data.data.length} relationships, total: ${relationships.length}`);
             } else if (data.type === 'complete') {
-              console.log(`Streaming complete. Final counts - entities: ${entities.length}, relationships: ${relationships.length}`);
+              // console.log(`Streaming complete. Final counts - entities: ${entities.length}, relationships: ${relationships.length}`);
               return { entities, relationships };
             }
           } catch (error) {

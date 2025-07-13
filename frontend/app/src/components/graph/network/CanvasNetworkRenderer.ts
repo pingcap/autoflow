@@ -45,10 +45,11 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
     linkSelected: '#72fefb'
   };
   private zoomLevels = {
-    veryFar: 0.2,
-    far: 0.3,
-    medium: 0.4,
-    close: 0.8,
+    one: 0.1,
+    two: 0.2,
+    three: 0.3,
+    four: 0.4,
+    five: 0.8,
   }
 
   constructor(
@@ -160,7 +161,7 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
       })
       .linkCanvasObject((link: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
         this.scale = globalScale;
-        if (this.scale > this.zoomLevels.veryFar && this.isLinkInViewport(link)) {
+        if (this.scale > this.zoomLevels.three && this.isLinkInViewport(link)) {
           this.drawLink(link, ctx);
         }
       })
@@ -192,9 +193,9 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
 
     setTimeout(() => {
       this.initialLayoutComplete = true;
-      this._graph.d3Force('x', null);
-      this._graph.d3Force('y', null);
-      this._graph.d3Force("charge").distanceMax(300).strength(0);
+      graph.d3Force('x', null);
+      graph.d3Force('y', null);
+      graph.d3Force("charge")?.distanceMax(300).strength(0);
 
       const data = graph.graphData();
       data.nodes.forEach((node: any) => {
@@ -260,7 +261,7 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
     const largeNodeRadius = 16;
     
     // Use different rendering based on zoom level
-    if (globalScale < this.zoomLevels.veryFar) {
+    if (globalScale < this.zoomLevels.one) {
       ctx.fillStyle = node.color;
       ctx.fillRect(node.x - nodeRadius/2, node.y - nodeRadius/2, largeNodeRadius, largeNodeRadius);
       return;
@@ -284,7 +285,7 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
     }
 
     // Labels only when zoomed in enough
-    if (globalScale >= this.zoomLevels.close) {
+    if (globalScale >= this.zoomLevels.five) {
       ctx.font = node.fontString;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -306,14 +307,14 @@ export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends Networ
     }
     
     ctx.strokeStyle = color;
-    ctx.lineWidth = this.linkDefaultWidth * this.scale;
+    ctx.lineWidth = Math.min(this.linkDefaultWidth * this.scale, 1);
     
     ctx.beginPath();
     ctx.moveTo(source.x, source.y);
     ctx.lineTo(target.x, target.y);
     ctx.stroke();
     
-    if (this.scale > this.zoomLevels.medium) {
+    if (this.scale > this.zoomLevels.four) {
       this.drawArrow(ctx, source, target, color);
     }
   }

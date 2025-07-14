@@ -1,5 +1,6 @@
 import { authenticationHeaders, handleResponse, requestUrl } from '@/lib/request';
 import { zodJsonDate } from '@/lib/zod';
+import { bufferedReadableStreamTransformer } from '@/lib/buffered-readable-stream';
 import { z, type ZodType } from 'zod';
 
 export interface KnowledgeGraph {
@@ -179,6 +180,60 @@ export async function getEntireKnowledgeGraph (kbId: number, params: KBRetrieveK
     body: JSON.stringify(params),
   })
   .then(handleResponse(knowledgeGraphSchema));
+}
+
+export async function streamEntireKnowledgeGraph (kbId: number): Promise<KnowledgeGraph> {
+  const entities: KnowledgeGraphEntity[] = [];
+  const relationships: KnowledgeGraphRelationship[] = [];
+  
+  const response = await fetch(requestUrl(`/api/v1/admin/knowledge_bases/${kbId}/graph/entire_graph/stream`), {
+    method: 'GET',
+    headers: await authenticationHeaders(),
+    credentials: 'include',
+  });
+  
+  if (!response.ok) {
+    throw new Error(`${response.status} ${response.statusText}`);
+  }
+  
+  if (!response.body) {
+    throw new Error('Empty response body');
+  }
+  
+  const reader = response.body.pipeThrough(bufferedReadableStreamTransformer()).getReader();
+  
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      if (value.trim() && value.startsWith('data: ')) {
+        const dataStr = value.substring(6).trim();
+        if (dataStr) {
+          try {
+            const data = JSON.parse(dataStr);
+            
+            if (data.type === 'entities') {
+              entities.push(...data.data);
+              // console.log(`Received ${data.data.length} entities, total: ${entities.length}`);
+            } else if (data.type === 'relationships') {
+              relationships.push(...data.data);
+              // console.log(`Received ${data.data.length} relationships, total: ${relationships.length}`);
+            } else if (data.type === 'complete') {
+              // console.log(`Streaming complete. Final counts - entities: ${entities.length}, relationships: ${relationships.length}`);
+              return { entities, relationships };
+            }
+          } catch (error) {
+            console.warn('Failed to parse streaming data:', error, 'Data:', dataStr);
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  
+  return { entities, relationships };
 }
 
 export async function getRelationship (kbId: number, id: number) {

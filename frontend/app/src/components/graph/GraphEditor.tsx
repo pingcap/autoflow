@@ -1,7 +1,7 @@
 'use client';
 
 import { getChatMessageSubgraph } from '@/api/chats';
-import { getEntitySubgraph, getEntireKnowledgeGraph, type KnowledgeGraph, search } from '@/api/graph';
+import { getEntitySubgraph, streamEntireKnowledgeGraph, type KnowledgeGraph, search } from '@/api/graph';
 import { LinkDetails } from '@/components/graph/components/LinkDetails';
 import { NetworkViewer, type NetworkViewerDetailsProps } from '@/components/graph/components/NetworkViewer';
 import { NodeDetails } from '@/components/graph/components/NodeDetails';
@@ -93,6 +93,9 @@ function SubgraphSelector ({ knowledgeBaseId, query, onQueryChange }: { knowledg
       <Select value={type} onValueChange={type => {
         setType(type);
         setInput('');
+        if (type === 'entire-knowledge-graph') {
+          onQueryChange(`${type}:`);
+        }
       }}>
         <SelectTrigger className="w-max">
           <SelectValue />
@@ -103,18 +106,23 @@ function SubgraphSelector ({ knowledgeBaseId, query, onQueryChange }: { knowledg
           <SelectItem value="message-subgraph">Message Subgraph</SelectItem>
           <SelectItem value="trace" disabled>Langfuse Trace ID (UUID)</SelectItem>
           <SelectItem value="document" disabled>Document URI</SelectItem>
+          <SelectItem value="entire-knowledge-graph">Entire Knowledge Graph</SelectItem>
         </SelectContent>
       </Select>
-      <Input
-        className="flex-1"
-        value={input}
-        onChange={event => setInput(event.target.value)}
-        onKeyDown={event => {
-          if (isHotkey('Enter', event)) {
-            onQueryChange(`${type}:${input}`);
-          }
-        }}
-      />
+      {type !== 'entire-knowledge-graph' && (
+        <>
+          <Input
+            className="flex-1"
+            value={input}
+            onChange={event => setInput(event.target.value)}
+            onKeyDown={event => {
+              if (isHotkey('Enter', event)) {
+                onQueryChange(`${type}:${input}`);
+              }
+            }}
+          />
+        </>
+      )}
       <Link className={buttonVariants({})} href={`/knowledge-bases/${knowledgeBaseId}/knowledge-graph-explorer/create-synopsis-entity`}>
         Create Synopsis Entity
       </Link>
@@ -164,6 +172,7 @@ function getFetchInfo (kbId: number, query: string | null): [string | false, () 
 
   const param = parsedQuery[1];
 
+
   switch (parsedQuery[0]) {
     // case 'trace':
     //   return ['get', `/api/v1/traces/${parsedQuery[1]}/knowledge-graph-retrieval`];
@@ -175,6 +184,8 @@ function getFetchInfo (kbId: number, query: string | null): [string | false, () 
       return [`api.knowledge-bases.${kbId}.graph.search?query=${param}`, () => search(kbId, { query: param })];
     case 'message-subgraph':
       return [`api.chats.get-message-subgraph?id=${param}`, () => getChatMessageSubgraph(parseInt(param))];
+    case 'entire-knowledge-graph':
+      return [`api.knowledge-bases.${kbId}.graph.entire-knowledge-graph`, () => streamEntireKnowledgeGraph(kbId)];
   }
 
   return [false, () => Promise.reject()];

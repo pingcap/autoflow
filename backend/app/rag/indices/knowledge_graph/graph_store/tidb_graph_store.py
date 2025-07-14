@@ -11,7 +11,7 @@ from llama_index.core.embeddings.utils import EmbedType, resolve_embed_model
 from llama_index.embeddings.openai import OpenAIEmbedding, OpenAIEmbeddingModelType
 import sqlalchemy
 from sqlmodel import Session, asc, func, select, text, SQLModel
-from sqlalchemy.orm import aliased, defer, joinedload
+from sqlalchemy.orm import aliased, defer, joinedload, noload
 from tidb_vector.sqlalchemy import VectorAdaptor
 from sqlalchemy import or_, desc
 
@@ -1182,3 +1182,91 @@ class TiDBGraphStore(KnowledgeGraphStore):
             entities=entities,
             relationships=relationships,
         )
+
+    def stream_entire_knowledge_graph(self, chunk_size: int = 5000):
+        """Stream entire knowledge graph in chunks
+        
+        Args:
+            chunk_size: Number of entities/relationships per chunk
+            
+        Yields:
+            Dict containing chunk type and data
+        """
+        # Stream entities
+        entity_query = (
+            select(self._entity_model)
+            .options(
+                defer(self._entity_model.description_vec),
+                defer(self._entity_model.meta_vec),
+            )
+            .order_by(self._entity_model.id)
+        )
+        last_entity_id = 0
+        
+        while True:
+            chunk_query = entity_query.where(
+                self._entity_model.id > last_entity_id
+            ).limit(chunk_size)
+            db_entities = self._session.exec(chunk_query).all()
+            
+            if not db_entities:
+                break
+                
+            entities = []
+            for entity in db_entities:
+                entities.append(
+                    RetrievedEntity(
+                        id=entity.id,
+                        knowledge_base_id=self.knowledge_base.id,
+                        name=entity.name,
+                        description=entity.description,
+                        meta=entity.meta,
+                        entity_type=entity.entity_type,
+                    )
+                )
+            
+            last_entity_id = db_entities[-1].id
+            yield {"type": "entities", "data": entities}
+        
+        # Stream relationships
+        relationship_query = (
+            select(self._relationship_model)
+            .options(
+                defer(self._relationship_model.description_vec),
+                defer(self._relationship_model.chunk_id),
+                noload(self._relationship_model.source_entity),
+                noload(self._relationship_model.target_entity),
+            )
+            .order_by(self._relationship_model.id)
+        )
+        logger.info(f"Relationship query: {relationship_query}")
+        last_relationship_id = 0
+        
+        while True:
+            chunk_query = relationship_query.where(
+                self._relationship_model.id > last_relationship_id
+            ).limit(chunk_size)
+            logger.info(f"Executing relationship chunk query: {chunk_query}")
+            db_relationships = self._session.exec(chunk_query).all()
+            
+            if not db_relationships:
+                break
+                
+            relationships = []
+            for rel in db_relationships:
+                relationships.append(
+                    RetrievedRelationship(
+                        id=rel.id,
+                        knowledge_base_id=self.knowledge_base.id,
+                        source_entity_id=rel.source_entity_id,
+                        target_entity_id=rel.target_entity_id,
+                        description=rel.description,
+                        rag_description=None,  # Skip rag_description for streaming performance
+                        meta=rel.meta,
+                        weight=rel.weight,
+                        last_modified_at=rel.last_modified_at,
+                    )
+                )
+            
+            last_relationship_id = db_relationships[-1].id
+            yield {"type": "relationships", "data": relationships}

@@ -10,6 +10,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.api.main import api_router
 from app.core.config import settings, Environment
@@ -60,7 +61,9 @@ load_dotenv()
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
-    return f"{route.tags[0]}-{route.name}"
+    if route.tags and len(route.tags) > 0:
+        return f"{route.tags[0]}-{route.name}"
+    return f"api-{route.name}"
 
 
 if settings.SENTRY_DSN and settings.ENVIRONMENT != "local":
@@ -118,6 +121,11 @@ async def identify_browser(request: Request, call_next):
 
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+# Setup Prometheus instrumentation
+Instrumentator().instrument(app).expose(
+    app, endpoint="/metrics", include_in_schema=True
+)
 
 
 @click.group(context_settings={"max_content_width": 150})

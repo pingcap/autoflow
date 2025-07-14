@@ -69,6 +69,7 @@ dependencies = [
     "socksio>=1.0.0",
     "dspy>=2.6.21",
     "litellm>=1.67.4",
+    "prometheus-fastapi-instrumentator>=7.1.0",
 ]
 
 

@@ -35,7 +35,7 @@ def db_engine():
 
 @pytest.fixture(scope="session")
 def llm():
-    return LLM(model="openai/gpt-4o-mini")
+    return LLM(model="openai/gpt-4.1-2025-04-14-mini")
 
 
 @pytest.fixture(scope="session")

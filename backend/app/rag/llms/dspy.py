@@ -68,6 +68,7 @@ def get_dspy_lm_by_llama_llm(llama_llm: BaseLLM) -> dspy.LM:
             return dspy.LM(
                 model=f"azure/{llama_llm.model}",
                 max_tokens=llama_llm.max_tokens,
+                temperature=llama_llm.temperature,
                 api_key=llama_llm.api_key,
                 api_base=enforce_trailing_slash(llama_llm.azure_endpoint),
                 api_version=llama_llm.api_version,

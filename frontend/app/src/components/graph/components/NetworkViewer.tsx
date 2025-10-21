@@ -4,7 +4,7 @@ import { type FC, type ReactNode, useMemo, useState } from 'react';
 import { NetworkCanvas } from '../components/NetworkCanvas';
 import { NetworkContext } from '../components/NetworkContext';
 import { BaseNetwork, type IdType } from '../network/Network';
-import type { NetworkRendererOptions } from '../network/NetworkRenderer';
+import type { NetworkRendererOptions } from '../network/NetworkRendererOptions';
 import { type Entity, type Relationship } from '../utils';
 
 export interface NetworkViewerProps {
@@ -13,7 +13,6 @@ export interface NetworkViewerProps {
   loading: boolean;
   loadingTitle: ReactNode;
   Details: FC<NetworkViewerDetailsProps>;
-  useCanvasRenderer?: boolean;
 }
 
 export interface NetworkViewerDetailsProps {
@@ -32,7 +31,7 @@ function randomPosition (radius: number, kbSpacing: number, kbIndex: number, kbC
   };
 }
 
-export function NetworkViewer ({ network, loading, loadingTitle, className, Details, useCanvasRenderer = false }: NetworkViewerProps) {
+export function NetworkViewer ({ network, loading, loadingTitle, className, Details }: NetworkViewerProps) {
   const [target, setTarget] = useState<{ type: string, id: IdType }>();
 
   const knowledgeGraphIndexMap = useMemo(() => {
@@ -146,7 +145,6 @@ export function NetworkViewer ({ network, loading, loadingTitle, className, Deta
           className={cn('w-full h-full overflow-hidden')}
           network={network}
           target={target}
-          useCanvasRenderer={useCanvasRenderer}
           {...networkOptions}
         />
         <Details

@@ -1,7 +1,29 @@
 import * as d3 from 'd3';
-import ForceGraph from 'force-graph';
+
 import type { IdType, NetworkLink, NetworkNode, ReadonlyNetwork } from './Network';
-import type { NetworkRendererOptions, NetworkNodeView, NetworkLinkView } from './NetworkRenderer';
+import type { SimulationLinkDatum, SimulationNodeDatum } from 'd3';
+
+import ForceGraph from 'force-graph';
+import type { NetworkRendererOptions } from './NetworkRendererOptions';
+
+export interface NetworkNodeView extends SimulationNodeDatum {
+  id: IdType;
+  index: number;
+  radius: number;
+  label?: string;
+  details?: string;
+  meta?: any;
+}
+
+export interface NetworkLinkView extends SimulationLinkDatum<NetworkNodeView> {
+  id: IdType;
+  index: number;
+  source: NetworkNodeView;
+  target: NetworkNodeView;
+  label?: string;
+  details?: string;
+  meta?: any;
+}
 
 export class CanvasNetworkRenderer<Node extends NetworkNode, Link extends NetworkLink> {
   private _el: HTMLElement | undefined;

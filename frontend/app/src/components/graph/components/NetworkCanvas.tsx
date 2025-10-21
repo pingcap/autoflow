@@ -1,28 +1,26 @@
-import { useEffect, useRef, useState } from 'react';
 import type { IdType, NetworkLink, NetworkNode, ReadonlyNetwork } from '../network/Network';
-import { NetworkRenderer, type NetworkRendererOptions } from '../network/NetworkRenderer';
+import { useEffect, useRef, useState } from 'react';
+
 import { CanvasNetworkRenderer } from '../network/CanvasNetworkRenderer';
+import type { NetworkRendererOptions } from '../network/NetworkRendererOptions';
 
 export interface NetworkCanvasProps<Node extends NetworkNode, Link extends NetworkLink> extends NetworkRendererOptions<Node, Link> {
   network: ReadonlyNetwork<Node, Link>;
   target: { type: string, id: IdType } | undefined;
   className?: string;
-  useCanvasRenderer?: boolean;
 }
 
-export function NetworkCanvas<Node extends NetworkNode, Link extends NetworkLink> ({ className, network, target, useCanvasRenderer = false, ...options }: NetworkCanvasProps<Node, Link>) {
+export function NetworkCanvas<Node extends NetworkNode, Link extends NetworkLink> ({ className, network, target, ...options }: NetworkCanvasProps<Node, Link>) {
   const ref = useRef<HTMLDivElement>(null);
-  const [renderer, setRenderer] = useState<NetworkRenderer<Node, Link> | CanvasNetworkRenderer<Node, Link>>();
+  const [renderer, setRenderer] = useState<CanvasNetworkRenderer<Node, Link>>();
 
   useEffect(() => {
-    // Cleanup previous renderer if it exists (needed for renderer switching)
+    // Cleanup previous renderer if it exists
     if (renderer) {
       renderer.unmount();
     }
 
-    const newRenderer = useCanvasRenderer 
-      ? new CanvasNetworkRenderer(network, options)
-      : new NetworkRenderer(network, options);
+    const newRenderer = new CanvasNetworkRenderer(network, options);
     
     if (ref.current) {
       newRenderer.mount(ref.current);
@@ -33,7 +31,7 @@ export function NetworkCanvas<Node extends NetworkNode, Link extends NetworkLink
       newRenderer.unmount();
       setRenderer(undefined);
     };
-  }, [network, useCanvasRenderer]);
+  }, [network]);
 
   useEffect(() => {
     if (!renderer) {

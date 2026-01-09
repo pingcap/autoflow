@@ -2674,15 +2674,15 @@ wheels = [
 
 [[package]]
 name = "llama-index-llms-openai"
-version = "0.6.5"
+version = "0.6.12"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "llama-index-core" },
     { name = "openai" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0d/f8/ce94b3a0f79223a4dff7cd3924ad72a0cd4eaa80e6ad7bd9c9e00a2fe1e9/llama_index_llms_openai-0.6.5.tar.gz", hash = "sha256:20023ac3a0ad829506ea9c7eaae6bdaddc55a97e304f8245f8dd9592a3cf4b4c", size = 25483, upload-time = "2025-10-15T19:36:48.654Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fa/71/fcede4077837a94ee35452507a21364643ddcb6db7dfbafb54ff235b381b/llama_index_llms_openai-0.6.12.tar.gz", hash = "sha256:9b8b1d7435983f974f7b45f79428361bfdb68c622541205392bf8f0fea179bae", size = 25681, upload-time = "2025-12-16T02:54:25.779Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9f/80/412e2dc47ccd97100868c247347bb23d47e30ba0c544ce34de8f6831f331/llama_index_llms_openai-0.6.5-py3-none-any.whl", hash = "sha256:a0ef24f36a6140ffaf4c4ba254ce28d585635b842b94de65800e479d49cfbbd6", size = 26481, upload-time = "2025-10-15T19:36:47.698Z" },
+    { url = "https://files.pythonhosted.org/packages/fa/8b/67a373e5cbf44c1ccf4f46ac25be3bba249bf4b51f050a92c4e07cb7eb08/llama_index_llms_openai-0.6.12-py3-none-any.whl", hash = "sha256:1e9477a03fa87c73904ffb5b851ce9e776c24cb5ef9145394e27f2f926f14578", size = 26695, upload-time = "2025-12-16T02:54:24.648Z" },
 ]
 
 [[package]]
@@ -5231,8 +5231,8 @@ requires-dist = [
     { name = "llama-index-llms-bedrock-converse", specifier = ">=0.4.15" },
     { name = "llama-index-llms-google-genai", specifier = ">=0.1.6" },
     { name = "llama-index-llms-ollama", specifier = ">=0.5.0" },
-    { name = "llama-index-llms-openai", specifier = ">=0.6.5" },
-    { name = "llama-index-llms-openai-like", specifier = ">=0.3.3" },
+    { name = "llama-index-llms-openai", specifier = ">=0.6.12" },
+    { name = "llama-index-llms-openai-like", specifier = ">=0.5.3" },
     { name = "llama-index-llms-vertex", specifier = ">=0.4.2" },
     { name = "llama-index-postprocessor-bedrock-rerank", specifier = ">=0.3.0" },
     { name = "llama-index-postprocessor-cohere-rerank", specifier = ">=0.3.0" },

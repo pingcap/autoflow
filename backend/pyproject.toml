@@ -68,7 +68,7 @@ dependencies = [
     "llama-index-llms-vertex>=0.4.2",
     "socksio>=1.0.0",
     "dspy>=2.6.21",
-    "litellm>=1.67.4",
+    "litellm>=1.77.5",
 ]
 
 

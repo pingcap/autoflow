@@ -12,7 +12,7 @@ requires-python = ">=3.10"
 # Dependencies
 
 dependencies = [
-    "litellm>=1.61.11",
+    "litellm>=1.77.5",
     "llama-index-core>=0.12.23.post2",
     "llama-index-llms-litellm>=0.3.0",
     "llama-index-readers-file>=0.4.6",

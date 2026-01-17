@@ -36,7 +36,7 @@ def test_llm():
     llm = model_manager.resolve_llm(
         provider=ModelProviders.OPENAI,
         config={
-            "model": "gpt-4o",
+            "model": "gpt-4.1-2025-04-14",
         },
     )
 

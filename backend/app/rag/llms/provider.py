@@ -14,6 +14,7 @@ class LLMProvider(str, enum.Enum):
     OLLAMA = "ollama"
     GITEEAI = "giteeai"
     AZURE_OPENAI = "azure_openai"
+    MINIMAX = "minimax"
 
 
 class LLMProviderOption(BaseModel):
@@ -166,5 +167,27 @@ llm_provider_options: List[LLMProviderOption] = [
         credentials_description="The API key of Azure OpenAI",
         credentials_type="str",
         default_credentials="****",
+    ),
+    LLMProviderOption(
+        provider=LLMProvider.MINIMAX,
+        provider_display_name="MiniMax",
+        provider_description="MiniMax is a leading AI technology company offering powerful large language models with OpenAI-compatible APIs, featuring MiniMax-M2.7 for complex reasoning tasks.",
+        provider_url="https://platform.minimax.io",
+        default_llm_model="MiniMax-M2.7",
+        llm_model_description="Available models: MiniMax-M2.7 (peak performance), MiniMax-M2.7-highspeed (faster). See https://platform.minimax.io/docs/guides/pricing-paygo",
+        default_config={
+            "api_base": "https://api.minimax.io/v1",
+            "is_chat_model": True,
+            "context_window": 204800,
+        },
+        config_description=(
+            "`api_base` is the API base URL of MiniMax, default is `https://api.minimax.io/v1`; "
+            "`is_chat_model` indicates whether the model is chat model; "
+            "`context_window` is the maximum number of input tokens and output tokens; "
+        ),
+        credentials_display_name="MiniMax API Key",
+        credentials_description="The API key of MiniMax, you can get it from https://platform.minimax.io",
+        credentials_type="str",
+        default_credentials="eyJ****",
     ),
 ]

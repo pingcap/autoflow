@@ -87,6 +87,21 @@ def resolve_llm(
                 api_key=credentials,
                 **config,
             )
+        case LLMProvider.MINIMAX:
+            from llama_index.llms.openai_like import OpenAILike
+
+            config.setdefault("is_chat_model", True)
+            config.setdefault("context_window", 204800)
+            temperature = config.pop("temperature", None)
+            if temperature is not None and temperature <= 0:
+                temperature = 1.0
+            return OpenAILike(
+                model=model,
+                api_base=config.pop("api_base", "https://api.minimax.io/v1"),
+                api_key=credentials,
+                temperature=temperature if temperature is not None else 1.0,
+                **config,
+            )
         case LLMProvider.AZURE_OPENAI:
             from llama_index.llms.azure_openai import AzureOpenAI
 

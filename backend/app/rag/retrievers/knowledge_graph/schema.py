@@ -197,14 +197,14 @@ Relationships:
 {relationships_str}
 """
 DEFAULT_ENTITY_TMPL = """
-- Name: {{ name }}
-  Description: {{ description }}
+- Name: {name}
+  Description: {description}
 """
 DEFAULT_RELATIONSHIP_TMPL = """
-- Description: {{ rag_description }}
-  Weight: {{ weight }}
-  Last Modified At: {{ last_modified_at }}
-  Meta: {{ meta }}
+- Description: {rag_description}
+  Weight: {weight}
+  Last Modified At: {last_modified_at}
+  Meta: {meta}
 """
 
 
@@ -283,7 +283,7 @@ class KnowledgeGraphNode(BaseNode):
         strs = []
         for relationship in self.relationships:
             strs.append(
-                self.entity_template.format(
+                self.relationship_template.format(
                     rag_description=relationship.rag_description,
                     weight=relationship.weight,
                     last_modified_at=relationship.last_modified_at,

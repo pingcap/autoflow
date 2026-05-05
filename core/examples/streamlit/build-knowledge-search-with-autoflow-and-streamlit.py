@@ -53,7 +53,7 @@ if not openai_api_key or not database_url:
     st.stop()
 
 af = Autoflow(create_engine(database_url))
-chat_model = ChatModel("gpt-4o-mini", api_key=openai_api_key)
+chat_model = ChatModel("gpt-4.1-2025-04-14-mini", api_key=openai_api_key)
 embedding_model = EmbeddingModel(
     model_name="text-embedding-3-small",
     dimensions=1536,

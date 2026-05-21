@@ -19,6 +19,9 @@ on:
           - openai
           - gemini
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build

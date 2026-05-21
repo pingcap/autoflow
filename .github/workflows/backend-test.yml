@@ -12,6 +12,9 @@ on:
     paths:
       - backend/**
 
+permissions:
+  contents: read
+
 jobs:
   backend-test:
     name: Backend Test

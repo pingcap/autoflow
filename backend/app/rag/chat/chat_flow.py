@@ -32,7 +32,11 @@ from app.rag.chat.stream_protocol import (
 from app.rag.llms.dspy import get_dspy_lm_by_llama_llm
 from app.rag.retrievers.knowledge_graph.schema import KnowledgeGraphRetrievalResult
 from app.rag.types import ChatEventType, ChatMessageSate
-from app.rag.utils import parse_goal_response_format
+from app.rag.utils import (
+    iter_without_hidden_reasoning,
+    parse_goal_response_format,
+    strip_hidden_reasoning,
+)
 from app.repositories import chat_repo
 from app.site_settings import SiteSetting
 from app.utils.tracing import LangfuseContextManager
@@ -364,6 +368,7 @@ class ChatFlow:
                 question=user_question,
                 current_date=datetime.now().strftime("%Y-%m-%d"),
             )
+            refined_question = strip_hidden_reasoning(refined_question)
 
             if not annotation_silent:
                 yield ChatEvent(
@@ -504,12 +509,13 @@ class ChatFlow:
                 ),
             )
             response_text = ""
-            for word in response.response_gen:
+            for word in iter_without_hidden_reasoning(response.response_gen):
                 response_text += word
                 yield ChatEvent(
                     event_type=ChatEventType.TEXT_PART,
                     payload=word,
                 )
+            response_text = strip_hidden_reasoning(response_text)
 
             if not response_text:
                 raise Exception("Got empty response from LLM")
@@ -585,6 +591,8 @@ class ChatFlow:
         source_documents: Optional[List[SourceDocument]] = [],
         annotation_silent: bool = False,
     ):
+        response_text = strip_hidden_reasoning(response_text)
+
         if not annotation_silent:
             yield ChatEvent(
                 event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,

@@ -1,5 +1,100 @@
 import re
-from typing import Tuple, Dict
+from typing import Dict, Iterable, Iterator, Tuple
+
+_THINK_BLOCK_RE = re.compile(r"<think\b[^>]*>.*?</think>", re.IGNORECASE | re.DOTALL)
+_THINK_START_RE = re.compile(r"<think\b[^>]*>.*", re.IGNORECASE | re.DOTALL)
+_GENERIC_ASSISTANT_QUESTION_RE = re.compile(
+    r"\b("
+    r"how (can|may) i (assist|help) you|"
+    r"what specific topic would you like|"
+    r"do you prefer the questions|"
+    r"how many follow[-‑ ]?up questions|"
+    r"should the questions be concise|"
+    r"is there a particular audience"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def strip_hidden_reasoning(text: str | None) -> str:
+    if not text:
+        return ""
+
+    cleaned = _THINK_BLOCK_RE.sub("", text)
+    cleaned = _THINK_START_RE.sub("", cleaned)
+    return cleaned.strip()
+
+
+def iter_without_hidden_reasoning(chunks: Iterable[str]) -> Iterator[str]:
+    """Yield text chunks while suppressing <think>...</think> blocks."""
+    buffer = ""
+    in_think_block = False
+    start_tag_overlap = len("<think") - 1
+    end_tag_overlap = len("</think>") - 1
+
+    for chunk in chunks:
+        if not chunk:
+            continue
+
+        buffer += chunk
+
+        while buffer:
+            lower_buffer = buffer.lower()
+
+            if in_think_block:
+                end_index = lower_buffer.find("</think>")
+                if end_index < 0:
+                    buffer = buffer[-end_tag_overlap:]
+                    break
+
+                buffer = buffer[end_index + len("</think>") :]
+                in_think_block = False
+                continue
+
+            start_index = lower_buffer.find("<think")
+            if start_index < 0:
+                emit_length = max(0, len(buffer) - start_tag_overlap)
+                if emit_length == 0:
+                    break
+
+                yield buffer[:emit_length]
+                buffer = buffer[emit_length:]
+                break
+
+            if start_index > 0:
+                yield buffer[:start_index]
+
+            tag_end_index = buffer.find(">", start_index)
+            if tag_end_index < 0:
+                buffer = buffer[start_index:]
+                break
+
+            buffer = buffer[tag_end_index + 1 :]
+            in_think_block = True
+
+    if buffer and not in_think_block:
+        yield strip_hidden_reasoning(buffer)
+
+
+def parse_question_lines(text: str | None, limit: int = 5) -> list[str]:
+    cleaned = strip_hidden_reasoning(text)
+    questions: list[str] = []
+
+    for line in cleaned.splitlines():
+        line = line.strip()
+        line = re.sub(r"^[-*•]\s*", "", line)
+        line = re.sub(r"^\d+[\.)、]\s*", "", line)
+        if not line or line.startswith("<"):
+            continue
+        if not line.endswith(("?", "？")):
+            continue
+        if _GENERIC_ASSISTANT_QUESTION_RE.search(line):
+            continue
+        questions.append(line)
+        if len(questions) >= limit:
+            break
+
+    return questions
 
 
 def _parse_response_format(response_format_str: str) -> Dict[str, str]:

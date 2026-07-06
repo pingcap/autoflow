@@ -45,6 +45,7 @@ from app.repositories import chat_engine_repo
 from app.repositories.embedding_model import embedding_model_repo
 from app.repositories.llm import llm_repo
 from app.site_settings import SiteSetting
+from app.rag.utils import parse_question_lines
 from llama_index.core.prompts.rich import RichPromptTemplate
 
 logger = logging.getLogger(__name__)
@@ -290,10 +291,7 @@ def get_chat_message_recommend_questions(
         prompt_template,
         chat_message_content=chat_message.content,
     )
-    recommend_question_list = recommend_questions.splitlines()
-    recommend_question_list = [
-        question.strip() for question in recommend_question_list if question.strip()
-    ]
+    recommend_question_list = parse_question_lines(recommend_questions)
 
     longest_question = 0
     for question in recommend_question_list:
@@ -304,6 +302,7 @@ def get_chat_message_recommend_questions(
         "##" in recommend_questions
         or "**" in recommend_questions
         or longest_question > 500
+        or len(recommend_question_list) < 3
     ):
         regenerate_content = f"""
         Please note that you are generating a question list. You previously generated it incorrectly; try again.
@@ -315,6 +314,7 @@ def get_chat_message_recommend_questions(
             prompt_template,
             chat_message_content=regenerate_content,
         )
+        recommend_question_list = parse_question_lines(recommend_questions)
 
     db_session.add(
         RecommendQuestion(

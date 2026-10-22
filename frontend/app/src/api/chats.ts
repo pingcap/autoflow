@@ -2,8 +2,8 @@ import type { ChatEngineOptions } from '@/api/chat-engines';
 import { type KnowledgeGraph, KnowledgeGraphEntityType, knowledgeGraphSchema } from '@/api/graph';
 import { bufferedReadableStreamTransformer } from '@/lib/buffered-readable-stream';
 import { authenticationHeaders, handleErrors, handleResponse, type Page, type PageParams, requestUrl, zodPage } from '@/lib/request';
+import { parseStreamPart } from '@/lib/stream-parts';
 import { zodJsonDate } from '@/lib/zod';
-import { parseStreamPart } from 'ai';
 import { z, type ZodType } from 'zod';
 
 type ClientEngineOptions = Omit<ChatEngineOptions, 'post_verification_token'>;

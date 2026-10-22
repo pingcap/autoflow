@@ -4,7 +4,7 @@ import { AppChatStreamState, type BaseAnnotation, chatDataPartSchema, fixChatIni
 import type { GtagFn } from '@/components/gtag-provider';
 import { getErrorMessage } from '@/lib/errors';
 import { trigger } from '@/lib/react';
-import { type JSONValue, type StreamPart } from 'ai';
+import { type JSONValue, type StreamPart } from '@/lib/stream-parts';
 import EventEmitter from 'eventemitter3';
 
 export interface ChatControllerEventsMap<State = AppChatStreamState, Annotation extends BaseAnnotation<State> = BaseAnnotation<State>> {

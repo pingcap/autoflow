@@ -2,6 +2,7 @@ import type { ProviderOption } from '@/api/providers';
 import { subscribeField } from '@/lib/tanstack-form';
 import type { KeyOfType } from '@/lib/typing-utils';
 import type { FormApi, ReactFormExtendedApi } from '@tanstack/react-form';
+import { batch } from '@tanstack/store';
 import { useEffect, useState } from 'react';
 
 export function useModelProvider<O extends ProviderOption, F extends { provider: string, model?: string, credentials?: string | object, config?: any }> (
@@ -28,14 +29,14 @@ export function useModelProvider<O extends ProviderOption, F extends { provider:
       }
 
       if (provider) {
-        form.store.batch(() => {
+        batch(() => {
           form.setFieldValue('model', provider[defaultModelField] as string);
           form.setFieldValue('credentials', '');
           form.setFieldValue('config', JSON.stringify(provider.default_config, undefined, 2));
         });
       } else if (name) {
         // Provider not found, clear all provider spec data.
-        form.store.batch(() => {
+        batch(() => {
           if (name) {
             form.fieldInfo.provider?.instance?.setErrorMap({
               onChange: `Invalid provider '${name}'`,

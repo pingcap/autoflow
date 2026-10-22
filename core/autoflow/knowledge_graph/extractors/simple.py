@@ -16,8 +16,9 @@ class SimpleKGExtractor(KGExtractor):
         self._entity_metadata_extractor = EntityCovariateExtractor(dspy_lm)
 
     def extract(self, text: str) -> GeneratedKnowledgeGraph:
-        knowledge_graph = self._graph_extractor.forward(text)
-        knowledge_graph.entities = self._entity_metadata_extractor.forward(
+        # Call dspy modules directly (not `.forward()`), as recommended by dspy 3.x.
+        knowledge_graph = self._graph_extractor(text)
+        knowledge_graph.entities = self._entity_metadata_extractor(
             text, knowledge_graph.entities
         )
         return knowledge_graph

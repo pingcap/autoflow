@@ -9,14 +9,14 @@ authors = [
 readme = "README.md"
 requires-python = ">= 3.10"
 dependencies = [
-    "fastapi>=0.115.6",
+    "fastapi>=0.140.13",
     "fastapi-cli>=0.0.5",
-    "fastapi-users>=13.0.0",
-    "fastapi-pagination>=0.12.25",
+    "fastapi-users>=15.0.2",
+    "fastapi-pagination>=0.16.1",
     "fastapi-users-db-sqlmodel>=0.3.0",
     "sqlmodel==0.0.19",
     "pymysql>=1.1.1",
-    "asyncmy>=0.2.9",
+    "asyncmy>=0.2.12",
     "tidb-vector>=0.0.14",
     "alembic>=1.14.0",
     "pydantic>=2.10.5",
@@ -28,24 +28,22 @@ dependencies = [
     "httpx-oauth>=0.14.1",
     "uvicorn>=0.30.3",
     "gunicorn>=22.0.0",
-    "python-dotenv>=1.0.1",
+    "python-dotenv>=1.2.2",
     "sentry-sdk>=2.5.1",
     "langfuse>=2.59.1",
-    "langchain-openai>=0.2.9",
-    # Pin ragas to 0.2.6 to avoid async loop error:
-    # https://github.com/explodinggradients/ragas/issues/1819
-    "ragas==0.2.6",
+    "langchain-openai>=1.1.14",
+    "ragas>=0.4.3",
     "deepeval>=0.21.73",
     "click>=8.1.7",
     "tenacity~=8.4.0",
     "retry>=0.9.2",
-    "deepdiff>=7.0.1",
+    "deepdiff>=8.6.2",
     "colorama>=0.4.6",
     "jinja2>=3.1.4",
     "pyyaml>=6.0.1",
     "playwright>=1.45.1",
     "markdownify>=0.13.1",
-    "pypdf>=4.3.1",
+    "pypdf>=6.19.0",
     "python-docx>=1.1.2",
     "python-pptx>=1.0.2",
     "openpyxl>=3.1.5",
@@ -67,8 +65,8 @@ dependencies = [
     "llama-index-postprocessor-bedrock-rerank>=0.3.0",
     "llama-index-llms-vertex>=0.4.2",
     "socksio>=1.0.0",
-    "dspy>=2.6.21",
-    "litellm>=1.77.5",
+    "dspy>=3.0.4",
+    "litellm>=1.88.6",
 ]
 
 
@@ -77,6 +75,12 @@ dev = [
     "pre-commit>=4.2.0",
     "pytest-asyncio>=0.25.3",
     "ruff>=0.11.2",
+]
+
+[tool.uv]
+constraint-dependencies = [
+    # ragas imports `langchain_community.chat_models.vertexai`, which was removed in langchain-community 0.4.
+    "langchain-community<0.4",
 ]
 
 # Lint

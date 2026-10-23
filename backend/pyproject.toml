@@ -7,7 +7,7 @@ authors = [
     { name = "mini256", email = "minianter@gmail.com" }
 ]
 readme = "README.md"
-requires-python = ">= 3.10"
+requires-python = ">= 3.11"
 dependencies = [
     "fastapi>=0.140.13",
     "fastapi-cli>=0.0.5",
@@ -81,6 +81,11 @@ dev = [
 constraint-dependencies = [
     # ragas imports `langchain_community.chat_models.vertexai`, which was removed in langchain-community 0.4.
     "langchain-community<0.4",
+]
+override-dependencies = [
+    # langfuse 2.x pins `packaging<25` but only uses `packaging.version.Version`;
+    # the patched virtualenv (pulled in by pre-commit) requires packaging>=26.3.
+    "packaging>=26.3",
 ]
 
 # Lint

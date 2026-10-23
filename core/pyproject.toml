@@ -7,7 +7,7 @@ authors = [
     { name = "sykp241095", email = "sykp241095@gmail.com" },
 ]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 # Dependencies
 

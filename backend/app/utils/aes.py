@@ -3,6 +3,12 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import padding
 
+try:
+    # CFB was moved to the "decrepit" module and is deprecated in the primitives module.
+    from cryptography.hazmat.decrepit.ciphers.modes import CFB
+except ImportError:
+    CFB = modes.CFB
+
 
 class AESCipher:
     def __init__(self, key: bytes) -> None:
@@ -12,7 +18,7 @@ class AESCipher:
     def encrypt(self, plain_text: str) -> bytes:
         # generate a random initialization vector
         iv = os.urandom(16)
-        cipher = Cipher(algorithms.AES(self.key), modes.CFB(iv), backend=self.backend)
+        cipher = Cipher(algorithms.AES(self.key), CFB(iv), backend=self.backend)
         encryptor = cipher.encryptor()
 
         # fill the last block with padding
@@ -26,7 +32,7 @@ class AESCipher:
         iv = encrypted_text[:16]
         encrypted_data = encrypted_text[16:]
 
-        cipher = Cipher(algorithms.AES(self.key), modes.CFB(iv), backend=self.backend)
+        cipher = Cipher(algorithms.AES(self.key), CFB(iv), backend=self.backend)
         decryptor = cipher.decryptor()
 
         # remove the padding

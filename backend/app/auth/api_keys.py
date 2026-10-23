@@ -8,7 +8,7 @@ from fastapi import Request
 from sqlmodel import Session, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from fastapi_pagination import Params, Page
-from fastapi_pagination.ext.sqlmodel import paginate
+from fastapi_pagination.ext.sqlmodel import apaginate
 
 from app.models import ApiKey, User
 
@@ -111,7 +111,7 @@ class ApiKeyManager:
     async def list_api_keys(
         self, session: AsyncSession, user: User, params: Params
     ) -> Page[ApiKey]:
-        api_keys = await paginate(
+        api_keys = await apaginate(
             session,
             select(ApiKey)
             .where(ApiKey.user == user, ApiKey.is_active == True)

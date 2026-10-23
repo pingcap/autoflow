@@ -55,8 +55,8 @@ def get_reranker_model(model_name: str) -> CrossEncoder:
     reranker_model = RERANKER_MODEL_DICT.get(model_name)
     if not reranker_model:
         reranker_model = CrossEncoder(
-            model_name=model_name,
-            automodel_args={"torch_dtype": "auto"},
+            model_name_or_path=model_name,
+            model_kwargs={"torch_dtype": "auto"},
             trust_remote_code=True,
         )
         RERANKER_MODEL_DICT[model_name] = reranker_model
@@ -78,7 +78,7 @@ class EmbeddingResponse(BaseModel):
 def get_texts_embedding(request: EmbeddingRequest) -> EmbeddingResponse:
     embed_model = get_embedding_model(model_name=request.model)
     embeddings = embed_model.encode(
-        sentences=request.sentences,
+        request.sentences,
         normalize_embeddings=request.normalize_embeddings,
     )
     return EmbeddingResponse(

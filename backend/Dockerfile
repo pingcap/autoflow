@@ -14,6 +14,7 @@ RUN PYTHONDONTWRITEBYTECODE=1 uv sync --frozen
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Pre-download playwright dependencies.
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright
 RUN playwright install --with-deps chromium
 
 # Pre-download nltk data.

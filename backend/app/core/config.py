@@ -77,8 +77,9 @@ class Settings(BaseSettings):
 
     # Exact additional origins trusted by the deployment operator, never by API input.
     PROVIDER_ALLOWED_ORIGINS: list[str] = []
+    CRAWLER_ALLOWED_PRIVATE_ORIGINS: list[str] = []
 
-    @field_validator("PROVIDER_ALLOWED_ORIGINS")
+    @field_validator("PROVIDER_ALLOWED_ORIGINS", "CRAWLER_ALLOWED_PRIVATE_ORIGINS")
     @classmethod
     def provider_origins_must_be_exact(cls, values):
         if len(values) > 100:

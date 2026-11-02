@@ -164,3 +164,32 @@ Limits are 32 KiB of template text, 512 KiB of string context, 1 MiB of rendered
 output and 10,000 total loop iterations. Context must contain data values rather
 than executable Python objects. Oversized or unsupported templates fail closed;
 reduce their context or rewrite them using the supported text syntax.
+
+## Web and sitemap imports
+
+Rebuild the backend image to install the locked Chromium revision. The image now
+stores browser binaries under `/opt/playwright`; development installations should
+use `playwright install chromium` or set `PLAYWRIGHT_BROWSERS_PATH` explicitly.
+Each URL/sitemap runs in a fresh process with no application credentials, a
+45-second hard deadline, isolated browser state and bounded HTTP bodies. Network
+connections resolve with a deadline, reject nonpublic/transition addresses and
+connect only to the validated numeric address while retaining TLS hostname
+verification. Redirects and browser subrequests use the same check. Chromium's
+fallback network uses an unavailable proxy; service workers, server WebSockets,
+QUIC and nonproxied WebRTC UDP are disabled. Cookies and authorization headers are
+not forwarded. Dynamic pages that need authenticated sessions, POST requests or
+live WebSockets are not supported by this public-document crawler.
+
+Public destinations are restricted to ports 80/443. An operator may explicitly
+register trusted internal origins in `CRAWLER_ALLOWED_PRIVATE_ORIGINS`; this
+allows that exact origin's resolved addresses and port. Keep it empty in normal
+public deployments. The local E2E fixture registers only `http://static-web-server`.
+Do not register hostnames whose DNS is controlled by untrusted users.
+
+Limits are 200 URLs per datasource, 10 minutes per import batch, 100 requests and
+20 MiB per page, 5 MiB per HTTP response, and 2 MiB of rendered document text.
+Servers must honor `Accept-Encoding: identity`. Split larger sitemaps or datasets
+before import. Failed/blocked pages now leave the import failed rather than
+silently reporting success; already imported pages remain available. Crawl errors
+omit URL query strings and response contents. Document hashes are stable across
+workers, avoiding unnecessary reindexing on subsequent imports.

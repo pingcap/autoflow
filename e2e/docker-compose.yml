@@ -21,6 +21,7 @@ services:
     environment:
       SECRET_KEY: ${SECRET_KEY:-}
       DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:-}
+      CRAWLER_ALLOWED_PRIVATE_ORIGINS: '["http://static-web-server"]'
     volumes:
       - ${E2E_DATA_STORAGE_DIR:-.data/storage}:/shared/data
     logging:
@@ -60,6 +61,7 @@ services:
     environment:
       SECRET_KEY: ${SECRET_KEY:-}
       DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:-}
+      CRAWLER_ALLOWED_PRIVATE_ORIGINS: '["http://static-web-server"]'
     command: /usr/bin/supervisord
     volumes:
       - ${E2E_DATA_STORAGE_DIR:-.data/storage}:/shared/data

@@ -1,7 +1,7 @@
 """Jina embeddings file."""
 
 from typing import Any, List, Optional
-import requests
+from app.security.provider_http import ProviderSession
 
 from llama_index.core.base.embeddings.base import DEFAULT_EMBED_BATCH_SIZE
 from llama_index.core.bridge.pydantic import Field, PrivateAttr
@@ -22,7 +22,7 @@ class _APICaller:
         self.api_url = api_url
         self.model = model
         self.normalize_embeddings = normalize_embeddings
-        self._session = requests.Session()
+        self._session = ProviderSession(api_url)
 
     def get_embeddings(self, sentences: list[str]) -> List[List[float]]:
         """Get embeddings."""
@@ -38,27 +38,15 @@ class _APICaller:
         resp.raise_for_status()
         resp_json = resp.json()
         if "embeddings" not in resp_json:
-            raise RuntimeError(
-                f"Call local embedding api {self.api_url} failed {resp.status_code}"
-            )
+            raise RuntimeError("Local embedding provider returned an invalid response")
 
         return resp_json["embeddings"]
 
     async def aget_embeddings(self, sentences: list[str]) -> List[List[float]]:
         """Asynchronously get text embeddings."""
-        import aiohttp
+        import asyncio
 
-        async with aiohttp.ClientSession(trust_env=True) as session:
-            async with session.post(
-                self.api_url,
-                json={
-                    "sentences": sentences,
-                    "model": self.model,
-                },
-            ) as response:
-                resp = await response.json()
-                response.raise_for_status()
-                return resp["embeddings"]
+        return await asyncio.to_thread(self.get_embeddings, sentences)
 
 
 class LocalEmbedding(BaseEmbedding):

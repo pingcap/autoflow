@@ -2,7 +2,7 @@ import enum
 import base64
 import hashlib
 from typing import Annotated, Any
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 from pydantic import (
     AnyUrl,
@@ -13,6 +13,7 @@ from pydantic import (
     SecretStr,
     computed_field,
     field_serializer,
+    field_validator,
     model_validator,
 )
 from pydantic_core import MultiHostUrl
@@ -73,6 +74,32 @@ class Settings(BaseSettings):
         list[AnyUrl] | str, BeforeValidator(parse_cors)
     ] = []
     BACKEND_CORS_ORIGIN_REGEXP: str | None = None
+
+    # Exact additional origins trusted by the deployment operator, never by API input.
+    PROVIDER_ALLOWED_ORIGINS: list[str] = []
+
+    @field_validator("PROVIDER_ALLOWED_ORIGINS")
+    @classmethod
+    def provider_origins_must_be_exact(cls, values):
+        if len(values) > 100:
+            raise ValueError("Too many provider origins")
+        for value in values:
+            parsed = urlsplit(value)
+            if (
+                parsed.scheme not in {"http", "https"}
+                or not parsed.hostname
+                or parsed.username is not None
+                or parsed.password is not None
+                or parsed.path not in {"", "/"}
+                or parsed.query
+                or parsed.fragment
+                or "*" in value
+                or "\\" in value
+            ):
+                raise ValueError(
+                    "Provider origins must be exact HTTP(S) origins without paths or credentials"
+                )
+        return values
 
     PROJECT_NAME: str = "TiDB.AI"
     SENTRY_DSN: HttpUrl | None = None

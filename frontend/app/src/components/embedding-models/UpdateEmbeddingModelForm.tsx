@@ -6,10 +6,9 @@ import { useEmbeddingModelProviders } from '@/components/embedding-models/hooks'
 import { ProviderSelect } from '@/components/form/biz';
 import { FormInput, FormSwitch } from '@/components/form/control-widget';
 import { formFieldLayout } from '@/components/form/field-layout';
-import { CodeInput } from '@/components/form/widgets/CodeInput';
+import { ModelConnectionForm } from '@/components/model-connection-form';
 import { fieldAccessor, GeneralSettingsField, type GeneralSettingsFieldAccessor, GeneralSettingsForm } from '@/components/settings-form';
 import type { KeyOfType } from '@/lib/typing-utils';
-import { zodJsonText } from '@/lib/zod';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
@@ -62,30 +61,9 @@ export function UpdateEmbeddingModelForm ({ embeddingModel }: { embeddingModel: 
             <FormInput />
           </field.Basic>
         </GeneralSettingsField>
-        {provider && (
-          provider.credentials_type === 'str'
-            ? (
-              <GeneralSettingsField accessor={stringCredentialAccessor} schema={stringCredentialSchema}>
-                <field.Basic label="Credentials" name="value" description={provider?.credentials_description}>
-                  <FormInput placeholder={provider.default_credentials} />
-                </field.Basic>
-              </GeneralSettingsField>
-            ) : (
-              <GeneralSettingsField accessor={dictCredentialAccessor} schema={dictCredentialSchema}>
-                <field.Basic label="Credentials" name="value" description={provider?.credentials_description}>
-                  <CodeInput language="json" placeholder={JSON.stringify(provider.default_credentials, undefined, 2)} />
-                </field.Basic>
-              </GeneralSettingsField>
-            )
-        )}
         <GeneralSettingsField accessor={vectorDimensionAccessor} schema={anySchema} readonly>
           <field.Basic label="Vector Dimensions" name="value">
             <FormInput />
-          </field.Basic>
-        </GeneralSettingsField>
-        <GeneralSettingsField accessor={configAccessor} schema={configSchema}>
-          <field.Basic label="Config" name="value" description={provider?.config_description}>
-            <CodeInput language="json" />
           </field.Basic>
         </GeneralSettingsField>
         <GeneralSettingsField accessor={isDefaultAccessor} schema={anySchema}>
@@ -104,6 +82,15 @@ export function UpdateEmbeddingModelForm ({ embeddingModel }: { embeddingModel: 
           </field.Basic>
         </GeneralSettingsField>
       </GeneralSettingsForm>
+      <ModelConnectionForm
+        config={embeddingModel.config}
+        credentialType={provider?.credentials_type}
+        disabled={transitioning}
+        onSave={async value => {
+          await updateEmbeddingModel(embeddingModel.id, value);
+          startTransition(() => { router.refresh(); });
+        }}
+      />
     </div>
   );
 }
@@ -125,44 +112,13 @@ const getDatetimeAccessor = (key: KeyOfType<EmbeddingModel, Date | undefined | n
 };
 
 const nameSchema = z.string();
-const configSchema = zodJsonText();
 
 const nameAccessor = fieldAccessor<UpdateEmbeddingModel, 'name'>('name');
 const idAccessor = fieldAccessor<EmbeddingModel, 'id'>('id');
 const providerAccessor = fieldAccessor<EmbeddingModel, 'provider'>('provider');
 const modelAccessor = fieldAccessor<EmbeddingModel, 'model'>('model');
 const vectorDimensionAccessor = fieldAccessor<EmbeddingModel, 'vector_dimension'>('vector_dimension');
-const configAccessor: GeneralSettingsFieldAccessor<UpdateEmbeddingModel, string> = {
-  path: ['config'],
-  get (data) {
-    return JSON.stringify(data.config, undefined, 2);
-  },
-  set (data, value) {
-    return {
-      ...data,
-      // TODO: This is already converted to object by zodJsonText().
-      config: value,
-    };
-  },
-};
+
 const isDefaultAccessor = fieldAccessor<EmbeddingModel, 'is_default'>('is_default');
 const createdAtAccessor = getDatetimeAccessor('created_at');
 const updatedAtAccessor = getDatetimeAccessor('updated_at');
-
-const stringCredentialSchema = z.string().optional();
-const dictCredentialSchema = zodJsonText();
-
-const stringCredentialAccessor = fieldAccessor<UpdateEmbeddingModel, 'credentials'>('credentials', '');
-const dictCredentialAccessor: GeneralSettingsFieldAccessor<UpdateEmbeddingModel, string> = {
-  path: ['credentials'],
-  get (data) {
-    return JSON.stringify(data.config, undefined, 2);
-  },
-  set (data, value) {
-    return {
-      ...data,
-      // TODO: This is already converted to object by zodJsonText().
-      config: value,
-    };
-  },
-};

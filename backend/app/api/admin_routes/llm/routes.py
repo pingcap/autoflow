@@ -1,3 +1,4 @@
+from app.security.provider_config import ProviderConfigurationError
 from typing import List
 
 from fastapi import APIRouter, Depends
@@ -62,9 +63,13 @@ def test_llm(
         success = True
         error = ""
     except Exception as e:
-        logger.info(f"Failed to test LLM: {e}")
+        logger.info("Model test failed", extra={"error_type": type(e).__name__})
         success = False
-        error = str(e)
+        error = (
+            str(e)
+            if isinstance(e, ProviderConfigurationError)
+            else "Model test failed. Check the endpoint, credentials and model configuration."
+        )
     return LLMTestResult(success=success, error=error)
 
 

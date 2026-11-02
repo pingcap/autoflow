@@ -1,3 +1,4 @@
+from app.security.provider_config import validate_provider_write
 from typing import Optional
 
 from fastapi_pagination import Params, Page
@@ -40,6 +41,7 @@ class RerankerModelRepo(BaseRepo):
         return session.exec(stmt).one_or_none() is not None
 
     def create(self, session: Session, reranker_model: RerankerModel) -> RerankerModel:
+        reranker_model.config = validate_provider_write("reranker", reranker_model)
         # If there is no exiting model, the first model will be
         # set as the default model.
         if not self.exists_any_model(session):
@@ -61,7 +63,13 @@ class RerankerModelRepo(BaseRepo):
         reranker_model: RerankerModel,
         model_update: RerankerModelUpdate,
     ) -> RerankerModel:
-        for field, value in model_update.model_dump(exclude_unset=True).items():
+        # Bind validation to the latest committed credentials under a row lock.
+        session.refresh(reranker_model, with_for_update=True)
+        changes = model_update.model_dump(exclude_unset=True)
+        validated_config = validate_provider_write("reranker", reranker_model, changes)
+        if "config" in changes:
+            changes["config"] = validated_config
+        for field, value in changes.items():
             setattr(reranker_model, field, value)
             flag_modified(reranker_model, field)
 

@@ -91,3 +91,32 @@ base configuration and browser identity. Enabling `hide_sources` also hides sour
 and graph data in historical messages and streams. Non-admin file downloads require
 an accessible chat that actually cites that document, an available public engine,
 and visible sources. Files are served as attachments with `nosniff`.
+
+## Model endpoints and credential updates
+
+Inventory existing LLM, embedding and reranker configurations before restarting.
+Set `PROVIDER_ALLOWED_ORIGINS` to a JSON list of exact trusted origins for Azure
+resources, custom gateways and self-hosted services, for example
+`["https://resource.openai.azure.com","http://ollama:11434"]`. Origins contain no
+path, query, wildcard or credentials. Only register services controlled/trusted
+by the deployment operator; this grants network access to that origin, including
+its resolved addresses. Use HTTPS except for explicitly trusted private services.
+Public built-in providers use their fixed official endpoints. New configuration
+fields must be explicitly supported; SDK transport, proxy, header and credential
+injection fields are rejected.
+
+Every remote model requires its own explicit credentials. Missing values no
+longer inherit process-wide OpenAI, Google or AWS credentials. Google service
+accounts must use the standard Google OAuth token endpoint. Do not enable
+`GOOGLE_GENAI_USE_VERTEXAI` for a Gemini API-key model; select an explicit Vertex
+provider instead. Register the actual Ollama/local-sidecar origin before use.
+
+Changing an endpoint, Azure deployment or Vertex destination requires fresh
+credentials in the same update. The management UI supports this atomic update;
+JSON credentials are stored in the encrypted credentials column. Old editors
+cannot overwrite newer destination/credential combinations from stale state.
+Model-test responses and logs no longer contain provider exception payloads.
+
+Check any historical JSON credential edits for accidental plaintext values in
+legacy configuration fields, and rotate affected provider credentials if found.
+Do not copy those values into logs or issue descriptions.

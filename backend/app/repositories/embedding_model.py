@@ -1,3 +1,4 @@
+from app.security.provider_config import validate_provider_write
 from typing import Optional, Type
 
 from fastapi_pagination import Params, Page
@@ -44,6 +45,7 @@ class EmbeddingModelRepo(BaseRepo):
         return session.exec(stmt).one_or_none() is not None
 
     def create(self, session: Session, create: EmbeddingModelCreate):
+        create.config = validate_provider_write("embedding", create)
         # If there is currently no model, the first model will be
         # set as the default model.
         if not self.exists_any_model(session):
@@ -73,7 +75,13 @@ class EmbeddingModelRepo(BaseRepo):
         embed_model: EmbeddingModel,
         partial_update: EmbeddingModelUpdate,
     ) -> EmbeddingModel:
-        for field, value in partial_update.model_dump(exclude_unset=True).items():
+        # Bind validation to the latest committed credentials under a row lock.
+        session.refresh(embed_model, with_for_update=True)
+        changes = partial_update.model_dump(exclude_unset=True)
+        validated_config = validate_provider_write("embedding", embed_model, changes)
+        if "config" in changes:
+            changes["config"] = validated_config
+        for field, value in changes.items():
             setattr(embed_model, field, value)
             flag_modified(embed_model, field)
 

@@ -92,7 +92,7 @@ embedding_provider_options: List[EmbeddingProviderOption] = [
         default_embedding_model="nomic-embed-text",
         embedding_model_description="Documentation: https://ollama.com/blog/embedding-models",
         default_config={
-            "api_base": "http://localhost:11434",
+            "base_url": "http://localhost:11434",
         },
         config_description="api_base is the base URL of the Ollama server, ensure it can be accessed from this server.",
         credentials_display_name="Ollama API Key",

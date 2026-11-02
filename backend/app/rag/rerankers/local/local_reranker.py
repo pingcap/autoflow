@@ -1,5 +1,5 @@
 from typing import Any, List, Optional
-import requests
+from app.security.provider_http import ProviderSession
 
 from llama_index.core.bridge.pydantic import Field, PrivateAttr
 from llama_index.core.callbacks import CBEventType, EventPayload
@@ -37,7 +37,7 @@ class LocalRerank(BaseNodePostprocessor):
         super().__init__(top_n=top_n, model=model)
         self.api_url = api_url
         self.model = model
-        self._session = requests.Session()
+        self._session = ProviderSession(self.api_url)
 
     @classmethod
     def class_name(cls) -> str:
@@ -86,7 +86,7 @@ class LocalRerank(BaseNodePostprocessor):
             resp.raise_for_status()
             resp_json = resp.json()
             if "scores" not in resp_json:
-                raise RuntimeError(f"Got error from reranker: {resp_json}")
+                raise RuntimeError("Reranker returned an invalid response")
 
             results = zip(range(len(nodes)), resp_json["scores"])
             results = sorted(results, key=lambda x: x[1], reverse=True)[: self.top_n]

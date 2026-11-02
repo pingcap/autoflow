@@ -4,12 +4,53 @@ This branch includes application changes and database migrations. Do not deploy
 only the frontend or skip migrations. This document will be extended as the
 remaining hardening changes are integrated.
 
+## Provider encryption and signing-key rotation
+
+Provider credentials now use AES-GCM with a separate 32-byte key, a fresh nonce,
+and authenticated column context. The web application refuses legacy CFB blobs;
+legacy decoding is confined to the explicit migration command. The old committed
+example signing key is rejected at startup.
+
+Before replacing any key, stop/drain API and background workers and keep private
+backups of both the database and the old environment file outside the checkout.
+Keep backup files mode 600. Configure independently generated `SECRET_KEY` and
+`DATA_ENCRYPTION_KEY` through your deployment's secret store. The signing key must
+contain at least 32 bytes; the encryption key is base64 encoding of exactly 32
+random bytes. Do not reuse the signing key for encryption or print either value
+in job logs. Fresh installations also need both keys.
+
+With the new keys configured and the new backend image/tool available, validate
+old credentials without writing, then explicitly apply the migration:
+
+```bash
+python migrate_provider_credentials.py --legacy-env-file /run/secrets/previous.env
+python migrate_provider_credentials.py --legacy-env-file /run/secrets/previous.env --apply
+```
+
+The private environment backup supplies the *old* signing key used by CFB. A file
+containing only that key can be supplied with `--legacy-signing-key-file` instead.
+The command reports counts only. All updates share one transaction; invalid JSON,
+wrong keys or concurrent changes abort it. Historical CFB integrity cannot be
+proven retrospectively. After a connection failure, run validation again to
+establish whether the transaction committed. The command is idempotent.
+
+For later AES-GCM key rotation, configure the new encryption key and pass the old
+base64 encryption key in a private file using `--previous-data-key-file`, first
+without and then with `--apply`. Keep recovery backups until verification passes.
+Old application versions cannot read GCM ciphertext: coordinate any rollback with
+a compatible data restore, and never restore compromised signing credentials.
+
+Bootstrap no longer prints or generates an unrecoverable administrator password.
+Use an interactive terminal or a mode-600 password file with `bootstrap.py
+--password-file PATH`. The isolated E2E harness generates fresh signing,
+encryption and administrator credentials for each run and never prints them.
+
 ## Sessions, API keys, and historical guest chats
 
 1. Back up the database and record the deployed revision. Stop/drain the old API
    workers before running migrations; do not issue credentials with old and new
    authentication implementations serving traffic simultaneously.
-2. Run `alembic upgrade head` from the backend with the deployment's existing
+2. Complete the provider-credential migration above, then run `alembic upgrade head` from the backend with the deployment's existing
    database configuration. The new revisions add credential versions, revoke
    unrestricted API keys, and make historical anonymous conversations private.
    Account-owned chat visibility is preserved. No conversation is deleted.

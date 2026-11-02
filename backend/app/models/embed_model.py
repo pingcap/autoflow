@@ -16,7 +16,11 @@ class EmbeddingModel(UpdatableBaseModel, table=True):
     model: str = Field(max_length=256)
     vector_dimension: int = Field(default=DEFAULT_VECTOR_DIMENSION)
     config: dict | list | None = Field(sa_column=Column(JSON), default={})
-    credentials: Any = Field(sa_column=Column(AESEncryptedColumn, nullable=True))
+    credentials: Any = Field(
+        sa_column=Column(
+            AESEncryptedColumn("embedding_models.credentials"), nullable=True
+        )
+    )
     is_default: bool = Field(default=False)
 
     __tablename__ = "embedding_models"

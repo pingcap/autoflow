@@ -1,4 +1,5 @@
 import json
+import base64
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
@@ -34,21 +35,28 @@ class UpdatableBaseModel(SQLModel):
 
 
 def get_aes_key() -> bytes:
-    return settings.SECRET_KEY.encode()[:32]
+    return base64.b64decode(
+        settings.DATA_ENCRYPTION_KEY.get_secret_value(), validate=True
+    )
 
 
 class AESEncryptedColumn(TypeDecorator):
     impl = LargeBinary
+    cache_ok = True
+
+    def __init__(self, context: str = "provider.credentials"):
+        super().__init__()
+        self.context = context
 
     def process_bind_param(self, value, dialect):
         if value is not None:
             json_str = json.dumps(value)
-            return AESCipher(get_aes_key()).encrypt(json_str)
+            return AESCipher(get_aes_key(), context=self.context).encrypt(json_str)
         return value
 
     def process_result_value(self, value, dialect):
         if value is not None:
-            json_str = AESCipher(get_aes_key()).decrypt(value)
+            json_str = AESCipher(get_aes_key(), context=self.context).decrypt(value)
             return json.loads(json_str)
         return value
 

@@ -60,5 +60,7 @@ jobs:
         TIDB_PASSWORD: "fake"
         TIDB_DATABASE: "test"
       run: |
+        export SECRET_KEY="$(openssl rand -hex 32)"
+        export DATA_ENCRYPTION_KEY="$(openssl rand -base64 32)"
         cd backend
         uv run --frozen python main.py runeval --llm-provider "$REGRESSION_LLM_PROVIDER" --dataset "$REGRESSION_DATASET" --tidb-ai-chat-engine "$REGRESSION_CHAT_ENGINE"

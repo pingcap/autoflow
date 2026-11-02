@@ -18,6 +18,9 @@ services:
       - "5001:80"
     env_file:
       - .env.backend
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-}
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:-}
     volumes:
       - ${E2E_DATA_STORAGE_DIR:-.data/storage}:/shared/data
     logging:
@@ -56,6 +59,9 @@ services:
       - "5555:5555"
     env_file:
       - .env.backend
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-}
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:-}
     command: /usr/bin/supervisord
     volumes:
       - ${E2E_DATA_STORAGE_DIR:-.data/storage}:/shared/data

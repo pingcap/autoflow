@@ -1,10 +1,12 @@
 """Isolated security tests must never use deployment credentials or services."""
 
 import os
+import base64
 import secrets
 
 os.environ.update(
     SECRET_KEY=secrets.token_urlsafe(48),
+    DATA_ENCRYPTION_KEY=base64.b64encode(secrets.token_bytes(32)).decode(),
     ENVIRONMENT="local",
     TIDB_HOST="127.0.0.1",
     TIDB_DATABASE="autoflow_security_test",

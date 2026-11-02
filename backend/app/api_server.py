@@ -59,12 +59,14 @@ if settings.BACKEND_CORS_ORIGINS:
 async def identify_browser(request: Request, call_next):
     browser_id = verify_browser_session(
         request.cookies.get(settings.BROWSER_ID_COOKIE_NAME),
-        settings.SECRET_KEY,
+        settings.SECRET_KEY.get_secret_value(),
         settings.BROWSER_ID_COOKIE_MAX_AGE,
     )
     has_browser_id = bool(browser_id)
     if not browser_id:
-        browser_id, browser_cookie = create_browser_session(settings.SECRET_KEY)
+        browser_id, browser_cookie = create_browser_session(
+            settings.SECRET_KEY.get_secret_value()
+        )
     request.state.browser_id = browser_id
     response: Response = await call_next(request)
     if not has_browser_id:

@@ -15,6 +15,7 @@ from app.core.config import settings
 # they will shut down, which closes all connections, so we need to recycle the connections
 engine = create_engine(
     str(settings.SQLALCHEMY_DATABASE_URI),
+    hide_parameters=True,
     pool_size=20,
     max_overflow=40,
     pool_recycle=300,
@@ -34,6 +35,7 @@ def get_ssl_context():
 
 async_engine = create_async_engine(
     str(settings.SQLALCHEMY_ASYNC_DATABASE_URI),
+    hide_parameters=True,
     pool_recycle=300,
     connect_args={
         # seems config ssl in url is not working

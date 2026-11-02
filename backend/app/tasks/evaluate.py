@@ -126,11 +126,19 @@ def evaluate_task(evaluation_task_item: EvaluationTaskItem):
     logger.debug(f"Dataset {ragas_dataset.to_pandas().head()}")
 
     evaluator_llm = LlamaIndexLLMWrapper(
-        OpenAI(model="gpt-4o", api_key=settings.EVALUATION_OPENAI_API_KEY)
+        OpenAI(
+            model="gpt-4o",
+            api_key=settings.EVALUATION_OPENAI_API_KEY.get_secret_value()
+            if settings.EVALUATION_OPENAI_API_KEY
+            else None,
+        )
     )
     evaluator_embeddings = LlamaIndexEmbeddingsWrapper(
         OpenAIEmbedding(
-            model="text-embedding-3-large", api_key=settings.EVALUATION_OPENAI_API_KEY
+            model="text-embedding-3-large",
+            api_key=settings.EVALUATION_OPENAI_API_KEY.get_secret_value()
+            if settings.EVALUATION_OPENAI_API_KEY
+            else None,
         )
     )
 

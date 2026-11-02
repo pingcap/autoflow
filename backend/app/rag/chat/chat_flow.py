@@ -13,7 +13,7 @@ from langfuse.llama_index._context import langfuse_instrumentor_context
 from llama_index.core import get_response_synthesizer
 from llama_index.core.base.llms.types import ChatMessage, MessageRole
 from llama_index.core.schema import NodeWithScore
-from llama_index.core.prompts.rich import RichPromptTemplate
+from app.security.prompt_template import SafePromptTemplate
 
 from sqlmodel import Session
 from app.core.config import settings
@@ -370,7 +370,7 @@ class ChatFlow:
                     ),
                 )
 
-            prompt_template = RichPromptTemplate(refined_question_prompt)
+            prompt_template = SafePromptTemplate(refined_question_prompt)
             refined_question = self._fast_llm.predict(
                 prompt_template,
                 graph_knowledges=knowledge_graph_context,
@@ -417,7 +417,7 @@ class ChatFlow:
                 "knowledge_graph_context": knowledge_graph_context,
             },
         ) as span:
-            prompt_template = RichPromptTemplate(
+            prompt_template = SafePromptTemplate(
                 self.engine_config.llm.clarifying_question_prompt
             )
 
@@ -481,7 +481,7 @@ class ChatFlow:
             name="generate_answer", input=user_question
         ) as span:
             # Initialize response synthesizer.
-            text_qa_template = RichPromptTemplate(
+            text_qa_template = SafePromptTemplate(
                 template_str=self.engine_config.llm.text_qa_prompt
             )
             text_qa_template = text_qa_template.partial_format(

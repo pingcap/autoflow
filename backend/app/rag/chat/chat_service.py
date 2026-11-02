@@ -43,7 +43,7 @@ from app.repositories import chat_engine_repo
 from app.repositories.embedding_model import embedding_model_repo
 from app.repositories.llm import llm_repo
 from app.site_settings import SiteSetting
-from llama_index.core.prompts.rich import RichPromptTemplate
+from app.security.prompt_template import SafePromptTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -270,7 +270,7 @@ def get_chat_message_recommend_questions(
     )
     llm = chat_engine_config.get_llama_llm(db_session)
 
-    prompt_template = RichPromptTemplate(
+    prompt_template = SafePromptTemplate(
         chat_engine_config.llm.further_questions_prompt
     )
     recommend_questions = llm.predict(

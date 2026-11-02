@@ -22,6 +22,6 @@ jobs:
         with:
           persist-credentials: false
       - name: Build locked model-service runtime
-        run: docker build --build-arg PRELOAD_MODELS=false --tag autoflow-sidecar-security-test backend/local_embedding_reranker
-      - name: Verify container boundary and native ML dependencies
+        run: docker build --tag autoflow-sidecar-security-test backend/local_embedding_reranker
+      - name: Verify container boundary and both approved models
         run: python .github/scripts/security_sidecar_smoke.py

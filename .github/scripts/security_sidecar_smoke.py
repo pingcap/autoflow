@@ -1,4 +1,4 @@
-"""Exercise the real sidecar container without external keys or model downloads."""
+"""Exercise the real sidecar container with synthetic inputs and no external credentials."""
 
 import json
 import os
@@ -87,8 +87,34 @@ try:
         ],
         check=True,
     )
+
+    def infer(endpoint, payload):
+        request = urllib.request.Request(
+            base + endpoint,
+            data=json.dumps(payload).encode(),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + environment["SIDECAR_AUTH_TOKEN"],
+            },
+        )
+        with urllib.request.urlopen(request, timeout=120) as response:
+            assert response.status == 200
+            return json.load(response)
+
+    embedded = infer(
+        "/api/v1/embedding", {"sentences": ["TiDB is a distributed SQL database."]}
+    )
+    assert len(embedded["embeddings"]) == 1 and len(embedded["embeddings"][0]) == 1024
+    ranked = infer(
+        "/api/v1/reranker",
+        {
+            "query": "What is TiDB?",
+            "passages": ["TiDB is a distributed SQL database.", "A banana is a fruit."],
+        },
+    )
+    assert len(ranked["scores"]) == 2 and ranked["scores"][0] > ranked["scores"][1]
     print(
-        "Sidecar container authentication, bounds, non-root runtime and ML imports passed."
+        "Sidecar authentication, bounds, non-root runtime and both pinned model inference checks passed."
     )
 finally:
     subprocess.run(["docker", "stop", name], check=False, stdout=subprocess.DEVNULL)

@@ -1,3 +1,5 @@
+from app.security.prompt_template import validate_prompt
+from pydantic import field_validator
 from app.utils.public_chat import public_engine_options
 from fastapi import HTTPException
 import logging
@@ -39,6 +41,11 @@ logger = logging.getLogger(__name__)
 
 
 class LLMOption(BaseModel):
+    @field_validator("*", mode="after")
+    @classmethod
+    def validate_templates(cls, value):
+        return validate_prompt(value)
+
     intent_graph_knowledge: str = DEFAULT_INTENT_GRAPH_KNOWLEDGE
     normal_graph_knowledge: str = DEFAULT_NORMAL_GRAPH_KNOWLEDGE
     condense_question_prompt: str = DEFAULT_CONDENSE_QUESTION_PROMPT

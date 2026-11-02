@@ -147,3 +147,20 @@ Credential-backed E2E no longer records traces or video, uploads HTML reports, o
 publishes reports to Vercel. CI retains the test status and masked console output.
 Historical reports may need separate review and credential rotation; disabling
 new uploads does not revoke any credential captured previously.
+
+## Prompt templates
+
+Review custom engine templates before restarting. Templates now support text
+variables, public data lookups, `if`, bounded nonrecursive `for` loops, and a small
+set of pure formatting filters (including `tojson(indent=2)`). Python attribute
+traversal, function calls other than dictionary `items`/`keys`/`values`, template
+imports/macros, arithmetic expansion, and file/network/completion filters are
+rejected both when saving engine settings and before rendering stored templates.
+Banks chat/multimedia extension tags are not supported in engine text prompts.
+All shipped templates retain their rendered content and LlamaIndex's partial
+prompt/predict interface remains supported.
+
+Limits are 32 KiB of template text, 512 KiB of string context, 1 MiB of rendered
+output and 10,000 total loop iterations. Context must contain data values rather
+than executable Python objects. Oversized or unsupported templates fail closed;
+reduce their context or rewrite them using the supported text syntax.

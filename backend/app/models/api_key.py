@@ -24,6 +24,9 @@ class BaseApiKey(UpdatableBaseModel):
     knowledge_base_ids: Optional[list[int]] = Field(
         default=None, sa_column=Column(JSON, nullable=True)
     )
+    chat_engine_ids: Optional[list[int]] = Field(
+        default=None, sa_column=Column(JSON, nullable=True)
+    )
     user_id: UUID = Field(foreign_key="users.id", nullable=False)
 
 

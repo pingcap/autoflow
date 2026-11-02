@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import select
-from app.models import KnowledgeBase
+from app.models import KnowledgeBase, ChatEngine
 from app.auth.key_policy import ApiKeyGrant
 from pydantic import BaseModel, Field
 from fastapi_pagination import Params, Page
@@ -32,6 +32,13 @@ async def create_api_key(
     )
     if set(result.all()) != set(request.knowledge_base_ids):
         raise HTTPException(status_code=400, detail="Select existing knowledge bases")
+    engines = await session.exec(
+        select(ChatEngine.id).where(
+            ChatEngine.id.in_(request.chat_engine_ids), ChatEngine.deleted_at == None
+        )
+    )
+    if set(engines.all()) != set(request.chat_engine_ids):
+        raise HTTPException(status_code=400, detail="Select existing chat engines")
     grant = ApiKeyGrant.model_validate(request.model_dump(exclude={"description"}))
     _, raw_api_key = await api_key_manager.acreate_api_key(
         session, user, request.description, grant

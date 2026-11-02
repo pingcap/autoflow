@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from app.auth.chat_access import user_can_edit_chat
 import json
 import logging
@@ -62,6 +63,8 @@ class ChatFlow:
         chat_messages: List[ChatMessage],
         engine_name: str = "default",
         chat_id: Optional[UUID] = None,
+        api_key_id: Optional[int] = None,
+        allowed_engine_ids: Optional[List[int]] = None,
     ) -> None:
         self.chat_id = chat_id
         self.db_session = db_session
@@ -77,6 +80,13 @@ class ChatFlow:
                 self.db_chat_obj, user, browser_id
             ):
                 raise ChatNotFound(chat_id)
+            if api_key_id is not None and (
+                not user
+                or self.db_chat_obj.user_id != user.id
+                or self.db_chat_obj.api_key_id != api_key_id
+                or self.db_chat_obj.engine_id not in (allowed_engine_ids or [])
+            ):
+                raise ChatNotFound(chat_id)
             if not self.db_chat_obj.engine:
                 raise ChatNotFound(chat_id)
             self.engine_config = ChatEngineConfig.load_from_db(
@@ -85,6 +95,10 @@ class ChatFlow:
                 need_public=not (user and user.is_superuser),
             )
             self.db_chat_engine = self.engine_config.get_db_chat_engine()
+            if api_key_id is not None and self.db_chat_engine.id not in (
+                allowed_engine_ids or []
+            ):
+                raise HTTPException(status_code=404, detail="Chat engine not found")
             logger.info(
                 f"Init ChatFlow for chat {chat_id} (chat_engine: {self.db_chat_obj.engine.name})"
             )
@@ -97,6 +111,10 @@ class ChatFlow:
                 db_session, engine_name, need_public=not (user and user.is_superuser)
             )
             self.db_chat_engine = self.engine_config.get_db_chat_engine()
+            if api_key_id is not None and self.db_chat_engine.id not in (
+                allowed_engine_ids or []
+            ):
+                raise HTTPException(status_code=404, detail="Chat engine not found")
             self.db_chat_obj = chat_repo.create(
                 self.db_session,
                 DBChat(
@@ -105,6 +123,7 @@ class ChatFlow:
                     engine_id=self.db_chat_engine.id,
                     engine_options=self.engine_config.screenshot(),
                     user_id=self.user.id if self.user else None,
+                    api_key_id=api_key_id,
                     browser_id=self.browser_id,
                     origin=origin,
                     visibility=ChatVisibility.PRIVATE,

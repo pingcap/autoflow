@@ -23,6 +23,7 @@ class ChatVisibility(int, enum.Enum):
 
 class Chat(UUIDBaseModel, UpdatableBaseModel, table=True):
     title: str = Field(max_length=256)
+    api_key_id: Optional[int] = Field(default=None)
     engine_id: int = Field(foreign_key="chat_engines.id", nullable=True)
     engine: "ChatEngine" = SQLRelationship(  # noqa:F821
         sa_relationship_kwargs={
@@ -60,7 +61,7 @@ class Chat(UUIDBaseModel, UpdatableBaseModel, table=True):
             public["knowledge_graph"]["enabled"] = False
         return public
 
-    @field_serializer("browser_id", when_used="json")
+    @field_serializer("browser_id", "api_key_id", when_used="json")
     def private_browser_id(self, value) -> None:
         return None
 

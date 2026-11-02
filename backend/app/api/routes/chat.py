@@ -92,7 +92,11 @@ def chats(
                 ChatMessage(role=m.role, content=m.content)
                 for m in chat_request.messages
             ],
-            engine_name=chat_request.chat_engine,
+            engine_name=getattr(
+                request.state, "api_key_engine_name", chat_request.chat_engine
+            ),
+            api_key_id=getattr(request.state, "api_key_id", None),
+            allowed_engine_ids=getattr(request.state, "api_key_engine_ids", None),
         )
 
         if chat_request.stream:

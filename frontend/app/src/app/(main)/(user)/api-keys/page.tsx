@@ -27,7 +27,8 @@ const columns = [
   helper.accessor('description', { header: 'Description' }),
   helper.accessor('created_at', { header: 'Created At', cell: datetime }),
   helper.accessor('expires_at', { header: 'Expires At', cell: datetime }),
-  helper.accessor('scopes', { header: 'Operations', cell: cell => cell.getValue()?.map(scope => scope === 'retrieve:chunks' ? 'Document search' : 'Graph search').join(', ') ?? 'Revoked' }),
+  helper.accessor('scopes', { header: 'Operations', cell: cell => cell.getValue()?.map(scope => scope === 'retrieve:chunks' ? 'Document search' : scope === 'retrieve:graph' ? 'Graph search' : 'Conversations').join(', ') ?? 'Revoked' }),
+  helper.accessor('chat_engine_ids', { header: 'Chat engines', cell: cell => cell.getValue()?.join(', ') || 'None' }),
   helper.accessor('knowledge_base_ids', { header: 'Knowledge bases', cell: cell => cell.getValue()?.join(', ') ?? 'None' }),
   helper.display({
     header: 'Actions',

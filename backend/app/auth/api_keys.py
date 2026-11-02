@@ -15,7 +15,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from fastapi_pagination import Params, Page
 from fastapi_pagination.ext.sqlmodel import apaginate
 
-from app.models import ApiKey, User, KnowledgeBase
+from app.models import ApiKey, User, KnowledgeBase, Chat, ChatEngine
+from uuid import UUID
 
 
 def generate_api_key(length=50):
@@ -63,6 +64,7 @@ class ApiKeyManager:
             auth_version=user.auth_version,
             description=description,
             scopes=sorted(set(grant.scopes)),
+            chat_engine_ids=sorted(set(grant.chat_engine_ids)),
             knowledge_base_ids=sorted(set(grant.knowledge_base_ids)),
             expires_at=datetime.now(UTC) + timedelta(days=grant.expires_in_days),
         )
@@ -83,6 +85,7 @@ class ApiKeyManager:
             auth_version=user.auth_version,
             description=description,
             scopes=sorted(set(grant.scopes)),
+            chat_engine_ids=sorted(set(grant.chat_engine_ids)),
             knowledge_base_ids=sorted(set(grant.knowledge_base_ids)),
             expires_at=datetime.now(UTC) + timedelta(days=grant.expires_in_days),
         )
@@ -113,7 +116,11 @@ class ApiKeyManager:
         if expiry <= datetime.now(UTC):
             return None
         try:
-            ApiKeyGrant(scopes=key.scopes, knowledge_base_ids=key.knowledge_base_ids)
+            ApiKeyGrant(
+                scopes=key.scopes,
+                knowledge_base_ids=key.knowledge_base_ids or [],
+                chat_engine_ids=key.chat_engine_ids or [],
+            )
         except ValidationError:
             return None
         user = await session.get(User, key.user_id)
@@ -142,6 +149,7 @@ class ApiKeyManager:
             raise HTTPException(status_code=401, detail="Invalid API key")
         key, user = authenticated
         required_scope = {
+            f"{settings.API_V1_STR}/chats": "chat:write",
             f"{settings.API_V1_STR}/retrieve/chunks": "retrieve:chunks",
             f"{settings.API_V1_STR}/retrieve/knowledge_graph": "retrieve:graph",
         }.get(request.url.path)
@@ -155,32 +163,89 @@ class ApiKeyManager:
             )
         try:
             payload = await request.json()
-            ids = payload["retrieval_config"]["knowledge_base_ids"]
-            if (
-                not isinstance(ids, list)
-                or not 1 <= len(ids) <= 100
-                or any(type(item) is not int or item <= 0 for item in ids)
-            ):
+            if not isinstance(payload, dict):
                 raise ValueError()
-        except (ValueError, KeyError, TypeError):
+        except (ValueError, TypeError):
             raise HTTPException(
-                status_code=403, detail="An explicit knowledge-base scope is required"
+                status_code=403, detail="An explicit resource scope is required"
             ) from None
-        if not set(ids).issubset(key.knowledge_base_ids):
-            raise HTTPException(
-                status_code=403, detail="Knowledge base is outside this API key's scope"
+        if required_scope == "chat:write":
+            await self._authorize_chat(session, request, payload, key, user)
+        else:
+            try:
+                ids = payload["retrieval_config"]["knowledge_base_ids"]
+                if (
+                    not isinstance(ids, list)
+                    or not 1 <= len(ids) <= 100
+                    or any(type(item) is not int or item <= 0 for item in ids)
+                ):
+                    raise ValueError()
+            except (ValueError, KeyError, TypeError):
+                raise HTTPException(
+                    status_code=403,
+                    detail="An explicit knowledge-base scope is required",
+                ) from None
+            if not set(ids).issubset(key.knowledge_base_ids):
+                raise HTTPException(
+                    status_code=403,
+                    detail="Knowledge base is outside this API key's scope",
+                )
+            available = await session.exec(
+                select(KnowledgeBase.id).where(
+                    KnowledgeBase.id.in_(ids), KnowledgeBase.deleted_at == None
+                )
             )
-        available = await session.exec(
-            select(KnowledgeBase.id).where(
-                KnowledgeBase.id.in_(ids), KnowledgeBase.deleted_at == None
-            )
-        )
-        if set(available.all()) != set(ids):
-            raise HTTPException(status_code=403, detail="Knowledge base is unavailable")
+            if set(available.all()) != set(ids):
+                raise HTTPException(
+                    status_code=403, detail="Knowledge base is unavailable"
+                )
         request.state.auth_method = "api_key"
         request.state.api_key_id = key.id
         request.state.user_id = str(user.id)
         return user
+
+    async def _authorize_chat(self, session, request, payload, key, user):
+        query = select(ChatEngine.id, ChatEngine.name).where(
+            ChatEngine.id.in_(key.chat_engine_ids), ChatEngine.deleted_at == None
+        )
+        if payload.get("chat_id"):
+            try:
+                chat_id = UUID(str(payload["chat_id"]))
+            except ValueError:
+                raise HTTPException(
+                    status_code=403, detail="Chat is outside this API key's scope"
+                ) from None
+            result = await session.exec(
+                select(Chat.engine_id).where(
+                    Chat.id == chat_id,
+                    Chat.user_id == user.id,
+                    Chat.api_key_id == key.id,
+                    Chat.deleted_at == None,
+                )
+            )
+            engine_id = result.first()
+            if engine_id is None:
+                raise HTTPException(
+                    status_code=403, detail="Chat is outside this API key's scope"
+                )
+            query = query.where(ChatEngine.id == engine_id)
+        else:
+            name = payload.get("chat_engine", "default")
+            if not isinstance(name, str) or not 1 <= len(name) <= 100:
+                raise HTTPException(status_code=403, detail="Invalid chat engine")
+            query = (
+                query.where(ChatEngine.is_default == True)
+                if name == "default"
+                else query.where(ChatEngine.name == name)
+            )
+        result = await session.exec(query)
+        engine = result.first()
+        if engine is None:
+            raise HTTPException(
+                status_code=403, detail="Chat engine is outside this API key's scope"
+            )
+        request.state.api_key_engine_name = engine[1]
+        request.state.api_key_engine_ids = tuple(key.chat_engine_ids)
 
     async def list_api_keys(
         self, session: AsyncSession, user: User, params: Params

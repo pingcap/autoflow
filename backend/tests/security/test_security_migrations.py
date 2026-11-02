@@ -44,6 +44,7 @@ def test_upgrade_and_rollback_never_reactivate_old_credentials_or_guest_links():
                 "4b8e2a70c1d9_credential_versions.py",
                 "65ad0f3c2b81_scoped_expiring_api_keys.py",
                 "8f4c62e10a93_private_legacy_guest_chats.py",
+                "0d7c24a5b6f8_scoped_chat_keys.py",
             ]
         ]
         for version in versions:

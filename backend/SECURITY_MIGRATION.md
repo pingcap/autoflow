@@ -17,9 +17,12 @@ remaining hardening changes are integrated.
    `SESSION_COOKIE_SECURE=true`. `false` is supported only in the local environment,
    including the isolated HTTP E2E stack.
 4. Log in as an administrator and create replacement API keys, explicitly selecting
-   knowledge bases and document-search and/or graph-search permissions. Lifetimes
-   are 1–90 days (30 by default). Keys cannot call management, document-download, or
-   chat endpoints. Update retrieval integrations and verify that unrelated
+   knowledge bases for document/graph search, and chat engines for conversation
+   permissions. Lifetimes are 1–90 days (30 by default). Keys cannot call
+   management or document-download endpoints. A chat key can
+   create conversations only with its selected engines and continue only chats
+   created by that same key. Human-owned chats and other keys' chats are excluded.
+   Update retrieval and evaluation integrations and verify that unrelated
    knowledge bases and administrative endpoints return 403.
 5. Verify password reset/change: all existing sessions and API keys must stop
    working. Credential changes also increment a version, so a concurrent login
@@ -32,6 +35,9 @@ remaining hardening changes are integrated.
    cannot be securely reassigned based on the untrusted cookie. Administrators
    retain access to the preserved records; legacy public guest links stop working.
    New guest chats start private and can be shared explicitly by their owner.
+
+For the regression workflow, issue a `chat:write` key restricted to the engine
+under evaluation; it needs no management permissions.
 
 New API-key digests use a versioned format that older, unrestricted workers cannot
 authenticate. Rollbacks deliberately invalidate sessions/keys and do not republish

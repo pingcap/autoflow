@@ -23,3 +23,10 @@ def test_browser_identity_is_signed_http_only_secure_and_not_publicly_cached():
         client.cookies.clear()
         client.cookies.set(settings.BROWSER_ID_COOKIE_NAME, browser_id)
         assert client.get("/identity").json()["browser_id"] != browser_id
+
+
+def test_legacy_cli_entry_point_uses_the_hardened_application():
+    import main
+    from app.api_server import app
+
+    assert main.app is app

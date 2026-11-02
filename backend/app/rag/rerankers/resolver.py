@@ -61,6 +61,7 @@ def resolve_reranker(
             )
         case RerankerProvider.LOCAL:
             return LocalRerank(
+                api_key=credentials,
                 model=model,
                 top_n=top_n,
                 **config,

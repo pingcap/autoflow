@@ -151,8 +151,8 @@ embedding_provider_options: List[EmbeddingProviderOption] = [
         },
         config_description="api_url is the embedding endpoint url serviced by the autoflow local embedding server.",
         credentials_display_name="Local Embedding API Key",
-        credentials_description="Local Embedding server doesn't require an API key, set a dummy string here is ok.",
+        credentials_description="The SIDECAR_AUTH_TOKEN configured for your private local model service.",
         credentials_type="str",
-        default_credentials="dummy",
+        default_credentials="SIDECAR_AUTH_TOKEN",
     ),
 ]

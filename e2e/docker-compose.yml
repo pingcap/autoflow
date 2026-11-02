@@ -55,8 +55,6 @@ services:
     restart: always
     depends_on:
       - redis
-    ports:
-      - "5555:5555"
     env_file:
       - .env.backend
     environment:

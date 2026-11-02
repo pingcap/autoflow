@@ -5,12 +5,14 @@ on:
       - 'backend/**'
       - '.github/workflows/regression.yml'
       - '.github/workflows/security-regression.yml'
+      - '.github/scripts/security_sidecar_smoke.py'
   push:
     branches: [main]
     paths:
       - 'backend/**'
       - '.github/workflows/regression.yml'
       - '.github/workflows/security-regression.yml'
+      - '.github/scripts/security_sidecar_smoke.py'
 permissions:
   contents: read
 jobs:

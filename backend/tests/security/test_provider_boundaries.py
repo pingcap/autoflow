@@ -270,7 +270,12 @@ def test_supported_provider_clients_still_construct_with_explicit_credentials(
         (EmbeddingProvider.LOCAL, "BAAI/bge-m3"),
         (EmbeddingProvider.OLLAMA, "nomic-embed-text"),
     ]:
-        assert resolve_embed_model(provider, model, {}, "fixture-only") is not None
+        assert (
+            resolve_embed_model(
+                provider, model, {}, "fixture-only-sidecar-key-0000000000000000"
+            )
+            is not None
+        )
     for provider, model in [
         (RerankerProvider.JINA, "jina-reranker-v2-base-multilingual"),
         (RerankerProvider.COHERE, "rerank-english-v3.0"),
@@ -278,4 +283,9 @@ def test_supported_provider_clients_still_construct_with_explicit_credentials(
         (RerankerProvider.XINFERENCE, "bge-reranker-v2-m3"),
         (RerankerProvider.VLLM, "BAAI/bge-reranker-v2-m3"),
     ]:
-        assert resolve_reranker(provider, model, 2, {}, "fixture-only") is not None
+        assert (
+            resolve_reranker(
+                provider, model, 2, {}, "fixture-only-sidecar-key-0000000000000000"
+            )
+            is not None
+        )

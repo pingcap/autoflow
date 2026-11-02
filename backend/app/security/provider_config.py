@@ -295,7 +295,14 @@ def prepare_provider_config(kind, provider, model, config, credentials):
             raise ProviderConfigurationError(
                 "Explicit AWS credentials and region are required"
             )
-    elif provider not in {"ollama", "local", "vllm", "xinference"}:
+    elif provider == "local":
+        if not isinstance(credentials, str) or not re.fullmatch(
+            r"[A-Za-z0-9._~+/-]{32,128}={0,2}", credentials
+        ):
+            raise ProviderConfigurationError(
+                "The local model service requires its explicit SIDECAR_AUTH_TOKEN"
+            )
+    elif provider not in {"ollama", "vllm", "xinference"}:
         if not isinstance(credentials, str) or not credentials.strip():
             raise ProviderConfigurationError(
                 "Explicit provider credentials are required; server credentials are not inherited"

@@ -117,6 +117,33 @@ JSON credentials are stored in the encrypted credentials column. Old editors
 cannot overwrite newer destination/credential combinations from stale state.
 Model-test responses and logs no longer contain provider exception payloads.
 
-Check any historical JSON credential edits for accidental plaintext values in
-legacy configuration fields, and rotate affected provider credentials if found.
-Do not copy those values into logs or issue descriptions.
+JSON credential edits now update the credentials field correctly; the previous
+field accessor mapped the submitted value to the wrong frontend field.
+
+## Background and optional local-model services
+
+Flower is no longer started by supervisord and no compose file publishes its
+port. Stop/recreate existing background containers so old monitoring listeners
+are removed. Any replacement monitoring must be operator-managed and authenticated.
+
+The optional local-model profile now builds the reviewed source instead of using
+the old unauthenticated `v4-with-cache` image. Build it with
+`docker compose --profile local-embedding-reranker build local-embedding-reranker`.
+The image downloads exact approved model revisions during the build; runtime
+model loading is offline and remote Python code is disabled. Changing the model
+manifest requires another image build. Model inputs are limited to 8192 characters
+per text and 65536 characters per request, with at most 32 texts; the backend splits
+larger ordinary batches without changing their order. Inference uses one worker,
+one active request and batches of four, with a 2048-token model context.
+
+Set a separate random `SIDECAR_AUTH_TOKEN` (at least 32 characters) in the private
+compose environment, register `http://local-embedding-reranker:5001` in the
+backend's provider origins, and save that token as the encrypted credentials for
+each Local Embedding/Local Reranker provider. Placeholder `dummy` credentials no
+longer work. Stop/remove old sidecar containers and recreate the profile; it has
+no host-published port. Default compose CPU/memory limits are 2 CPUs / 8 GiB.
+
+Credential-backed E2E no longer records traces or video, uploads HTML reports, or
+publishes reports to Vercel. CI retains the test status and masked console output.
+Historical reports may need separate review and credential rotation; disabling
+new uploads does not revoke any credential captured previously.

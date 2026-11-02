@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 test.use({
-  trace: !!process.env.CI ? 'off' : 'on',
+  trace: 'off',
+  video: 'off',
 });
 
 test('Bootstrap', async ({ browser, page }) => {

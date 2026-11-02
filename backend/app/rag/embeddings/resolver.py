@@ -73,6 +73,7 @@ def resolve_embed_model(
             )
         case EmbeddingProvider.LOCAL:
             return LocalEmbedding(
+                api_key=credentials,
                 model=model,
                 **config,
             )

@@ -9,7 +9,7 @@ from starlette.middleware.cors import CORSMiddleware
 from app.api.main import api_router
 from app.core.config import settings
 from app.site_settings import SiteSetting
-from app.utils.uuid6 import uuid7
+from app.auth.browser_session import create_browser_session, verify_browser_session
 
 
 load_dotenv()
@@ -57,18 +57,26 @@ if settings.BACKEND_CORS_ORIGINS:
 
 @app.middleware("http")
 async def identify_browser(request: Request, call_next):
-    browser_id = request.cookies.get(settings.BROWSER_ID_COOKIE_NAME)
+    browser_id = verify_browser_session(
+        request.cookies.get(settings.BROWSER_ID_COOKIE_NAME),
+        settings.SECRET_KEY,
+        settings.BROWSER_ID_COOKIE_MAX_AGE,
+    )
     has_browser_id = bool(browser_id)
     if not browser_id:
-        browser_id = uuid7()
+        browser_id, browser_cookie = create_browser_session(settings.SECRET_KEY)
     request.state.browser_id = browser_id
     response: Response = await call_next(request)
     if not has_browser_id:
         response.set_cookie(
             settings.BROWSER_ID_COOKIE_NAME,
-            browser_id,
+            browser_cookie,
             max_age=settings.BROWSER_ID_COOKIE_MAX_AGE,
+            secure=settings.SESSION_COOKIE_SECURE,
+            httponly=True,
+            samesite="lax",
         )
+    response.headers["Cache-Control"] = "private, no-store"
     return response
 
 

@@ -3,7 +3,9 @@ from typing import Optional, Type
 from fastapi_pagination import Params, Page
 from fastapi_pagination.ext.sqlmodel import paginate
 from sqlalchemy.orm.attributes import flag_modified
-from sqlmodel import Session, select, update
+from sqlmodel import Session, select, update, delete
+from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
 
 from app.api.admin_routes.embedding_model.models import (
     EmbeddingModelUpdate,
@@ -80,15 +82,31 @@ class EmbeddingModelRepo(BaseRepo):
         return embed_model
 
     def delete(self, session: Session, model: EmbeddingModel):
-        # TODO: Support to specify a new embedding model to replace the current embedding model.
-        session.exec(
-            update(KnowledgeBase)
+        referenced = (
+            select(KnowledgeBase.id)
             .where(KnowledgeBase.embedding_model_id == model.id)
-            .values(embedding_model_id=None)
+            .exists()
         )
-
-        session.delete(model)
-        session.commit()
+        try:
+            result = session.exec(
+                delete(EmbeddingModel)
+                .where(EmbeddingModel.id == model.id, ~referenced)
+                .execution_options(synchronize_session=False)
+            )
+            if result.rowcount != 1:
+                session.rollback()
+                raise HTTPException(
+                    status_code=409,
+                    detail="Embedding model is referenced or no longer available",
+                )
+            session.commit()
+        except IntegrityError as error:
+            session.rollback()
+            if getattr(error.orig, "args", ()) and error.orig.args[0] in (1451, 1217):
+                raise HTTPException(
+                    status_code=409, detail="Embedding model is in use"
+                ) from None
+            raise
 
     # Default model
 

@@ -46,12 +46,15 @@ class ChatEngineRepo(BaseRepo):
         query = query.order_by(ChatEngine.is_default.desc(), ChatEngine.name)
         return paginate(session, query, params)
 
-    def get_default_engine(self, session: Session) -> Optional[ChatEngine]:
-        return session.exec(
-            select(ChatEngine).where(
-                ChatEngine.is_default == True, ChatEngine.deleted_at == None
-            )
-        ).first()
+    def get_default_engine(
+        self, session: Session, need_public: bool = False
+    ) -> Optional[ChatEngine]:
+        query = select(ChatEngine).where(
+            ChatEngine.is_default == True, ChatEngine.deleted_at == None
+        )
+        if need_public:
+            query = query.where(ChatEngine.is_public == True)
+        return session.exec(query).first()
 
     def has_default(self, session: Session) -> bool:
         return (
@@ -63,12 +66,15 @@ class ChatEngineRepo(BaseRepo):
             > 0
         )
 
-    def get_engine_by_name(self, session: Session, name: str) -> Optional[ChatEngine]:
-        return session.exec(
-            select(ChatEngine).where(
-                ChatEngine.name == name, ChatEngine.deleted_at == None
-            )
-        ).first()
+    def get_engine_by_name(
+        self, session: Session, name: str, need_public: bool = False
+    ) -> Optional[ChatEngine]:
+        query = select(ChatEngine).where(
+            ChatEngine.name == name, ChatEngine.deleted_at == None
+        )
+        if need_public:
+            query = query.where(ChatEngine.is_public == True)
+        return session.exec(query).first()
 
     def create(self, session: Session, obj: ChatEngine):
         if obj.is_default:

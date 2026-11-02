@@ -1,3 +1,4 @@
+from app.auth.chat_access import user_can_view_chat, user_can_edit_chat  # noqa: F401
 from http import HTTPStatus
 import logging
 
@@ -15,9 +16,6 @@ from app.api.routes.models import (
     NeedMigrationStatus,
 )
 from app.models import (
-    User,
-    ChatVisibility,
-    Chat as DBChat,
     ChatMessage as DBChatMessage,
     KnowledgeBase as DBKnowledgeBase,
     RerankerModel as DBRerankerModel,
@@ -89,22 +87,6 @@ def get_final_chat_result(
         sources=sources,
         content=content,
     )
-
-
-def user_can_view_chat(chat: DBChat, user: Optional[User]) -> bool:
-    # Anonymous or public chat can be accessed by anyone
-    # Non-anonymous chat can be accessed by owner or superuser
-    if not chat.user_id or chat.visibility == ChatVisibility.PUBLIC:
-        return True
-    return user is not None and (user.is_superuser or chat.user_id == user.id)
-
-
-def user_can_edit_chat(chat: DBChat, user: Optional[User]) -> bool:
-    if user is None:
-        return False
-    if user.is_superuser:
-        return True
-    return chat.user_id == user.id
 
 
 def get_graph_data_from_chat_message(
@@ -269,19 +251,24 @@ def get_chat_message_recommend_questions(
     db_session: Session,
     chat_message: DBChatMessage,
     engine_name: str = "default",
+    *,
+    allow_generate: bool = False,
+    need_public: bool = True,
 ) -> List[str]:
-    chat_engine_config = ChatEngineConfig.load_from_db(db_session, engine_name)
-    llm = chat_engine_config.get_llama_llm(db_session)
-
-    statement = (
-        select(RecommendQuestion.questions)
-        .where(RecommendQuestion.chat_message_id == chat_message.id)
-        .with_for_update()  # using write lock in case the same chat message trigger multiple requests
+    statement = select(RecommendQuestion.questions).where(
+        RecommendQuestion.chat_message_id == chat_message.id
     )
 
     questions = db_session.exec(statement).first()
     if questions is not None:
         return questions
+
+    if not allow_generate:
+        return []
+    chat_engine_config = ChatEngineConfig.load_from_db(
+        db_session, engine_name, need_public=need_public
+    )
+    llm = chat_engine_config.get_llama_llm(db_session)
 
     prompt_template = RichPromptTemplate(
         chat_engine_config.llm.further_questions_prompt

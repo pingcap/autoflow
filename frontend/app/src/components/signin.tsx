@@ -1,6 +1,7 @@
 'use client';
 
 import { login } from '@/api/auth';
+import { safeLoginCallback } from '@/lib/safe-login-callback';
 import { FormInput } from '@/components/form/control-widget';
 import { formFieldLayout } from '@/components/form/field-layout';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -32,7 +33,7 @@ export function Signin ({ noRedirect = false, callbackUrl }: { noRedirect?: bool
         await login(value);
         startTransition(() => {
           if (!noRedirect) {
-            router.replace(refineCallbackUrl(callbackUrl));
+            router.replace(safeLoginCallback(callbackUrl, location.origin));
           }
           router.refresh();
         });
@@ -72,15 +73,4 @@ export function Signin ({ noRedirect = false, callbackUrl }: { noRedirect?: bool
       </Form>
     </>
   );
-}
-
-function refineCallbackUrl (url: string | undefined) {
-  if (!url) {
-    return `${location.origin}`;
-  }
-  if (/auth\/login/.test(url)) {
-    return `${location.origin}`;
-  } else {
-    return url;
-  }
 }

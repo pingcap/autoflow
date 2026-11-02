@@ -1,18 +1,22 @@
+from app.auth.chat_access import user_can_use_engine
+from app.utils.public_chat import chat_hides_sources, public_chat_message
 import logging
 from uuid import UUID
-from typing import List, Optional, Annotated
+from typing import List, Optional, Annotated, Literal
 from http import HTTPStatus
 
 from pydantic import (
     BaseModel,
+    ConfigDict,
     field_validator,
+    Field,
 )
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from fastapi.responses import StreamingResponse
 from fastapi_pagination import Params, Page
 from llama_index.core.base.llms.types import ChatMessage, MessageRole
 
-from app.api.deps import SessionDep, OptionalUserDep, CurrentUserDep
+from app.api.deps import SessionDep, OptionalUserDep
 from app.rag.chat.chat_flow import ChatFlow
 from app.rag.retrievers.knowledge_graph.schema import KnowledgeGraphRetrievalResult
 from app.repositories import chat_repo
@@ -34,15 +38,23 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+class ClientChatMessage(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=20000)
+
+
 class ChatRequest(BaseModel):
-    messages: List[ChatMessage]
-    chat_engine: str = "default"
+    messages: List[ClientChatMessage] = Field(min_length=1, max_length=20)
+    chat_engine: str = Field(default="default", min_length=1, max_length=100)
     chat_id: Optional[UUID] = None
     stream: bool = True
 
     @field_validator("messages")
     @classmethod
-    def check_messages(cls, messages: List[ChatMessage]) -> List[ChatMessage]:
+    def check_messages(
+        cls, messages: List[ClientChatMessage]
+    ) -> List[ClientChatMessage]:
         if not messages:
             raise ValueError("messages cannot be empty")
         for m in messages:
@@ -51,7 +63,9 @@ class ChatRequest(BaseModel):
             if not m.content:
                 raise ValueError("message content cannot be empty")
             if len(m.content) > 20000:
-                raise ValueError("message content cannot exceed 2000 characters")
+                raise ValueError("message content cannot exceed 20000 characters")
+        if sum(len(m.content) for m in messages) > 40000:
+            raise ValueError("total message content cannot exceed 40000 characters")
         if messages[-1].role != MessageRole.USER:
             raise ValueError("last message must be from user")
         return messages
@@ -74,7 +88,10 @@ def chats(
             browser_id=browser_id,
             origin=origin,
             chat_id=chat_request.chat_id,
-            chat_messages=chat_request.messages,
+            chat_messages=[
+                ChatMessage(role=m.role, content=m.content)
+                for m in chat_request.messages
+            ],
             engine_name=chat_request.chat_engine,
         )
 
@@ -108,26 +125,35 @@ def list_chats(
 
 
 @router.get("/chats/{chat_id}")
-def get_chat(session: SessionDep, user: OptionalUserDep, chat_id: UUID):
+def get_chat(
+    request: Request, session: SessionDep, user: OptionalUserDep, chat_id: UUID
+):
     chat = chat_repo.must_get(session, chat_id)
 
-    if not user_can_view_chat(chat, user):
+    if not user_can_view_chat(chat, user, request.state.browser_id):
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Access denied")
 
     return {
         "chat": chat,
-        "messages": chat_repo.get_messages(session, chat),
+        "messages": [
+            public_chat_message(message, chat_hides_sources(chat))
+            for message in chat_repo.get_messages(session, chat)
+        ],
     }
 
 
 @router.put("/chats/{chat_id}")
 def update_chat(
-    session: SessionDep, user: CurrentUserDep, chat_id: UUID, chat_update: ChatUpdate
+    request: Request,
+    session: SessionDep,
+    user: OptionalUserDep,
+    chat_id: UUID,
+    chat_update: ChatUpdate,
 ):
     try:
         chat = chat_repo.must_get(session, chat_id)
 
-        if not user_can_edit_chat(chat, user):
+        if not user_can_edit_chat(chat, user, request.state.browser_id):
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, detail="Access denied"
             )
@@ -141,11 +167,13 @@ def update_chat(
 
 
 @router.delete("/chats/{chat_id}")
-def delete_chat(session: SessionDep, user: CurrentUserDep, chat_id: UUID):
+def delete_chat(
+    request: Request, session: SessionDep, user: OptionalUserDep, chat_id: UUID
+):
     try:
         chat = chat_repo.must_get(session, chat_id)
 
-        if not user_can_edit_chat(chat, user):
+        if not user_can_edit_chat(chat, user, request.state.browser_id):
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, detail="Access denied"
             )
@@ -162,15 +190,21 @@ def delete_chat(session: SessionDep, user: CurrentUserDep, chat_id: UUID):
     "/chat-messages/{chat_message_id}/subgraph",
     response_model=KnowledgeGraphRetrievalResult,
 )
-def get_chat_subgraph(session: SessionDep, user: OptionalUserDep, chat_message_id: int):
+def get_chat_subgraph(
+    request: Request, session: SessionDep, user: OptionalUserDep, chat_message_id: int
+):
     try:
         chat_message = chat_repo.must_get_message(session, chat_message_id)
 
-        if not user_can_view_chat(chat_message.chat, user):
+        if not user_can_view_chat(chat_message.chat, user, request.state.browser_id):
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, detail="Access denied"
             )
 
+        if not user_can_use_engine(chat_message.chat.engine, user):
+            raise HTTPException(status_code=404, detail="Chat engine not found")
+        if chat_hides_sources(chat_message.chat):
+            raise HTTPException(status_code=404, detail="Sources are hidden")
         result = get_chat_message_subgraph(session, chat_message)
         return result.model_dump(exclude_none=True)
     except HTTPException as e:
@@ -182,17 +216,27 @@ def get_chat_subgraph(session: SessionDep, user: OptionalUserDep, chat_message_i
 
 @router.get("/chat-messages/{chat_message_id}/recommended-questions")
 def get_recommended_questions(
-    session: SessionDep, user: OptionalUserDep, chat_message_id: int
+    request: Request, session: SessionDep, user: OptionalUserDep, chat_message_id: int
 ) -> List[str]:
     try:
         chat_message = chat_repo.must_get_message(session, chat_message_id)
 
-        if not user_can_view_chat(chat_message.chat, user):
+        if not user_can_view_chat(chat_message.chat, user, request.state.browser_id):
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, detail="Access denied"
             )
 
-        return get_chat_message_recommend_questions(session, chat_message)
+        if not user_can_use_engine(chat_message.chat.engine, user):
+            raise HTTPException(status_code=404, detail="Chat engine not found")
+        return get_chat_message_recommend_questions(
+            session,
+            chat_message,
+            engine_name=chat_message.chat.engine.name,
+            allow_generate=user_can_edit_chat(
+                chat_message.chat, user, request.state.browser_id
+            ),
+            need_public=not (user and user.is_superuser),
+        )
     except HTTPException as e:
         raise e
     except Exception as e:
@@ -202,19 +246,28 @@ def get_recommended_questions(
 
 @router.post("/chat-messages/{chat_message_id}/recommended-questions")
 def refresh_recommended_questions(
-    session: SessionDep, user: OptionalUserDep, chat_message_id: int
+    request: Request, session: SessionDep, user: OptionalUserDep, chat_message_id: int
 ) -> List[str]:
     try:
         chat_message = chat_repo.must_get_message(session, chat_message_id)
 
-        if not user_can_view_chat(chat_message.chat, user):
+        if not user_can_edit_chat(chat_message.chat, user, request.state.browser_id):
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, detail="Access denied"
             )
 
+        if not user_can_use_engine(chat_message.chat.engine, user):
+            raise HTTPException(status_code=404, detail="Chat engine not found")
         remove_chat_message_recommend_questions(session, chat_message_id)
-
-        return get_chat_message_recommend_questions(session, chat_message)
+        return get_chat_message_recommend_questions(
+            session,
+            chat_message,
+            engine_name=chat_message.chat.engine.name,
+            allow_generate=user_can_edit_chat(
+                chat_message.chat, user, request.state.browser_id
+            ),
+            need_public=not (user and user.is_superuser),
+        )
     except HTTPException as e:
         raise e
     except Exception as e:

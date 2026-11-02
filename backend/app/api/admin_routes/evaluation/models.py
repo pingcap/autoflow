@@ -3,14 +3,14 @@ from uuid import UUID
 from datetime import datetime
 
 from fastapi_pagination import Params
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CreateEvaluationTask(BaseModel):
     name: str
     evaluation_dataset_id: int
     chat_engine: str = "default"
-    run_size: Optional[int] = None
+    run_size: Optional[int] = Field(default=None, gt=0)
 
 
 class EvaluationTaskOverview(BaseModel):

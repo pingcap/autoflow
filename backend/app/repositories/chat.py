@@ -1,3 +1,4 @@
+from sqlalchemy import and_, false
 import enum
 from uuid import UUID
 from typing import Optional, List, Dict, Any
@@ -28,10 +29,19 @@ class ChatRepo(BaseRepo):
         if user:
             if not user.is_superuser:
                 query = query.where(
-                    or_(Chat.user_id == user.id, Chat.browser_id == browser_id)
+                    or_(
+                        Chat.user_id == user.id,
+                        and_(Chat.user_id == None, Chat.browser_id == browser_id)
+                        if browser_id
+                        else false(),
+                    )
                 )
         else:
-            query = query.where(Chat.browser_id == browser_id, Chat.user_id == None)
+            query = (
+                query.where(Chat.browser_id == browser_id, Chat.user_id == None)
+                if browser_id
+                else query.where(false())
+            )
 
         # filters
         if filters.created_at_start:

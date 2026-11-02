@@ -5,6 +5,7 @@ from urllib.parse import quote
 from pydantic import (
     AnyUrl,
     BeforeValidator,
+    Field,
     HttpUrl,
     MySQLDsn,
     SecretStr,
@@ -32,7 +33,10 @@ class Environment(str, enum.Enum):
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env", env_ignore_empty=True, extra="ignore"
+        env_file=".env",
+        env_ignore_empty=True,
+        extra="ignore",
+        hide_input_in_errors=True,
     )
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str
@@ -43,11 +47,15 @@ class Settings(BaseSettings):
 
     SESSION_COOKIE_NAME: str = "session"
     # 90 days
-    SESSION_COOKIE_MAX_AGE: int = 3600 * 24 * 90
-    SESSION_COOKIE_SECURE: bool = False
+    SESSION_COOKIE_MAX_AGE: int = Field(
+        default=3600 * 24 * 90, ge=60, le=3600 * 24 * 90
+    )
+    SESSION_COOKIE_SECURE: bool = True
 
     BROWSER_ID_COOKIE_NAME: str = "bid"
-    BROWSER_ID_COOKIE_MAX_AGE: int = 3600 * 24 * 365 * 2
+    BROWSER_ID_COOKIE_MAX_AGE: int = Field(
+        default=3600 * 24 * 14, ge=60, le=3600 * 24 * 90
+    )
 
     @computed_field  # type: ignore[misc]
     @property
@@ -136,6 +144,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _validate_secrets(self) -> Self:
+        if self.ENVIRONMENT != Environment.LOCAL and not self.SESSION_COOKIE_SECURE:
+            raise ValueError("Secure cookies are required outside local development.")
         secret = self.SECRET_KEY
         if not secret:
             raise ValueError(

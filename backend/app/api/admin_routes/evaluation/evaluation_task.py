@@ -1,4 +1,5 @@
 import logging
+from copy import deepcopy
 from typing import Optional, List
 
 import sqlmodel
@@ -56,8 +57,9 @@ def create_evaluation_task(
 
     dataset = must_get(session, EvaluationDataset, evaluation_dataset_id)
 
-    if run_size is not None and run_size < len(dataset.evaluation_data_list):
-        dataset.evaluation_data_list = dataset.evaluation_data_list[:run_size]
+    source_items = list(dataset.evaluation_data_list)
+    if run_size is not None:
+        source_items = source_items[:run_size]
 
     # create evaluation items
     # caveat: Do the deep copy on purpose to avoid the side effect of the original dataset modification
@@ -67,10 +69,10 @@ def create_evaluation_task(
             chat_engine=chat_engine,
             query=item.query,
             reference=item.reference,
-            retrieved_contexts=item.retrieved_contexts,
-            extra=item.extra,
+            retrieved_contexts=deepcopy(item.retrieved_contexts),
+            extra=deepcopy(item.extra),
         )
-        for item in dataset.evaluation_data_list
+        for item in source_items
     ]
 
     evaluation_task = EvaluationTask(

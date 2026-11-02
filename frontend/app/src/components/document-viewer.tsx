@@ -1,7 +1,7 @@
 import './code-theme.scss';
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 
 import { Button } from '@/components/ui/button';
 import Highlight from 'highlight.js/lib/core';
@@ -53,20 +53,19 @@ export function DocumentPreviewDialog ({ title, name, mime, content }: { title: 
 }
 
 function MarkdownViewer ({ value: propValue }: { value: string }) {
-  const [value, setValue] = useState(propValue);
-
-  useEffect(() => {
-    setValue(propValue);
+  const value = useMemo(() => {
     try {
-      const { value: result } = Highlight.highlight(propValue, { language: 'markdown' });
-      setValue(result);
+      return Highlight.highlight(propValue, { language: 'markdown' }).value;
     } catch {
+      return undefined;
     }
   }, [propValue]);
 
   return (
     <code>
-      <pre className="whitespace-pre-wrap text-xs font-mono" dangerouslySetInnerHTML={{ __html: value }} />
+      {value === undefined
+        ? <pre className="whitespace-pre-wrap text-xs font-mono">{propValue}</pre>
+        : <pre className="whitespace-pre-wrap text-xs font-mono" dangerouslySetInnerHTML={{ __html: value }} />}
     </code>
   );
 }

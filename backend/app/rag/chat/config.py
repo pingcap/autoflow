@@ -1,3 +1,5 @@
+from app.utils.public_chat import public_engine_options
+from fastapi import HTTPException
 import logging
 import dspy
 
@@ -111,17 +113,19 @@ class ChatEngineConfig(BaseModel):
         )
 
     @classmethod
-    def load_from_db(cls, session: Session, engine_name: str) -> "ChatEngineConfig":
+    def load_from_db(
+        cls, session: Session, engine_name: str, need_public: bool = False
+    ) -> "ChatEngineConfig":
         if not engine_name or engine_name == "default":
-            db_chat_engine = chat_engine_repo.get_default_engine(session)
-        else:
-            db_chat_engine = chat_engine_repo.get_engine_by_name(session, engine_name)
-
-        if not db_chat_engine:
-            logger.warning(
-                f"Chat engine {engine_name} not found in DB, using default engine"
+            db_chat_engine = chat_engine_repo.get_default_engine(
+                session, need_public=need_public
             )
-            db_chat_engine = chat_engine_repo.get_default_engine(session)
+        else:
+            db_chat_engine = chat_engine_repo.get_engine_by_name(
+                session, engine_name, need_public=need_public
+            )
+        if not db_chat_engine:
+            raise HTTPException(status_code=404, detail="Chat engine not found")
 
         obj = cls.model_validate(db_chat_engine.engine_options)
         obj._db_chat_engine = db_chat_engine
@@ -194,18 +198,4 @@ class ChatEngineConfig(BaseModel):
         return knowledge_bases
 
     def screenshot(self) -> dict:
-        return self.model_dump(
-            exclude={
-                "llm": [
-                    "condense_question_prompt",
-                    "text_qa_prompt",
-                    "refine_prompt",
-                    "intent_graph_knowledge",
-                    "normal_graph_knowledge",
-                    "generate_goal_prompt",
-                    "further_questions_prompt",
-                    "clarifying_question_prompt",
-                ],
-                "post_verification_token": True,
-            }
-        )
+        return public_engine_options(self.model_dump())

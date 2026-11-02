@@ -1,4 +1,5 @@
 import { getChatMessageSubgraph } from '@/api/chats';
+import { getChatEngine } from '@/api/chat-engines';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { type ChatMessageGroup, useChatInfo, useChatMessageStreamState, useCurrentChatController } from '@/components/chat/chat-hooks';
 import type { OngoingState } from '@/components/chat/chat-message-controller';
@@ -11,10 +12,14 @@ import { useEffect } from 'react';
 import useSWR from 'swr';
 
 export function KnowledgeGraphDebugInfo ({ group }: { group: ChatMessageGroup }) {
-  const { engine_options } = useChatInfo(useCurrentChatController()) ?? {};
+  const { engine_id } = useChatInfo(useCurrentChatController()) ?? {};
   const auth = useAuth();
   const ongoing = useChatMessageStreamState(group.assistant);
-  const kbLinked = engine_options?.knowledge_base?.linked_knowledge_bases;
+  const { data: adminEngine } = useSWR(
+    auth.me?.is_superuser && engine_id ? `api.admin.chat-engine/${engine_id}` : null,
+    () => getChatEngine(engine_id!),
+  );
+  const kbLinked = adminEngine?.engine_options.knowledge_base?.linked_knowledge_bases;
   const canEdit = !!auth.me?.is_superuser && kbLinked;
 
   const shouldFetch = (!ongoing || ongoing.finished || couldFetchKnowledgeGraphDebugInfo(ongoing));

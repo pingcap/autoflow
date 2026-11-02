@@ -1,3 +1,4 @@
+from app.auth.chat_access import user_can_edit_chat
 import json
 import logging
 from datetime import datetime, UTC
@@ -71,23 +72,19 @@ class ChatFlow:
         # Load chat engine and chat session.
         self.user_question, self.chat_history = parse_chat_messages(chat_messages)
         if chat_id:
-            # FIXME:
-            #   only chat owner or superuser can access the chat,
-            #   anonymous user can only access anonymous chat by track_id
             self.db_chat_obj = chat_repo.get(self.db_session, chat_id)
-            if not self.db_chat_obj:
+            if not self.db_chat_obj or not user_can_edit_chat(
+                self.db_chat_obj, user, browser_id
+            ):
                 raise ChatNotFound(chat_id)
-            try:
-                self.engine_config = ChatEngineConfig.load_from_db(
-                    db_session, self.db_chat_obj.engine.name
-                )
-                self.db_chat_engine = self.engine_config.get_db_chat_engine()
-            except Exception as e:
-                logger.error(f"Failed to load chat engine config: {e}")
-                self.engine_config = ChatEngineConfig.load_from_db(
-                    db_session, engine_name
-                )
-                self.db_chat_engine = self.engine_config.get_db_chat_engine()
+            if not self.db_chat_obj.engine:
+                raise ChatNotFound(chat_id)
+            self.engine_config = ChatEngineConfig.load_from_db(
+                db_session,
+                self.db_chat_obj.engine.name,
+                need_public=not (user and user.is_superuser),
+            )
+            self.db_chat_engine = self.engine_config.get_db_chat_engine()
             logger.info(
                 f"Init ChatFlow for chat {chat_id} (chat_engine: {self.db_chat_obj.engine.name})"
             )
@@ -96,7 +93,9 @@ class ChatFlow:
                 for m in chat_repo.get_messages(self.db_session, self.db_chat_obj)
             ]
         else:
-            self.engine_config = ChatEngineConfig.load_from_db(db_session, engine_name)
+            self.engine_config = ChatEngineConfig.load_from_db(
+                db_session, engine_name, need_public=not (user and user.is_superuser)
+            )
             self.db_chat_engine = self.engine_config.get_db_chat_engine()
             self.db_chat_obj = chat_repo.create(
                 self.db_session,
@@ -108,11 +107,7 @@ class ChatFlow:
                     user_id=self.user.id if self.user else None,
                     browser_id=self.browser_id,
                     origin=origin,
-                    visibility=(
-                        ChatVisibility.PUBLIC
-                        if not self.user
-                        else ChatVisibility.PRIVATE
-                    ),
+                    visibility=ChatVisibility.PRIVATE,
                 ),
             )
             chat_id = self.db_chat_obj.id
@@ -491,7 +486,7 @@ class ChatFlow:
                 event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
                 payload=ChatStreamMessagePayload(
                     state=ChatMessageSate.SOURCE_NODES,
-                    context=source_documents,
+                    context=[] if self.engine_config.hide_sources else source_documents,
                 ),
             )
 
@@ -573,7 +568,13 @@ class ChatFlow:
 
                 return post_verification_link
             except Exception as e:
-                logger.exception("Failed to post verification: %s", e.message)
+                logger.warning(
+                    "Post verification failed",
+                    extra={
+                        "event": "post_verification_failed",
+                        "error_type": type(e).__name__,
+                    },
+                )
                 return None
 
     def _chat_finish(

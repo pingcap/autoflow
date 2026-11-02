@@ -193,3 +193,26 @@ before import. Failed/blocked pages now leave the import failed rather than
 silently reporting success; already imported pages remain available. Crawl errors
 omit URL query strings and response contents. Document hashes are stable across
 workers, avoiding unnecessary reindexing on subsequent imports.
+
+## Browser write protection and generation context
+
+Credentialed CORS now accepts only explicit HTTP(S) origins. Remove
+`BACKEND_CORS_ORIGIN_REGEXP`; wildcard hosts and origins containing credentials,
+paths, queries or fragments are rejected. Register trusted direct browser client
+origins in `BACKEND_CORS_ORIGINS`. The frontend proxy verifies requests from its
+own origin before forwarding them as explicit server requests, so same-origin
+preview deployments do not require a wildcard backend origin rule.
+
+Unsafe requests with Origin or Referer must match the backend origin or an
+explicitly trusted origin. Originless cookie clients must send `X-CSRF-Guard: 1`
+(or use an Authorization header); browser fetch metadata identifying a cross-site
+or same-site request without an origin is rejected. Frontend browser/server
+clients and the E2E login helper now send the guard. Headerless stateless clients
+remain supported. Rejected requests do not create browser identities.
+
+GET recommended-questions is now cache-only, including for owners. The UI requests
+generation with POST `?refresh=false`; explicit refresh uses POST `?refresh=true`
+(the existing POST default). Public readers can only obtain cached suggestions.
+Continuation model context uses at most 19 recent history messages plus the
+current user message, with a total 40,000-character budget. Only bounded text is
+selected from the database; the stored transcript is retained.

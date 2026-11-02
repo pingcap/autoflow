@@ -148,8 +148,9 @@ export async function getChatMessageSubgraph (chatMessageId: number): Promise<Kn
     .then(handleResponse(knowledgeGraphSchema));
 }
 
-export async function getChatMessageRecommendedQuestions (chatMessageId: number) {
-  return await fetch(requestUrl(`/api/v1/chat-messages/${chatMessageId}/recommended-questions`), {
+export async function ensureChatMessageRecommendedQuestions (chatMessageId: number) {
+  return await fetch(requestUrl(`/api/v1/chat-messages/${chatMessageId}/recommended-questions?refresh=false`), {
+    method: 'POST',
     headers: await authenticationHeaders(),
     credentials: 'include',
   })
@@ -157,7 +158,7 @@ export async function getChatMessageRecommendedQuestions (chatMessageId: number)
 }
 
 export async function reloadChatMessageRecommendedQuestions (chatMessageId: number) {
-  return await fetch(requestUrl(`/api/v1/chat-messages/${chatMessageId}/recommended-questions`), {
+  return await fetch(requestUrl(`/api/v1/chat-messages/${chatMessageId}/recommended-questions?refresh=true`), {
     method: 'POST',
     headers: await authenticationHeaders(),
     credentials: 'include',

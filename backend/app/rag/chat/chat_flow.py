@@ -103,8 +103,10 @@ class ChatFlow:
                 f"Init ChatFlow for chat {chat_id} (chat_engine: {self.db_chat_obj.engine.name})"
             )
             self.chat_history = [
-                ChatMessage(role=m.role, content=m.content, additional_kwargs={})
-                for m in chat_repo.get_messages(self.db_session, self.db_chat_obj)
+                ChatMessage(role=role, content=content, additional_kwargs={})
+                for role, content in chat_repo.get_context_messages(
+                    self.db_session, self.db_chat_obj, 40000 - len(self.user_question)
+                )
             ]
         else:
             self.engine_config = ChatEngineConfig.load_from_db(

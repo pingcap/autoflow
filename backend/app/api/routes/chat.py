@@ -236,9 +236,7 @@ def get_recommended_questions(
             session,
             chat_message,
             engine_name=chat_message.chat.engine.name,
-            allow_generate=user_can_edit_chat(
-                chat_message.chat, user, request.state.browser_id
-            ),
+            allow_generate=False,
             need_public=not (user and user.is_superuser),
         )
     except HTTPException as e:
@@ -250,26 +248,34 @@ def get_recommended_questions(
 
 @router.post("/chat-messages/{chat_message_id}/recommended-questions")
 def refresh_recommended_questions(
-    request: Request, session: SessionDep, user: OptionalUserDep, chat_message_id: int
+    request: Request,
+    session: SessionDep,
+    user: OptionalUserDep,
+    chat_message_id: int,
+    refresh: bool = Query(default=True),
 ) -> List[str]:
     try:
         chat_message = chat_repo.must_get_message(session, chat_message_id)
 
-        if not user_can_edit_chat(chat_message.chat, user, request.state.browser_id):
+        can_generate = user_can_edit_chat(
+            chat_message.chat, user, request.state.browser_id
+        )
+        if not user_can_view_chat(
+            chat_message.chat, user, request.state.browser_id
+        ) or (refresh and not can_generate):
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, detail="Access denied"
             )
 
         if not user_can_use_engine(chat_message.chat.engine, user):
             raise HTTPException(status_code=404, detail="Chat engine not found")
-        remove_chat_message_recommend_questions(session, chat_message_id)
+        if refresh:
+            remove_chat_message_recommend_questions(session, chat_message_id)
         return get_chat_message_recommend_questions(
             session,
             chat_message,
             engine_name=chat_message.chat.engine.name,
-            allow_generate=user_can_edit_chat(
-                chat_message.chat, user, request.state.browser_id
-            ),
+            allow_generate=can_generate,
             need_public=not (user and user.is_superuser),
         )
     except HTTPException as e:

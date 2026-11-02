@@ -75,6 +75,27 @@ class Settings(BaseSettings):
     ] = []
     BACKEND_CORS_ORIGIN_REGEXP: str | None = None
 
+    @field_validator("BACKEND_CORS_ORIGINS")
+    @classmethod
+    def cors_origins_must_be_exact(cls, values):
+        import json
+        from app.security.csrf import canonical_origin
+
+        if isinstance(values, str):
+            values = json.loads(values)
+        if not isinstance(values, list) or len(values) > 100:
+            raise ValueError("CORS requires a bounded list of exact origins")
+        return [AnyUrl(canonical_origin(str(value))) for value in values]
+
+    @field_validator("BACKEND_CORS_ORIGIN_REGEXP")
+    @classmethod
+    def reject_cors_regex(cls, value):
+        if value:
+            raise ValueError(
+                "Use exact BACKEND_CORS_ORIGINS instead of a regular expression"
+            )
+        return None
+
     # Exact additional origins trusted by the deployment operator, never by API input.
     PROVIDER_ALLOWED_ORIGINS: list[str] = []
     CRAWLER_ALLOWED_PRIVATE_ORIGINS: list[str] = []

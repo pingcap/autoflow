@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
+from app.security.csrf import CSRFMiddleware
 from app.api.main import api_router
 from app.core.config import settings
 from app.site_settings import SiteSetting
@@ -42,19 +43,6 @@ app = FastAPI(
 )
 
 
-# Set all CORS enabled origins
-if settings.BACKEND_CORS_ORIGINS:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[
-            str(origin).strip("/") for origin in settings.BACKEND_CORS_ORIGINS
-        ],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-
 @app.middleware("http")
 async def identify_browser(request: Request, call_next):
     browser_id = verify_browser_session(
@@ -83,3 +71,22 @@ async def identify_browser(request: Request, call_next):
 
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+
+# Origin checks run before browser cookies are created. CORS remains outermost so
+# valid preflights do not create identities and trusted clients can read errors.
+app.add_middleware(
+    CSRFMiddleware,
+    allowed_origins=[settings.server_host, *settings.BACKEND_CORS_ORIGINS],
+    cookie_names=[settings.SESSION_COOKIE_NAME, settings.BROWSER_ID_COOKIE_NAME],
+)
+if settings.BACKEND_CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            str(origin).rstrip("/") for origin in settings.BACKEND_CORS_ORIGINS
+        ],
+        allow_credentials=True,
+        allow_methods=["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization", "X-CSRF-Guard", "X-Request-ID"],
+    )

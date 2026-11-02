@@ -82,7 +82,7 @@ def test_foreign_chat_continuation_fails_before_history_or_model_access(monkeypa
     monkeypatch.setattr(chat_flow.chat_repo, "get", lambda *args: private)
     history = Mock()
     config = Mock()
-    monkeypatch.setattr(chat_flow.chat_repo, "get_messages", history)
+    monkeypatch.setattr(chat_flow.chat_repo, "get_context_messages", history)
     monkeypatch.setattr(ChatEngineConfig, "load_from_db", config)
     with pytest.raises(HTTPException):
         ChatFlow(

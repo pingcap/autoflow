@@ -1,4 +1,4 @@
-import { getChatMessageRecommendedQuestions, reloadChatMessageRecommendedQuestions } from '@/api/chats';
+import { ensureChatMessageRecommendedQuestions, reloadChatMessageRecommendedQuestions } from '@/api/chats';
 import { useChatMessageField, useChatMessageStreamState, useCurrentChatController } from '@/components/chat/chat-hooks';
 import type { ChatMessageController } from '@/components/chat/chat-message-controller';
 import { isNotFinished } from '@/components/chat/utils';
@@ -16,7 +16,7 @@ export function MessageRecommendQuestions ({ assistant }: { assistant: ChatMessa
   const state = useChatMessageStreamState(assistant);
   const finishedAt = useChatMessageField(assistant, 'finished_at');
   const shouldPerformRequest = !isNotFinished(state) && !!finishedAt;
-  const { data, mutate, isLoading } = useSWR(assistant && shouldPerformRequest && `chat.messages.${assistant.id}.recommend-questions`, () => getChatMessageRecommendedQuestions(assistant!.id), { revalidateOnFocus: false });
+  const { data, mutate, isLoading } = useSWR(assistant && shouldPerformRequest && `chat.messages.${assistant.id}.recommend-questions`, () => ensureChatMessageRecommendedQuestions(assistant!.id), { revalidateOnFocus: false });
 
   const [reloading, setReloading] = useState(false);
   const [reloadError, setReloadError] = useState<unknown>();

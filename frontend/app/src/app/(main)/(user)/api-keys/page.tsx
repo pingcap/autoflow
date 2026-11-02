@@ -26,7 +26,9 @@ const columns = [
   helper.accessor('api_key_display', { header: 'API Key', cell: mono }),
   helper.accessor('description', { header: 'Description' }),
   helper.accessor('created_at', { header: 'Created At', cell: datetime }),
-  helper.accessor('updated_at', { header: 'Updated At', cell: datetime }),
+  helper.accessor('expires_at', { header: 'Expires At', cell: datetime }),
+  helper.accessor('scopes', { header: 'Operations', cell: cell => cell.getValue()?.map(scope => scope === 'retrieve:chunks' ? 'Document search' : 'Graph search').join(', ') ?? 'Revoked' }),
+  helper.accessor('knowledge_base_ids', { header: 'Knowledge bases', cell: cell => cell.getValue()?.join(', ') ?? 'None' }),
   helper.display({
     header: 'Actions',
     cell: ({ row }) => (

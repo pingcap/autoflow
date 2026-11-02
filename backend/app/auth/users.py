@@ -10,7 +10,7 @@ from fastapi_users.authentication import (
     AuthenticationBackend,
     CookieTransport,
 )
-from fastapi_users.authentication.strategy import DatabaseStrategy
+from app.auth.session_strategy import VersionedDatabaseStrategy
 from fastapi_users_db_sqlmodel import SQLModelUserDatabaseAsync
 from fastapi_users_db_sqlmodel.access_token import SQLModelAccessTokenDatabaseAsync
 from fastapi_users.exceptions import UserAlreadyExists, UserNotExists
@@ -31,17 +31,17 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     verification_token_secret = settings.SECRET_KEY
 
     async def on_after_register(self, user: User, request: Optional[Request] = None):
-        print(f"User {user.id} has registered.")
+        logger.info("User registered", extra={"user_id": str(user.id)})
 
     async def on_after_forgot_password(
         self, user: User, token: str, request: Optional[Request] = None
     ):
-        print(f"User {user.id} has forgot their password. Reset token: {token}")
+        logger.info("Password reset requested", extra={"user_id": str(user.id)})
 
     async def on_after_request_verify(
         self, user: User, token: str, request: Optional[Request] = None
     ):
-        print(f"Verification requested for user {user.id}. Verification token: {token}")
+        logger.info("Email verification requested", extra={"user_id": str(user.id)})
 
 
 async def get_user_manager(user_db: SQLModelUserDatabaseAsync = Depends(get_user_db)):
@@ -59,8 +59,10 @@ def get_database_strategy(
     user_session_db: SQLModelAccessTokenDatabaseAsync[UserSession] = Depends(
         get_user_session_db
     ),
-) -> DatabaseStrategy:
-    return DatabaseStrategy(user_session_db, lifetime_seconds=3600 * 24 * 90)
+) -> VersionedDatabaseStrategy:
+    return VersionedDatabaseStrategy(
+        user_session_db, lifetime_seconds=settings.SESSION_COOKIE_MAX_AGE
+    )
 
 
 auth_backend = AuthenticationBackend(
@@ -155,7 +157,7 @@ async def create_user(
                 )
                 return user
     except UserAlreadyExists:
-        logger.error(f"User {email} already exists")
+        logger.warning("User registration rejected: duplicate account")
         raise
 
 
@@ -181,5 +183,8 @@ async def update_user_password(
         logger.error(str(e))
         raise
     except Exception as e:
-        logger.error(f"Failed to update password for user {id}: {e}")
+        logger.error(
+            "Password update failed",
+            extra={"user_id": str(user_id), "error_type": type(e).__name__},
+        )
         raise

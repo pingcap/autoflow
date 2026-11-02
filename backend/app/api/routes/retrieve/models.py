@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.rag.retrievers.knowledge_graph.schema import (
     KnowledgeGraphRetrieverConfig,
@@ -17,7 +17,7 @@ class ChunkRetrievalConfig(FusionRetrievalBaseConfig):
 
 
 class ChunksRetrievalRequest(BaseModel):
-    query: str
+    query: str = Field(min_length=1, max_length=8192)
     retrieval_config: ChunkRetrievalConfig
 
 
@@ -29,5 +29,5 @@ class KnowledgeGraphRetrievalConfig(FusionRetrievalBaseConfig):
 
 
 class KnowledgeGraphRetrievalRequest(BaseModel):
-    query: str
+    query: str = Field(min_length=1, max_length=8192)
     retrieval_config: KnowledgeGraphRetrievalConfig

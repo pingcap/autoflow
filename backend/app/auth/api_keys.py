@@ -17,6 +17,7 @@ from fastapi_pagination.ext.sqlmodel import apaginate
 
 from app.models import ApiKey, User, KnowledgeBase, Chat, ChatEngine
 from uuid import UUID
+from app.security.audit import bind_actor, security_event
 
 
 def generate_api_key(length=50):
@@ -136,6 +137,8 @@ class ApiKeyManager:
         self, session: AsyncSession, api_key: str
     ) -> Optional[User]:
         authenticated = await self._authenticate(session, api_key)
+        if not authenticated:
+            security_event("api_key_rejected")
         return authenticated[1] if authenticated else None
 
     async def get_active_user_from_request(
@@ -143,11 +146,17 @@ class ApiKeyManager:
     ) -> Optional[User]:
         raw_key = get_api_key_from_request(request)
         if raw_key is None:
+            if request.headers.get(API_KEY_HEADER) is not None:
+                security_event("api_key_rejected")
+                raise HTTPException(status_code=401, detail="Invalid API key")
             return None
         authenticated = await self._authenticate(session, raw_key)
         if not authenticated:
+            security_event("api_key_rejected")
             raise HTTPException(status_code=401, detail="Invalid API key")
         key, user = authenticated
+        request.state.api_key_id = key.id
+        bind_actor(user, request)
         required_scope = {
             f"{settings.API_V1_STR}/chats": "chat:write",
             f"{settings.API_V1_STR}/retrieve/chunks": "retrieve:chunks",
@@ -202,6 +211,8 @@ class ApiKeyManager:
         request.state.auth_method = "api_key"
         request.state.api_key_id = key.id
         request.state.user_id = str(user.id)
+        bind_actor(user, request)
+        security_event("api_key_accepted")
         return user
 
     async def _authorize_chat(self, session, request, payload, key, user):

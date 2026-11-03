@@ -22,6 +22,7 @@ from app.models import User, UserSession
 from app.auth.db import get_user_db, get_user_session_db
 from app.auth.api_keys import api_key_manager
 from app.auth.schemas import UserCreate, UserUpdate
+from app.security.audit import bind_actor, security_event, token_authentication_flow
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,18 @@ logger = logging.getLogger(__name__)
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     reset_password_token_secret = settings.SECRET_KEY
     verification_token_secret = settings.SECRET_KEY
+
+    async def on_after_login(self, user, request=None, response=None):
+        bind_actor(user, request)
+        security_event("login_succeeded")
+
+    async def reset_password(self, token, password, request=None):
+        with token_authentication_flow("recovery"):
+            return await super().reset_password(token, password, request)
+
+    async def verify(self, token, request=None):
+        with token_authentication_flow("verification"):
+            return await super().verify(token, request)
 
     async def on_after_register(self, user: User, request: Optional[Request] = None):
         logger.info("User registered", extra={"user_id": str(user.id)})
@@ -86,12 +99,14 @@ async def current_user(
 ) -> User:
     if user:
         # already authenticated with a valid session cookie
+        bind_actor(user, request)
         return user
 
     # check for an API key
     user = await api_key_manager.get_active_user_from_request(session, request)
     if not user:
         raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED)
+    bind_actor(user, request)
     return user
 
 
@@ -103,6 +118,7 @@ async def current_superuser(
     session: AsyncSession = Depends(get_db_async_session),
 ) -> User:
     if user:
+        bind_actor(user, request)
         if user.is_superuser:
             return user
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN)
@@ -111,6 +127,7 @@ async def current_superuser(
     user = await api_key_manager.get_active_user_from_request(session, request)
     if not user:
         raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED)
+    bind_actor(user, request)
     if not user.is_superuser:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN)
     return user
@@ -125,10 +142,13 @@ async def optional_current_user(
 ) -> Optional[User]:
     if user:
         # already authenticated with a valid session cookie
+        bind_actor(user, request)
         return user
 
     # check for an API key
-    return await api_key_manager.get_active_user_from_request(session, request)
+    user = await api_key_manager.get_active_user_from_request(session, request)
+    bind_actor(user, request)
+    return user
 
 
 get_user_db_context = contextlib.asynccontextmanager(get_user_db)

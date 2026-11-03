@@ -8,6 +8,7 @@ from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 from app.security.csrf import CSRFMiddleware
 from app.security.generation import GenerationBodyLimitMiddleware
+from app.security.audit import AuditMiddleware
 from app.api.main import api_router
 from app.core.config import settings
 from app.site_settings import SiteSetting
@@ -92,3 +93,5 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_methods=["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization", "X-CSRF-Guard", "X-Request-ID"],
     )
+
+app.add_middleware(AuditMiddleware, prefix=settings.API_V1_STR)

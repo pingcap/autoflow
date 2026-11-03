@@ -269,3 +269,41 @@ its conservative IP quota. Validate the actual deployment proxy before rollout.
 The security tests launch an isolated local Redis with persistence disabled. Use
 `SECURITY_REDIS_SERVER=/path/to/redis-server` if it is not on PATH; CI installs the
 test binary explicitly. No deployment Redis database is accessed by these tests.
+
+## Security events and committed audit records
+
+Apply revision `31f7b624d9a0` before starting the new API or workers. It adds
+nullable attribution fields and indexes to `staff_action_logs`; existing rows
+remain explicitly unattributed. Preserve those historical rows. Downgrading this
+revision removes the new attribution fields, so export the audit table before a
+schema rollback if those records must be retained.
+
+New records contain the authenticated actor ID, authentication kind, API-key ID
+when applicable, a server-generated request ID, resource identifier and changed
+field names. Graph edits additionally record the knowledge-base ID, which
+disambiguates per-KB entity and relationship IDs. Values, credentials, documents,
+prompts and before/after snapshots are not copied into new audit records. Legacy
+numeric target IDs remain available; nonnumeric identifiers use
+`target_identifier`. A bulk SQL operation without one explicit primary-key
+predicate is identified as `bulk`.
+
+The database audit hooks cover ORM and session-executed update/delete operations
+for users, LLMs, embeddings, rerankers, chat engines, site settings, knowledge bases,
+datasources, API keys and evaluation datasets/items/tasks within authenticated write
+requests. Graph edits use an explicit writer. Audit insertion shares the mutation
+transaction; failure to write the audit record prevents the mutation from
+committing. Synopsis creation now commits its audit row with its graph changes.
+Unattributed internal graph jobs are marked `system`; HTTP actor identities are
+never taken from caller-supplied headers. Offline imports, raw connection-level
+SQL and database administrator actions require their separate operator/database
+audit facilities.
+
+The `security.audit` logger emits a separate JSON event stream for login outcomes,
+rejected sessions/API keys, accepted API-key requests, authorization denials and
+privileged HTTP request outcomes. Request logs describe the HTTP outcome; the
+database rows identify committed mutations. Events use route templates, omit
+queries/bodies/cookies/credential values and HMAC the source address. Each response
+gets a fresh `X-Request-ID`, overriding untrusted inbound correlation values.
+Collect this stream and the audit table in the deployment's restricted logging
+system, configure retention/alerts for authentication failures and privilege
+denials, and validate actual collector ingestion during rollout.

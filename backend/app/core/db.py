@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
+from app.security.audit import install_audit_hooks
 
 
 # TiDB Serverless clusters have a limitation: if there are no active connections for 5 minutes,
@@ -70,3 +71,5 @@ async def get_db_async_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 get_db_async_session_context = contextlib.asynccontextmanager(get_db_async_session)
+
+install_audit_hooks()

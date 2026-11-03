@@ -6,10 +6,20 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models import User, UserSession, ApiKey
 from sqlmodel import delete, update
 from app.core.db import get_db_async_session
+from app.security.audit import audit_context
 
 
 class RevokingUserDatabase(SQLModelUserDatabaseAsync):
     async def update(self, user: User, update_dict: dict) -> User:
+        context = audit_context.get()
+        if context and context.token_flow in {"recovery", "verification"}:
+            # FastAPI Users reaches this database mutation only after validating
+            # the recovery/verification token and its subject. Do not attribute
+            # it to an unrelated session cookie on the same browser request.
+            context.actor_id = str(user.id)
+            context.actor_type = context.token_flow
+            context.api_key_id = None
+            context.privileged = False
         credential_fields = {
             "hashed_password",
             "email",

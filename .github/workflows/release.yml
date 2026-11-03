@@ -172,6 +172,9 @@ jobs:
           run: npm ci
 
         - name: Install Playwright Browsers
+          timeout-minutes: 8
+          env:
+            PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT: '60000'
           run: npx playwright install --with-deps chromium
 
         - name: Prepare Tests

@@ -71,7 +71,7 @@ export function MessageInput ({
               <SelectItem key={item.name} value={String(item.name)} textValue={item.name}>
               <span className="flex items-center gap-2">
                 {item.is_default ? <Badge variant="outline" className="text-success border-success/70">default</Badge> : item.name}
-                {!!item.engine_options.external_engine_config?.stream_chat_api_url
+                {!!(item.engine_options.external_engine_config?.enabled || item.engine_options.external_engine_config?.stream_chat_api_url)
                   ? <Badge>External Engine (StackVM)</Badge>
                   : item.engine_options.knowledge_graph?.enabled !== false /* TODO: require default config */
                     ? <Badge variant="secondary">Knowledge graph enabled</Badge>

@@ -4,7 +4,7 @@ import { AppChatStreamState, type BaseAnnotation, chatDataPartSchema, fixChatIni
 import type { GtagFn } from '@/components/gtag-provider';
 import { getErrorMessage } from '@/lib/errors';
 import { trigger } from '@/lib/react';
-import { type JSONValue, type StreamPart } from 'ai';
+import { type JSONValue, type StreamPart } from '@/lib/stream-parts';
 import EventEmitter from 'eventemitter3';
 
 export interface ChatControllerEventsMap<State = AppChatStreamState, Annotation extends BaseAnnotation<State> = BaseAnnotation<State>> {
@@ -308,7 +308,7 @@ export class ChatController<State extends AppChatStreamState = AppChatStreamStat
       throw new Error('Unable to decide which chat engine used.');
     }
 
-    if (this.chat.engine_options.external_engine_config?.stream_chat_api_url) {
+    if ((this.chat.engine_options.external_engine_config?.enabled || this.chat.engine_options.external_engine_config?.stream_chat_api_url)) {
       return this.createStackVMMessage(message, initialOngoingState);
     } else {
       return this.createLegacyMessage(message, initialOngoingState);

@@ -2,18 +2,28 @@ import { authenticationHeaders, handleErrors, handleResponse, type Page, type Pa
 import { zodJsonDate } from '@/lib/zod';
 import { z, type ZodType, type ZodTypeDef } from 'zod';
 
+export type ApiKeyScope = 'retrieve:chunks' | 'retrieve:graph' | 'chat:write';
+
 export interface ApiKey {
   created_at: Date;
   updated_at: Date;
   description: string;
   api_key_display: string;
   is_active: boolean;
+  expires_at: Date | null;
+  scopes: ApiKeyScope[] | null;
+  knowledge_base_ids: number[] | null;
+  chat_engine_ids: number[] | null;
   user_id: string;
   id: number;
 }
 
 export interface CreateApiKey {
   description: string;
+  scopes: ApiKeyScope[];
+  knowledge_base_ids: number[];
+  chat_engine_ids: number[];
+  expires_in_days: number;
 }
 
 export interface CreateApiKeyResponse {
@@ -26,6 +36,10 @@ const apiKeySchema = z.object({
   description: z.string(),
   api_key_display: z.string(),
   is_active: z.boolean(),
+  expires_at: zodJsonDate().nullable(),
+  scopes: z.array(z.enum(['retrieve:chunks', 'retrieve:graph', 'chat:write'])).nullable(),
+  knowledge_base_ids: z.array(z.number()).nullable(),
+  chat_engine_ids: z.array(z.number()).nullable(),
   user_id: z.string(),
   id: z.number(),
 }) satisfies ZodType<ApiKey, ZodTypeDef, any>;

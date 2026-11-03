@@ -1,6 +1,11 @@
 #!/bin/bash
 
 set -e
+umask 077
+
+# Every isolated test database gets fresh signing and encryption keys.
+export SECRET_KEY="$(openssl rand -hex 32)"
+export DATA_ENCRYPTION_KEY="$(openssl rand -base64 32)"
 
 # Formats
 NO_FORMAT="\033[0m"
@@ -47,9 +52,11 @@ function clean_up {
   echo -e "$TAG Cleaning tiup playground data..."
   tiup clean ${CLUSTER_TAG}
 
+  rm -f .credentials bootstrap.stdout
+
   # Remove temp dirs
   echo -e "$TAG Cleaning temp data dirs"
-  rm -rf ${E2E_DATA_STORAGE_DIR} ${E2E_DATA_REDIS_DIR} 2>/dev/null || true
+  rm -rf -- "${E2E_DATA_STORAGE_DIR}" "${E2E_DATA_REDIS_DIR}" 2>/dev/null || true
 
   exit $ARG
 }
@@ -71,11 +78,13 @@ echo -e "$TAG Execute migrations"
 docker compose run --rm backend /bin/sh -c "alembic upgrade head"
 
 echo -e "$TAG Execute bootstrap"
-docker compose run --rm backend /bin/sh -c "python bootstrap.py" > bootstrap.stdout
-
-echo -e "$TAG Extract initial username and password"
-cat bootstrap.stdout | grep IMPORTANT | sed 's/^.*email: \(.*\) and password: \(.*\)$/USERNAME=\1\nPASSWORD=\2/' > .credentials
-cat .credentials
+openssl rand -base64 32 > "$E2E_DATA_STORAGE_DIR/.bootstrap-admin-password"
+docker compose run --rm backend python bootstrap.py --password-file /shared/data/.bootstrap-admin-password
+{
+  printf 'USERNAME=admin@example.com\nPASSWORD='
+  cat "$E2E_DATA_STORAGE_DIR/.bootstrap-admin-password"
+} > .credentials
+rm -f "$E2E_DATA_STORAGE_DIR/.bootstrap-admin-password"
 
 echo -e "$TAG Start components"
 docker compose up -d redis frontend backend background static-web-server

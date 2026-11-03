@@ -1,3 +1,4 @@
+from sqlalchemy import and_, false
 import enum
 from uuid import UUID
 from typing import Optional, List, Dict, Any
@@ -28,10 +29,19 @@ class ChatRepo(BaseRepo):
         if user:
             if not user.is_superuser:
                 query = query.where(
-                    or_(Chat.user_id == user.id, Chat.browser_id == browser_id)
+                    or_(
+                        Chat.user_id == user.id,
+                        and_(Chat.user_id == None, Chat.browser_id == browser_id)
+                        if browser_id
+                        else false(),
+                    )
                 )
         else:
-            query = query.where(Chat.browser_id == browser_id, Chat.user_id == None)
+            query = (
+                query.where(Chat.browser_id == browser_id, Chat.user_id == None)
+                if browser_id
+                else query.where(false())
+            )
 
         # filters
         if filters.created_at_start:
@@ -107,6 +117,32 @@ class ChatRepo(BaseRepo):
             .where(ChatMessage.chat_id == chat.id)
             .order_by(ChatMessage.ordinal.asc())
         ).all()
+
+    def get_context_messages(self, session: Session, chat: Chat, remaining_chars: int):
+        """Fetch only bounded text for the latest model context, never source metadata."""
+        remaining_chars = max(0, min(40000, remaining_chars))
+        rows = session.exec(
+            select(
+                ChatMessage.role,
+                func.substr(ChatMessage.content, -20000).label("content"),
+            )
+            .where(
+                ChatMessage.chat_id == chat.id,
+                ChatMessage.role.in_(["user", "assistant"]),
+                ChatMessage.error.is_(None),
+            )
+            .order_by(ChatMessage.ordinal.desc(), ChatMessage.id.desc())
+            .limit(19)
+        ).all()
+        result = []
+        for role, content in rows:
+            if remaining_chars == 0:
+                break
+            content = (content or "")[-remaining_chars:]
+            if content:
+                result.append((role, content))
+                remaining_chars -= len(content)
+        return result[::-1]
 
     def get_message(
         self,

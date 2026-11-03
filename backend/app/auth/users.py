@@ -10,7 +10,7 @@ from fastapi_users.authentication import (
     AuthenticationBackend,
     CookieTransport,
 )
-from fastapi_users.authentication.strategy import DatabaseStrategy
+from app.auth.session_strategy import VersionedDatabaseStrategy
 from fastapi_users_db_sqlmodel import SQLModelUserDatabaseAsync
 from fastapi_users_db_sqlmodel.access_token import SQLModelAccessTokenDatabaseAsync
 from fastapi_users.exceptions import UserAlreadyExists, UserNotExists
@@ -22,6 +22,7 @@ from app.models import User, UserSession
 from app.auth.db import get_user_db, get_user_session_db
 from app.auth.api_keys import api_key_manager
 from app.auth.schemas import UserCreate, UserUpdate
+from app.security.audit import bind_actor, security_event, token_authentication_flow
 
 logger = logging.getLogger(__name__)
 
@@ -30,18 +31,30 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     reset_password_token_secret = settings.SECRET_KEY
     verification_token_secret = settings.SECRET_KEY
 
+    async def on_after_login(self, user, request=None, response=None):
+        bind_actor(user, request)
+        security_event("login_succeeded")
+
+    async def reset_password(self, token, password, request=None):
+        with token_authentication_flow("recovery"):
+            return await super().reset_password(token, password, request)
+
+    async def verify(self, token, request=None):
+        with token_authentication_flow("verification"):
+            return await super().verify(token, request)
+
     async def on_after_register(self, user: User, request: Optional[Request] = None):
-        print(f"User {user.id} has registered.")
+        logger.info("User registered", extra={"user_id": str(user.id)})
 
     async def on_after_forgot_password(
         self, user: User, token: str, request: Optional[Request] = None
     ):
-        print(f"User {user.id} has forgot their password. Reset token: {token}")
+        logger.info("Password reset requested", extra={"user_id": str(user.id)})
 
     async def on_after_request_verify(
         self, user: User, token: str, request: Optional[Request] = None
     ):
-        print(f"Verification requested for user {user.id}. Verification token: {token}")
+        logger.info("Email verification requested", extra={"user_id": str(user.id)})
 
 
 async def get_user_manager(user_db: SQLModelUserDatabaseAsync = Depends(get_user_db)):
@@ -59,8 +72,10 @@ def get_database_strategy(
     user_session_db: SQLModelAccessTokenDatabaseAsync[UserSession] = Depends(
         get_user_session_db
     ),
-) -> DatabaseStrategy:
-    return DatabaseStrategy(user_session_db, lifetime_seconds=3600 * 24 * 90)
+) -> VersionedDatabaseStrategy:
+    return VersionedDatabaseStrategy(
+        user_session_db, lifetime_seconds=settings.SESSION_COOKIE_MAX_AGE
+    )
 
 
 auth_backend = AuthenticationBackend(
@@ -84,12 +99,14 @@ async def current_user(
 ) -> User:
     if user:
         # already authenticated with a valid session cookie
+        bind_actor(user, request)
         return user
 
     # check for an API key
     user = await api_key_manager.get_active_user_from_request(session, request)
     if not user:
         raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED)
+    bind_actor(user, request)
     return user
 
 
@@ -101,6 +118,7 @@ async def current_superuser(
     session: AsyncSession = Depends(get_db_async_session),
 ) -> User:
     if user:
+        bind_actor(user, request)
         if user.is_superuser:
             return user
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN)
@@ -109,6 +127,7 @@ async def current_superuser(
     user = await api_key_manager.get_active_user_from_request(session, request)
     if not user:
         raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED)
+    bind_actor(user, request)
     if not user.is_superuser:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN)
     return user
@@ -123,10 +142,13 @@ async def optional_current_user(
 ) -> Optional[User]:
     if user:
         # already authenticated with a valid session cookie
+        bind_actor(user, request)
         return user
 
     # check for an API key
-    return await api_key_manager.get_active_user_from_request(session, request)
+    user = await api_key_manager.get_active_user_from_request(session, request)
+    bind_actor(user, request)
+    return user
 
 
 get_user_db_context = contextlib.asynccontextmanager(get_user_db)
@@ -155,7 +177,7 @@ async def create_user(
                 )
                 return user
     except UserAlreadyExists:
-        logger.error(f"User {email} already exists")
+        logger.warning("User registration rejected: duplicate account")
         raise
 
 
@@ -181,5 +203,8 @@ async def update_user_password(
         logger.error(str(e))
         raise
     except Exception as e:
-        logger.error(f"Failed to update password for user {id}: {e}")
+        logger.error(
+            "Password update failed",
+            extra={"user_id": str(user_id), "error_type": type(e).__name__},
+        )
         raise

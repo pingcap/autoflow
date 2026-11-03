@@ -1,3 +1,5 @@
+from app.security.provider_http import openai_http_clients
+from app.security.provider_config import prepare_provider_config
 from typing import Optional
 
 from llama_index.embeddings.azure_openai import AzureOpenAIEmbedding
@@ -5,7 +7,10 @@ from sqlmodel import Session
 
 from llama_index.core.base.embeddings.base import BaseEmbedding
 from llama_index.embeddings.openai import OpenAIEmbedding
-from llama_index.embeddings.jinaai import JinaEmbedding
+from app.rag.provider_adapters import (
+    BoundedJinaEmbedding as JinaEmbedding,
+    cohere_http_clients,
+)
 from llama_index.embeddings.cohere import CohereEmbedding
 from llama_index.embeddings.bedrock import BedrockEmbedding
 from llama_index.embeddings.ollama import OllamaEmbedding
@@ -23,9 +28,11 @@ def resolve_embed_model(
     config: dict,
     credentials: str | list | dict | None,
 ) -> BaseEmbedding:
+    config = prepare_provider_config("embedding", provider, model, config, credentials)
     match provider:
         case EmbeddingProvider.OPENAI:
             return OpenAIEmbedding(
+                **openai_http_clients(),
                 model=model,
                 api_key=credentials,
                 **config,
@@ -38,6 +45,7 @@ def resolve_embed_model(
             )
         case EmbeddingProvider.COHERE:
             return CohereEmbedding(
+                **cohere_http_clients(),
                 model_name=model,
                 cohere_api_key=credentials,
                 **config,
@@ -52,23 +60,32 @@ def resolve_embed_model(
             )
         case EmbeddingProvider.OLLAMA:
             return OllamaEmbedding(
+                client_kwargs={
+                    "timeout": 60,
+                    "trust_env": False,
+                    "follow_redirects": False,
+                    "headers": {
+                        "Authorization": f"Bearer {credentials or 'autoflow-local-no-auth'}"
+                    },
+                },
                 model_name=model,
                 **config,
             )
         case EmbeddingProvider.LOCAL:
             return LocalEmbedding(
+                api_key=credentials,
                 model=model,
                 **config,
             )
         case EmbeddingProvider.GITEEAI:
             return OpenAILikeEmbedding(
                 model=model,
-                api_base="https://ai.gitee.com/v1",
                 api_key=credentials,
                 **config,
             )
         case EmbeddingProvider.AZURE_OPENAI:
             return AzureOpenAIEmbedding(
+                **openai_http_clients(),
                 model=model,
                 api_key=credentials,
                 **config,

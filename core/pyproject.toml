@@ -7,37 +7,37 @@ authors = [
     { name = "sykp241095", email = "sykp241095@gmail.com" },
 ]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 # Dependencies
 
 dependencies = [
-    "litellm>=1.77.5",
-    "llama-index-core>=0.12.23.post2",
-    "llama-index-llms-litellm>=0.3.0",
-    "llama-index-readers-file>=0.4.6",
-    "deepdiff>=8.2.0",
+    "litellm>=1.88.6",
+    "llama-index-core>=0.13.0",
+    "llama-index-llms-litellm>=0.6.0",
+    "llama-index-readers-file>=0.5.6",
+    "deepdiff>=8.6.2",
     "pytidb==0.0.4.dev1",
     "markdownify>=0.13.1",
     "playwright>=1.20.0",
-    "dspy>=2.6.6",
+    "dspy>=3.0.4",
     "tokenizers>=0.21.0",
     "mypy>=1.15.0",
-    "banks>=2.1.1",
+    "banks>=2.5.1",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3.4",
+    "pytest>=9.0.3",
     "pytest-dotenv>=0.5.2",
     "pre-commit>=4.1.0",
-    "pip>=25.0.1",
-    "notebook>=7.3.2",
+    "pip>=26.2.0",
+    "notebook>=7.5.6",
     "markdownify>=0.13.1",
     "playwright>=1.20.0",
-    "dspy>=2.6.6",
+    "dspy>=3.0.4",
     "tokenizers>=0.21.0",
-    "llama-index-readers-file>=0.4.6",
+    "llama-index-readers-file>=0.5.6",
     "mypy>=1.15.0",
     "numpy>=1.26.4",
     "ipywidgets>=8.1.6",

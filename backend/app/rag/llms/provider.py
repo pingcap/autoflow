@@ -101,7 +101,7 @@ llm_provider_options: List[LLMProviderOption] = [
         default_config={
             "base_url": "http://localhost:11434",
             "context_window": 8192,
-            "request_timeout": 60 * 10,
+            "request_timeout": 60,
         },
         config_description=(
             "`base_url` is the base URL of the Ollama server, ensure it can be accessed from this server; "

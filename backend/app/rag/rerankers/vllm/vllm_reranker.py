@@ -1,5 +1,5 @@
 from typing import Any, List, Optional
-import requests
+from app.security.provider_http import ProviderSession
 
 from llama_index.core.bridge.pydantic import Field, PrivateAttr
 from llama_index.core.callbacks import CBEventType, EventPayload
@@ -31,7 +31,7 @@ class VLLMRerank(BaseNodePostprocessor):
         super().__init__(top_n=top_n, model=model)
         self.base_url = base_url
         self.model = model
-        self._session = requests.Session()
+        self._session = ProviderSession(base_url)
 
     @classmethod
     def class_name(cls) -> str:
@@ -80,7 +80,7 @@ class VLLMRerank(BaseNodePostprocessor):
             resp.raise_for_status()
             resp_json = resp.json()
             if "data" not in resp_json:
-                raise RuntimeError(f"Got error from reranker: {resp_json}")
+                raise RuntimeError("Reranker returned an invalid response")
 
             results = zip(range(len(nodes)), resp_json["data"])
             results = sorted(results, key=lambda x: x[1]["score"], reverse=True)[

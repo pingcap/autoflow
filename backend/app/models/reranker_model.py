@@ -18,7 +18,11 @@ class BaseRerankerModel(UpdatableBaseModel):
 
 class RerankerModel(BaseRerankerModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    credentials: Any = Field(sa_column=Column(AESEncryptedColumn, nullable=True))
+    credentials: Any = Field(
+        sa_column=Column(
+            AESEncryptedColumn("reranker_models.credentials"), nullable=True
+        )
+    )
 
     __tablename__ = "reranker_models"
 

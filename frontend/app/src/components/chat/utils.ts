@@ -21,13 +21,13 @@ export function parseSource (uri?: string) {
   }
 }
 
-export function parseHref (source: ChatMessageSource): { href: string, download?: string, target?: HTMLAnchorElement['target'] } {
+export function parseHref (source: ChatMessageSource, chatId?: string): { href: string, download?: string, target?: HTMLAnchorElement['target'] } {
   if (/^https?:\/\//.test(source.source_uri)) {
     return { href: source.source_uri, target: '_blank' };
   } else if (source.source_uri.startsWith('uploads/')) {
-    return { href: `/api/v1/documents/${source.id}/download`, download: source.source_uri.slice(source.source_uri.lastIndexOf('/') + 1) };
+    return { href: `/api/v1/documents/${source.id}/download${chatId ? `?chat_id=${encodeURIComponent(chatId)}` : ''}`, download: source.source_uri.slice(source.source_uri.lastIndexOf('/') + 1) };
   } else {
-    return { href: 'javascript:void(0)' };
+    return { href: '#' };
   }
 }
 

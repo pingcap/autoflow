@@ -2,8 +2,8 @@ import type { ChatEngineOptions } from '@/api/chat-engines';
 import { type KnowledgeGraph, KnowledgeGraphEntityType, knowledgeGraphSchema } from '@/api/graph';
 import { bufferedReadableStreamTransformer } from '@/lib/buffered-readable-stream';
 import { authenticationHeaders, handleErrors, handleResponse, type Page, type PageParams, requestUrl, zodPage } from '@/lib/request';
+import { parseStreamPart } from '@/lib/stream-parts';
 import { zodJsonDate } from '@/lib/zod';
-import { parseStreamPart } from 'ai';
 import { z, type ZodType } from 'zod';
 
 type ClientEngineOptions = Omit<ChatEngineOptions, 'post_verification_token'>;
@@ -148,8 +148,9 @@ export async function getChatMessageSubgraph (chatMessageId: number): Promise<Kn
     .then(handleResponse(knowledgeGraphSchema));
 }
 
-export async function getChatMessageRecommendedQuestions (chatMessageId: number) {
-  return await fetch(requestUrl(`/api/v1/chat-messages/${chatMessageId}/recommended-questions`), {
+export async function ensureChatMessageRecommendedQuestions (chatMessageId: number) {
+  return await fetch(requestUrl(`/api/v1/chat-messages/${chatMessageId}/recommended-questions?refresh=false`), {
+    method: 'POST',
     headers: await authenticationHeaders(),
     credentials: 'include',
   })
@@ -157,7 +158,7 @@ export async function getChatMessageRecommendedQuestions (chatMessageId: number)
 }
 
 export async function reloadChatMessageRecommendedQuestions (chatMessageId: number) {
-  return await fetch(requestUrl(`/api/v1/chat-messages/${chatMessageId}/recommended-questions`), {
+  return await fetch(requestUrl(`/api/v1/chat-messages/${chatMessageId}/recommended-questions?refresh=true`), {
     method: 'POST',
     headers: await authenticationHeaders(),
     credentials: 'include',

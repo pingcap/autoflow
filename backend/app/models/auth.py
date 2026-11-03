@@ -17,6 +17,9 @@ from app.models.base import UpdatableBaseModel, UUIDBaseModel
 class User(UUIDBaseModel, UpdatableBaseModel, table=True):
     email: EmailStr = Field(index=True, unique=True, nullable=False)
     hashed_password: str
+    auth_version: int = Field(
+        default=0, nullable=False, sa_column_kwargs={"server_default": "0"}
+    )
     is_active: bool = Field(True, nullable=False)
     is_superuser: bool = Field(False, nullable=False)
     is_verified: bool = Field(False, nullable=False)
@@ -26,6 +29,9 @@ class User(UUIDBaseModel, UpdatableBaseModel, table=True):
 
 class UserSession(SQLModel, table=True):
     token: str = Field(max_length=43, primary_key=True)
+    auth_version: int = Field(
+        default=0, nullable=False, sa_column_kwargs={"server_default": "0"}
+    )
     created_at: Optional[datetime] = Field(
         default=None,
         sa_type=DateTime(timezone=True),

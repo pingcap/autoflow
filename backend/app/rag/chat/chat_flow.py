@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+from app.auth.chat_access import user_can_edit_chat
 import json
 import logging
 from datetime import datetime, UTC
@@ -11,7 +13,7 @@ from langfuse.llama_index._context import langfuse_instrumentor_context
 from llama_index.core import get_response_synthesizer
 from llama_index.core.base.llms.types import ChatMessage, MessageRole
 from llama_index.core.schema import NodeWithScore
-from llama_index.core.prompts.rich import RichPromptTemplate
+from app.security.prompt_template import SafePromptTemplate
 
 from sqlmodel import Session
 from app.core.config import settings
@@ -61,6 +63,9 @@ class ChatFlow:
         chat_messages: List[ChatMessage],
         engine_name: str = "default",
         chat_id: Optional[UUID] = None,
+        api_key_id: Optional[int] = None,
+        allowed_engine_ids: Optional[List[int]] = None,
+        on_authorized=None,
     ) -> None:
         self.chat_id = chat_id
         self.db_session = db_session
@@ -71,33 +76,52 @@ class ChatFlow:
         # Load chat engine and chat session.
         self.user_question, self.chat_history = parse_chat_messages(chat_messages)
         if chat_id:
-            # FIXME:
-            #   only chat owner or superuser can access the chat,
-            #   anonymous user can only access anonymous chat by track_id
             self.db_chat_obj = chat_repo.get(self.db_session, chat_id)
-            if not self.db_chat_obj:
+            if not self.db_chat_obj or not user_can_edit_chat(
+                self.db_chat_obj, user, browser_id
+            ):
                 raise ChatNotFound(chat_id)
-            try:
-                self.engine_config = ChatEngineConfig.load_from_db(
-                    db_session, self.db_chat_obj.engine.name
-                )
-                self.db_chat_engine = self.engine_config.get_db_chat_engine()
-            except Exception as e:
-                logger.error(f"Failed to load chat engine config: {e}")
-                self.engine_config = ChatEngineConfig.load_from_db(
-                    db_session, engine_name
-                )
-                self.db_chat_engine = self.engine_config.get_db_chat_engine()
+            if api_key_id is not None and (
+                not user
+                or self.db_chat_obj.user_id != user.id
+                or self.db_chat_obj.api_key_id != api_key_id
+                or self.db_chat_obj.engine_id not in (allowed_engine_ids or [])
+            ):
+                raise ChatNotFound(chat_id)
+            if not self.db_chat_obj.engine:
+                raise ChatNotFound(chat_id)
+            self.engine_config = ChatEngineConfig.load_from_db(
+                db_session,
+                self.db_chat_obj.engine.name,
+                need_public=not (user and user.is_superuser),
+            )
+            self.db_chat_engine = self.engine_config.get_db_chat_engine()
+            if api_key_id is not None and self.db_chat_engine.id not in (
+                allowed_engine_ids or []
+            ):
+                raise HTTPException(status_code=404, detail="Chat engine not found")
             logger.info(
                 f"Init ChatFlow for chat {chat_id} (chat_engine: {self.db_chat_obj.engine.name})"
             )
+            if on_authorized:
+                on_authorized()
             self.chat_history = [
-                ChatMessage(role=m.role, content=m.content, additional_kwargs={})
-                for m in chat_repo.get_messages(self.db_session, self.db_chat_obj)
+                ChatMessage(role=role, content=content, additional_kwargs={})
+                for role, content in chat_repo.get_context_messages(
+                    self.db_session, self.db_chat_obj, 40000 - len(self.user_question)
+                )
             ]
         else:
-            self.engine_config = ChatEngineConfig.load_from_db(db_session, engine_name)
+            self.engine_config = ChatEngineConfig.load_from_db(
+                db_session, engine_name, need_public=not (user and user.is_superuser)
+            )
             self.db_chat_engine = self.engine_config.get_db_chat_engine()
+            if api_key_id is not None and self.db_chat_engine.id not in (
+                allowed_engine_ids or []
+            ):
+                raise HTTPException(status_code=404, detail="Chat engine not found")
+            if on_authorized:
+                on_authorized()
             self.db_chat_obj = chat_repo.create(
                 self.db_session,
                 DBChat(
@@ -106,13 +130,10 @@ class ChatFlow:
                     engine_id=self.db_chat_engine.id,
                     engine_options=self.engine_config.screenshot(),
                     user_id=self.user.id if self.user else None,
+                    api_key_id=api_key_id,
                     browser_id=self.browser_id,
                     origin=origin,
-                    visibility=(
-                        ChatVisibility.PUBLIC
-                        if not self.user
-                        else ChatVisibility.PRIVATE
-                    ),
+                    visibility=ChatVisibility.PRIVATE,
                 ),
             )
             chat_id = self.db_chat_obj.id
@@ -356,7 +377,7 @@ class ChatFlow:
                     ),
                 )
 
-            prompt_template = RichPromptTemplate(refined_question_prompt)
+            prompt_template = SafePromptTemplate(refined_question_prompt)
             refined_question = self._fast_llm.predict(
                 prompt_template,
                 graph_knowledges=knowledge_graph_context,
@@ -403,7 +424,7 @@ class ChatFlow:
                 "knowledge_graph_context": knowledge_graph_context,
             },
         ) as span:
-            prompt_template = RichPromptTemplate(
+            prompt_template = SafePromptTemplate(
                 self.engine_config.llm.clarifying_question_prompt
             )
 
@@ -467,7 +488,7 @@ class ChatFlow:
             name="generate_answer", input=user_question
         ) as span:
             # Initialize response synthesizer.
-            text_qa_template = RichPromptTemplate(
+            text_qa_template = SafePromptTemplate(
                 template_str=self.engine_config.llm.text_qa_prompt
             )
             text_qa_template = text_qa_template.partial_format(
@@ -491,7 +512,7 @@ class ChatFlow:
                 event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
                 payload=ChatStreamMessagePayload(
                     state=ChatMessageSate.SOURCE_NODES,
-                    context=source_documents,
+                    context=[] if self.engine_config.hide_sources else source_documents,
                 ),
             )
 
@@ -573,7 +594,13 @@ class ChatFlow:
 
                 return post_verification_link
             except Exception as e:
-                logger.exception("Failed to post verification: %s", e.message)
+                logger.warning(
+                    "Post verification failed",
+                    extra={
+                        "event": "post_verification_failed",
+                        "error_type": type(e).__name__,
+                    },
+                )
                 return None
 
     def _chat_finish(

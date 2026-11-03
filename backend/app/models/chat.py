@@ -1,7 +1,7 @@
 import enum
 from uuid import UUID
 from typing import Optional, Dict
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 from datetime import datetime
 
 from sqlmodel import (
@@ -13,6 +13,7 @@ from sqlmodel import (
 )
 
 from .base import IntEnumType, UUIDBaseModel, UpdatableBaseModel
+from app.utils.public_chat import public_engine_options, chat_hides_sources
 
 
 class ChatVisibility(int, enum.Enum):
@@ -22,6 +23,7 @@ class ChatVisibility(int, enum.Enum):
 
 class Chat(UUIDBaseModel, UpdatableBaseModel, table=True):
     title: str = Field(max_length=256)
+    api_key_id: Optional[int] = Field(default=None)
     engine_id: int = Field(foreign_key="chat_engines.id", nullable=True)
     engine: "ChatEngine" = SQLRelationship(  # noqa:F821
         sa_relationship_kwargs={
@@ -50,6 +52,18 @@ class Chat(UUIDBaseModel, UpdatableBaseModel, table=True):
     )
 
     __tablename__ = "chats"
+
+    @field_serializer("engine_options", when_used="json")
+    def public_options(self, value):
+        public = public_engine_options(value)
+        if chat_hides_sources(self):
+            public["hide_sources"] = True
+            public["knowledge_graph"]["enabled"] = False
+        return public
+
+    @field_serializer("browser_id", "api_key_id", when_used="json")
+    def private_browser_id(self, value) -> None:
+        return None
 
 
 class ChatUpdate(BaseModel):

@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+from pydantic import ValidationError
 from typing import Optional
 from datetime import datetime, UTC
 
@@ -46,12 +48,15 @@ class ChatEngineRepo(BaseRepo):
         query = query.order_by(ChatEngine.is_default.desc(), ChatEngine.name)
         return paginate(session, query, params)
 
-    def get_default_engine(self, session: Session) -> Optional[ChatEngine]:
-        return session.exec(
-            select(ChatEngine).where(
-                ChatEngine.is_default == True, ChatEngine.deleted_at == None
-            )
-        ).first()
+    def get_default_engine(
+        self, session: Session, need_public: bool = False
+    ) -> Optional[ChatEngine]:
+        query = select(ChatEngine).where(
+            ChatEngine.is_default == True, ChatEngine.deleted_at == None
+        )
+        if need_public:
+            query = query.where(ChatEngine.is_public == True)
+        return session.exec(query).first()
 
     def has_default(self, session: Session) -> bool:
         return (
@@ -63,14 +68,18 @@ class ChatEngineRepo(BaseRepo):
             > 0
         )
 
-    def get_engine_by_name(self, session: Session, name: str) -> Optional[ChatEngine]:
-        return session.exec(
-            select(ChatEngine).where(
-                ChatEngine.name == name, ChatEngine.deleted_at == None
-            )
-        ).first()
+    def get_engine_by_name(
+        self, session: Session, name: str, need_public: bool = False
+    ) -> Optional[ChatEngine]:
+        query = select(ChatEngine).where(
+            ChatEngine.name == name, ChatEngine.deleted_at == None
+        )
+        if need_public:
+            query = query.where(ChatEngine.is_public == True)
+        return session.exec(query).first()
 
     def create(self, session: Session, obj: ChatEngine):
+        obj.engine_options = _validate_options(obj.engine_options)
         if obj.is_default:
             session.exec(
                 update(ChatEngine)
@@ -89,6 +98,10 @@ class ChatEngineRepo(BaseRepo):
         chat_engine_update: ChatEngineUpdate,
     ) -> ChatEngine:
         set_default = chat_engine_update.is_default
+        if "engine_options" in chat_engine_update.model_fields_set:
+            chat_engine_update.engine_options = _validate_options(
+                chat_engine_update.engine_options
+            )
         for field, value in chat_engine_update.model_dump(exclude_unset=True).items():
             setattr(chat_engine, field, value)
             flag_modified(chat_engine, field)
@@ -111,3 +124,14 @@ class ChatEngineRepo(BaseRepo):
 
 
 chat_engine_repo = ChatEngineRepo()
+
+
+def _validate_options(options):
+    from app.rag.chat.config import ChatEngineConfig
+
+    try:
+        return ChatEngineConfig.model_validate(options or {}).model_dump()
+    except ValidationError:
+        raise HTTPException(
+            400, "Invalid chat-engine configuration or unsafe prompt template"
+        ) from None

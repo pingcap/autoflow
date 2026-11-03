@@ -19,10 +19,15 @@ def list_chat_engines(
     params: Params = Depends(),
 ) -> Page[ChatEngine]:
     page = chat_engine_repo.paginate(db_session, params, need_public=True)
+    public_items = []
     for chat_engine in page.items:
         engine_config = ChatEngineConfig.model_validate(chat_engine.engine_options)
-        chat_engine.engine_options = engine_config.screenshot()
-    return page
+        public_items.append(
+            chat_engine.model_copy(
+                update={"engine_options": engine_config.screenshot()}
+            )
+        )
+    return page.model_copy(update={"items": public_items})
 
 
 @router.get("/chat-engines/{chat_engine_id}")
@@ -34,5 +39,4 @@ def get_chat_engine(
         db_session, chat_engine_id, need_public=True
     )
     engine_config = ChatEngineConfig.model_validate(chat_engine.engine_options)
-    chat_engine.engine_options = engine_config.screenshot()
-    return chat_engine
+    return chat_engine.model_copy(update={"engine_options": engine_config.screenshot()})

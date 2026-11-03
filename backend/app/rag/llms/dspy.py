@@ -12,34 +12,34 @@ def get_dspy_lm_by_llama_llm(llama_llm: BaseLLM) -> dspy.LM:
     """
     match llama_llm.class_name():
         case "openai_llm":
-            return dspy.LM(
+            return _bounded_lm(
                 model=f"openai/{llama_llm.model}",
                 max_tokens=llama_llm.max_tokens,
                 api_key=llama_llm.api_key,
                 api_base=enforce_trailing_slash(llama_llm.api_base),
-                num_retries=3,
+                num_retries=1,
             )
         case "OpenAILike":
-            return dspy.LM(
+            return _bounded_lm(
                 model=f"openai/{llama_llm.model}",
                 max_tokens=llama_llm.max_tokens,
                 api_key=llama_llm.api_key,
                 api_base=enforce_trailing_slash(llama_llm.api_base),
                 model_type="chat" if llama_llm.is_chat_model else "text",
-                num_retries=3,
+                num_retries=1,
             )
         case "GenAI":
             if "models/" in llama_llm.model:
                 # For Gemini
                 model_name = llama_llm.model.split("models/")[1]
-                return dspy.LM(
+                return _bounded_lm(
                     model=f"gemini/{model_name}",
                     max_tokens=llama_llm._max_tokens,
                     api_key=llama_llm._client._api_client.api_key,
                 )
             else:
                 # For Vertex AI
-                return dspy.LM(
+                return _bounded_lm(
                     model=f"vertex_ai/{llama_llm.model}",
                     max_tokens=llama_llm._max_tokens,
                     context_window=llama_llm.context_window,
@@ -48,7 +48,7 @@ def get_dspy_lm_by_llama_llm(llama_llm: BaseLLM) -> dspy.LM:
                     vertex_credentials=llama_llm._credentials,
                 )
         case "Bedrock_Converse_LLM":
-            return dspy.LM(
+            return _bounded_lm(
                 model=f"bedrock/converse/{llama_llm.model}",
                 # Notice: Bedrock's default max_tokens is 512, which is too small for the application.
                 max_tokens=llama_llm.max_tokens or 8192,
@@ -57,15 +57,15 @@ def get_dspy_lm_by_llama_llm(llama_llm: BaseLLM) -> dspy.LM:
                 aws_region_name=llama_llm.region_name,
             )
         case "Ollama_llm":
-            return dspy.LM(
+            return _bounded_lm(
                 model=f"ollama_chat/{llama_llm.model}",
                 api_base=llama_llm.base_url,
                 timeout=llama_llm.request_timeout,
                 temperature=llama_llm.temperature,
-                num_retries=3,
+                num_retries=1,
             )
         case "azure_openai_llm":
-            return dspy.LM(
+            return _bounded_lm(
                 model=f"azure/{llama_llm.model}",
                 max_tokens=llama_llm.max_tokens,
                 temperature=llama_llm.temperature,
@@ -82,3 +82,10 @@ def enforce_trailing_slash(url: str):
     if url.endswith("/"):
         return url
     return url + "/"
+
+
+def _bounded_lm(**kwargs) -> dspy.LM:
+    kwargs.setdefault("timeout", 60)
+    kwargs["num_retries"] = 1
+    # User prompts must not be persisted in a shared on-disk DSPy cache.
+    return dspy.LM(cache=False, **kwargs)

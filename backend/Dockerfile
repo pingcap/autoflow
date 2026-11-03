@@ -14,6 +14,7 @@ RUN PYTHONDONTWRITEBYTECODE=1 uv sync --frozen
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Pre-download playwright dependencies.
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright
 RUN playwright install --with-deps chromium
 
 # Pre-download nltk data.
@@ -29,4 +30,4 @@ COPY . /app/
 # Default number of workers
 ENV WEB_CONCURRENCY=4
 
-CMD ["sh", "-c", "fastapi run app/api_server.py --host 0.0.0.0 --port 80 --workers ${WEB_CONCURRENCY}"]
+CMD ["sh", "-c", "uvicorn app.api_server:app --host 0.0.0.0 --port 80 --no-proxy-headers --workers ${WEB_CONCURRENCY}"]

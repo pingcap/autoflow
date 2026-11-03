@@ -10,7 +10,7 @@ from llama_index.core.base.base_retriever import BaseRetriever
 from llama_index.core.callbacks import CallbackManager
 from llama_index.core.llms import LLM
 from llama_index.core.schema import NodeWithScore
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlmodel import Session
 
 from app.core.config import settings
@@ -21,7 +21,7 @@ from app.rag.llms.dspy import get_dspy_lm_by_llama_llm
 
 class FusionRetrievalBaseConfig(BaseModel):
     llm_id: Optional[int] = None
-    knowledge_base_ids: List[int]
+    knowledge_base_ids: List[int] = Field(min_length=1, max_length=100)
     use_query_decompose: Optional[bool] = None
 
 

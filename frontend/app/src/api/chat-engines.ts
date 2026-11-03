@@ -26,6 +26,7 @@ export interface CreateChatEngineParams {
 
 export interface ChatEngineOptions {
   external_engine_config?: {
+    enabled?: boolean;
     stream_chat_api_url?: string | null
   } | null;
   clarify_question?: boolean | null;
@@ -100,6 +101,7 @@ const llmOptionsSchema =
 
 const chatEngineOptionsSchema = z.object({
   external_engine_config: z.object({
+    enabled: z.boolean().optional(),
     stream_chat_api_url: z.string().optional().nullable(),
   }).nullable().optional(),
   clarify_question: z.boolean().nullable().optional(),

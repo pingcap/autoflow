@@ -76,12 +76,19 @@ class TiDBGraphEditor:
                 self._embed_model,
             )
             session.add(relationship)
-        session.commit()
-        session.refresh(entity)
         new_entity_dict = entity.screenshot()
         create_staff_action_log(
-            session, "update", "entity", entity.id, old_entity_dict, new_entity_dict
+            session,
+            "update",
+            "entity",
+            entity.id,
+            old_entity_dict,
+            new_entity_dict,
+            commit=False,
+            knowledge_base_id=self.knowledge_base_id,
         )
+        session.commit()
+        session.refresh(entity)
         return entity
 
     def get_entity_subgraph(
@@ -135,10 +142,7 @@ class TiDBGraphEditor:
             relationship.description,
             self._embed_model,
         )
-        session.commit()
-        session.refresh(relationship)
         new_relationship_dict = relationship.screenshot()
-        # FIXME: some error when create staff action log
         create_staff_action_log(
             session,
             "update",
@@ -146,7 +150,11 @@ class TiDBGraphEditor:
             relationship.id,
             old_relationship_dict,
             new_relationship_dict,
+            commit=False,
+            knowledge_base_id=self.knowledge_base_id,
         )
+        session.commit()
+        session.refresh(relationship)
         return relationship
 
     def search_similar_entities(
@@ -209,7 +217,7 @@ class TiDBGraphEditor:
                 {"relationship_type": EntityType.synopsis.value},
                 commit=False,
             )
-        session.commit()
+        session.flush()
         create_staff_action_log(
             session,
             "create_synopsis_entity",
@@ -218,5 +226,7 @@ class TiDBGraphEditor:
             {},
             synopsis_entity.screenshot(),
             commit=False,
+            knowledge_base_id=self.knowledge_base_id,
         )
+        session.commit()
         return synopsis_entity

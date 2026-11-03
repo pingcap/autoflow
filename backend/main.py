@@ -28,6 +28,7 @@ def runserver(host, port, workers):
         reload=True,
         log_level="debug",
         workers=workers,
+        proxy_headers=False,
     )
 
 

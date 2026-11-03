@@ -65,6 +65,7 @@ class ChatFlow:
         chat_id: Optional[UUID] = None,
         api_key_id: Optional[int] = None,
         allowed_engine_ids: Optional[List[int]] = None,
+        on_authorized=None,
     ) -> None:
         self.chat_id = chat_id
         self.db_session = db_session
@@ -102,6 +103,8 @@ class ChatFlow:
             logger.info(
                 f"Init ChatFlow for chat {chat_id} (chat_engine: {self.db_chat_obj.engine.name})"
             )
+            if on_authorized:
+                on_authorized()
             self.chat_history = [
                 ChatMessage(role=role, content=content, additional_kwargs={})
                 for role, content in chat_repo.get_context_messages(
@@ -117,6 +120,8 @@ class ChatFlow:
                 allowed_engine_ids or []
             ):
                 raise HTTPException(status_code=404, detail="Chat engine not found")
+            if on_authorized:
+                on_authorized()
             self.db_chat_obj = chat_repo.create(
                 self.db_session,
                 DBChat(

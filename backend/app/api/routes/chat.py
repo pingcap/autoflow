@@ -12,7 +12,11 @@ from pydantic import (
     Field,
 )
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
-from fastapi.responses import StreamingResponse
+from app.security.generation import (
+    GenerationScope,
+    GenerationIterator,
+    GenerationStreamingResponse,
+)
 from fastapi_pagination import Params, Page
 from llama_index.core.base.llms.types import ChatMessage, MessageRole
 
@@ -29,7 +33,6 @@ from app.rag.chat.chat_service import (
     user_can_edit_chat,
     get_chat_message_subgraph,
     get_chat_message_recommend_questions,
-    remove_chat_message_recommend_questions,
 )
 from app.exceptions import InternalServerError
 
@@ -80,40 +83,54 @@ def chats(
 ):
     origin = request.headers.get("Origin") or request.headers.get("Referer")
     browser_id = request.state.browser_id
-
+    generation = GenerationScope(
+        request, user, f"chat:{chat_request.chat_id}" if chat_request.chat_id else None
+    )
+    transferred = False
     try:
-        chat_flow = ChatFlow(
-            db_session=session,
-            user=user,
-            browser_id=browser_id,
-            origin=origin,
-            chat_id=chat_request.chat_id,
-            chat_messages=[
-                ChatMessage(role=m.role, content=m.content)
-                for m in chat_request.messages
-            ],
-            engine_name=getattr(
-                request.state, "api_key_engine_name", chat_request.chat_engine
-            ),
-            api_key_id=getattr(request.state, "api_key_id", None),
-            allowed_engine_ids=getattr(request.state, "api_key_engine_ids", None),
-        )
+        with generation.activate():
+            chat_flow = ChatFlow(
+                db_session=session,
+                user=user,
+                browser_id=browser_id,
+                origin=origin,
+                chat_id=chat_request.chat_id,
+                chat_messages=[
+                    ChatMessage(role=m.role, content=m.content)
+                    for m in chat_request.messages
+                ],
+                engine_name=getattr(
+                    request.state, "api_key_engine_name", chat_request.chat_engine
+                ),
+                api_key_id=getattr(request.state, "api_key_id", None),
+                allowed_engine_ids=getattr(request.state, "api_key_engine_ids", None),
+                on_authorized=generation.admit,
+            )
 
+        iterator = GenerationIterator(chat_flow.chat(), generation)
         if chat_request.stream:
-            return StreamingResponse(
-                chat_flow.chat(),
+            response = GenerationStreamingResponse(
+                iterator,
                 media_type="text/event-stream",
                 headers={
                     "X-Content-Type-Options": "nosniff",
                 },
             )
+            transferred = True
+            return response
         else:
-            return get_final_chat_result(chat_flow.chat())
+            try:
+                return get_final_chat_result(iterator)
+            finally:
+                iterator.close()
     except HTTPException as e:
         raise e
     except Exception as e:
-        logger.exception(e)
+        logger.error("Chat initialization failed (%s)", type(e).__name__)
         raise InternalServerError()
+    finally:
+        if not transferred:
+            generation.close()
 
 
 @router.get("/chats")
@@ -269,15 +286,22 @@ def refresh_recommended_questions(
 
         if not user_can_use_engine(chat_message.chat.engine, user):
             raise HTTPException(status_code=404, detail="Chat engine not found")
-        if refresh:
-            remove_chat_message_recommend_questions(session, chat_message_id)
-        return get_chat_message_recommend_questions(
-            session,
-            chat_message,
-            engine_name=chat_message.chat.engine.name,
-            allow_generate=can_generate,
-            need_public=not (user and user.is_superuser),
+        generation = GenerationScope(
+            request, user, f"chat:{chat_message.chat.id}" if can_generate else None
         )
+        try:
+            with generation.activate():
+                return get_chat_message_recommend_questions(
+                    session,
+                    chat_message,
+                    engine_name=chat_message.chat.engine.name,
+                    allow_generate=can_generate,
+                    need_public=not (user and user.is_superuser),
+                    force_refresh=refresh,
+                    on_authorized=generation.admit,
+                )
+        finally:
+            generation.close()
     except HTTPException as e:
         raise e
     except Exception as e:

@@ -216,3 +216,56 @@ generation with POST `?refresh=false`; explicit refresh uses POST `?refresh=true
 Continuation model context uses at most 19 recent history messages plus the
 current user message, with a total 40,000-character budget. Only bounded text is
 selected from the database; the stored transcript is retained.
+
+## Shared generation admission
+
+Every API replica must use the same Redis database, `SECRET_KEY` and
+`GENERATION_QUOTA_NAMESPACE` (default `autoflow`). `GENERATION_REDIS_URL` is an
+optional secret URL; otherwise admission uses `CELERY_BROKER_URL`. Use a separate
+namespace for separate deployments. Redis must be private, authenticated where
+appropriate, persistent, and configured without eviction of quota keys. Losing
+or deleting these keys resets the current quotas. Redis connection failures
+reject new generation with 503; there is no process-local fallback.
+
+`GENERATION_LIMITS` accepts a JSON object overriding individual defaults. Limits
+count admitted requests in fixed UTC minute/day windows: globally 60/1000,
+per source IP 20/200, per authenticated account 10/100 and per signed guest 3/20.
+Concurrent limits are global 20, IP 5, account 2 and guest 1. All API keys for an
+account share its budget. IPv6 privacy addresses share a /64 IP bucket. Changing
+the guest cookie cannot bypass the IP or global limit. These are request budgets;
+choose deployment values that fit the configured models and expected usage.
+
+Chat initialization is authorized before admission, then admission precedes chat
+creation and provider initialization. Continuations and recommendation generation
+share a per-chat lock. Cached recommendations and read-only GETs do not consume a
+generation allowance. Failed generations consume their allowance. Refresh keeps
+the previous recommendations until replacement commits successfully. Rejected
+requests return 429 with Retry-After. Request bodies for these endpoints are
+limited to 256 KiB and must arrive within 15 seconds.
+Reading a missing legacy subgraph returns 404 rather than silently invoking paid
+retrieval to reconstruct it. Existing stored graph data remains readable.
+
+The configured generation deadline defaults to 180 seconds. Iteration and guarded
+HTTP requests check the deadline; guarded transports limit outbound bodies to
+2 MiB, responses to 4 MiB and provider attempts to 16. The OpenAI-compatible and
+Cohere HTTPX clients reject compressed generation responses to prevent a
+compressed body bypass. ProviderSession clients bound decoded response bytes.
+A running synchronous SDK call can finish its bounded I/O before cleanup; this
+is not a process-kill deadline. A disconnected SSE client does not release its
+concurrency lease until the running iterator has returned and closed. Crashed
+worker leases expire after the deadline plus a 120-second cleanup allowance.
+Provider-specific coverage and the remaining DSPy transport path are still under
+review while this PR is a draft.
+
+Forwarded client IP headers are ignored by default. Only register exact proxy
+addresses/CIDRs in `GENERATION_TRUSTED_PROXY_CIDRS` when that proxy sanitizes its
+forwarding chain. The chain is inspected from the immediate peer backwards to
+the first untrusted address. Do not trust a shared proxy range without an
+authenticated, sanitized origin path. Docker and the CLI disable Uvicorn's
+independent proxy-header rewriting; custom launch commands must also use
+`--no-proxy-headers`. Without trusted forwarding, clients behind one proxy share
+its conservative IP quota. Validate the actual deployment proxy before rollout.
+
+The security tests launch an isolated local Redis with persistence disabled. Use
+`SECURITY_REDIS_SERVER=/path/to/redis-server` if it is not on PATH; CI installs the
+test binary explicitly. No deployment Redis database is accessed by these tests.

@@ -35,6 +35,24 @@ def test_public_reader_can_read_cached_recommendations_without_model_access(
     load.assert_not_called()
 
 
+def test_reading_missing_subgraph_cannot_trigger_paid_retrieval(monkeypatch):
+    import pytest
+    from fastapi import HTTPException
+
+    config = Mock()
+    monkeypatch.setattr(
+        chat_service.ChatEngineConfig, "load_from_db", lambda *args: config
+    )
+    message = SimpleNamespace(
+        chat=SimpleNamespace(engine=SimpleNamespace(name="default")), graph_data=None
+    )
+    with pytest.raises(HTTPException) as error:
+        chat_service.get_chat_message_subgraph(Mock(), message)
+    assert error.value.status_code == 404
+    config.get_llama_llm.assert_not_called()
+    config.get_knowledge_bases.assert_not_called()
+
+
 def test_post_verification_failure_without_message_attribute_does_not_lose_chat(
     monkeypatch, caplog
 ):
@@ -172,7 +190,7 @@ def test_read_only_viewer_post_can_only_read_existing_recommendations(monkeypatc
     monkeypatch.setattr(routes, "user_can_use_engine", lambda *args: True)
     load, remove = Mock(), Mock()
     monkeypatch.setattr(chat_service.ChatEngineConfig, "load_from_db", load)
-    monkeypatch.setattr(routes, "remove_chat_message_recommend_questions", remove)
+    monkeypatch.setattr(chat_service, "remove_chat_message_recommend_questions", remove)
     assert routes.refresh_recommended_questions(
         request, session, None, 1, refresh=False
     ) == ["Cached question"]

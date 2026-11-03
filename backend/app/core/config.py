@@ -19,6 +19,7 @@ from pydantic import (
 from pydantic_core import MultiHostUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import Self
+from app.security.generation_limits import GenerationLimits
 
 
 def parse_cors(v: Any) -> list[str] | str:
@@ -151,6 +152,26 @@ class Settings(BaseSettings):
 
     CELERY_BROKER_URL: str = "redis://redis:6379/0"
     CELERY_RESULT_BACKEND: str = "redis://redis:6379/0"
+
+    GENERATION_LIMITS: GenerationLimits = Field(default_factory=GenerationLimits)
+    GENERATION_REDIS_URL: SecretStr | None = None
+    GENERATION_QUOTA_NAMESPACE: str = Field(
+        default="autoflow", pattern=r"^[a-zA-Z0-9_-]{1,32}$"
+    )
+    GENERATION_TRUSTED_PROXY_CIDRS: list[str] = Field(default_factory=list)
+
+    @field_validator("GENERATION_TRUSTED_PROXY_CIDRS")
+    @classmethod
+    def validate_generation_proxies(cls, values):
+        import ipaddress
+
+        if len(values) > 32:
+            raise ValueError("Too many trusted proxies")
+        for value in values:
+            network = ipaddress.ip_network(value, strict=True)
+            if network.prefixlen == 0:
+                raise ValueError("A trusted proxy must not include every address")
+        return values
 
     # TODO: move below config to `option` table, it should be configurable by staff in console
     TIDB_AI_CHAT_ENDPOINT: str = "https://tidb.ai/api/v1/chats"

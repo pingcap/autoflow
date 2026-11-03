@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 from app.security.csrf import CSRFMiddleware
+from app.security.generation import GenerationBodyLimitMiddleware
 from app.api.main import api_router
 from app.core.config import settings
 from app.site_settings import SiteSetting
@@ -75,6 +76,7 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 # Origin checks run before browser cookies are created. CORS remains outermost so
 # valid preflights do not create identities and trusted clients can read errors.
+app.add_middleware(GenerationBodyLimitMiddleware, prefix=settings.API_V1_STR)
 app.add_middleware(
     CSRFMiddleware,
     allowed_origins=[settings.server_host, *settings.BACKEND_CORS_ORIGINS],

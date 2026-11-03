@@ -45,16 +45,13 @@ class BoundedJinaRerank(JinaRerank):
 class BoundedCohereRerank(CohereRerank):
     def __init__(self, **kwargs):
         from cohere import Client
-        import httpx
 
         super().__init__(**kwargs)
         self._client = Client(
             api_key=kwargs["api_key"],
             base_url=kwargs["base_url"],
             timeout=60,
-            httpx_client=httpx.Client(
-                timeout=60, trust_env=False, follow_redirects=False
-            ),
+            httpx_client=openai_http_clients()["http_client"],
         )
 
 

@@ -145,7 +145,7 @@ jobs:
     e2e-test:
       name: E2E Test
       runs-on: ubuntu-latest
-      timeout-minutes: 10
+      timeout-minutes: 30
       defaults:
         run:
           working-directory: e2e

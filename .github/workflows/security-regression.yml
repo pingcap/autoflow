@@ -36,6 +36,8 @@ jobs:
           cache-dependency-glob: backend/uv.lock
       - run: uv sync --frozen --python 3.11
       - run: uv run --frozen --python 3.11 playwright install --with-deps chromium
+      - name: Install isolated Redis test server
+        run: sudo apt-get update -qq && sudo apt-get install -y redis-server
       - name: Isolated security and database regression tests
         env:
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'

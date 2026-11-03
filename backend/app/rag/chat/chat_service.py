@@ -22,7 +22,7 @@ from app.models import (
     ChatEngine,
 )
 from app.models.recommend_question import RecommendQuestion
-from app.rag.chat.retrieve.retrieve_flow import RetrieveFlow, SourceDocument
+from app.rag.chat.retrieve.retrieve_flow import SourceDocument
 from app.rag.chat.stream_protocol import ChatEvent
 from app.rag.retrievers.knowledge_graph.schema import (
     KnowledgeGraphRetrievalResult,
@@ -159,7 +159,6 @@ def get_chat_message_subgraph(
     db_session: Session, chat_message: DBChatMessage
 ) -> KnowledgeGraphRetrievalResult:
     chat_engine: ChatEngine = chat_message.chat.engine
-    engine_name = chat_engine.name
     engine_config = ChatEngineConfig.load_from_db(db_session, chat_engine.name)
 
     # Try to get subgraph from `chat_message.graph_data`.
@@ -169,20 +168,11 @@ def get_chat_message_subgraph(
         )
         if knowledge_graph is not None:
             return knowledge_graph
-    except Exception as e:
-        logger.error(
-            f"Failed to get subgraph from chat_message.graph_data: {e}", exc_info=True
-        )
-
-    # Try to get subgraph based on the chat message content.
-    # Notice: it use current chat engine config, not the snapshot stored in chat_message.
-    retriever = RetrieveFlow(
-        db_session=db_session,
-        engine_name=engine_name,
-        engine_config=engine_config,
-    )
-    knowledge_graph, _ = retriever.search_knowledge_graph(chat_message.content)
-    return knowledge_graph
+    except Exception as error:
+        logger.warning("Stored chat graph unavailable (%s)", type(error).__name__)
+    # This is a read endpoint, including for public viewers. Reconstructing a
+    # missing graph would call paid models outside generation admission.
+    raise HTTPException(status_code=404, detail="Stored graph is unavailable")
 
 
 def check_rag_required_config(session: Session) -> RequiredConfigStatus:
@@ -254,13 +244,15 @@ def get_chat_message_recommend_questions(
     *,
     allow_generate: bool = False,
     need_public: bool = True,
+    force_refresh: bool = False,
+    on_authorized=None,
 ) -> List[str]:
     statement = select(RecommendQuestion.questions).where(
         RecommendQuestion.chat_message_id == chat_message.id
     )
 
     questions = db_session.exec(statement).first()
-    if questions is not None:
+    if questions is not None and not force_refresh:
         return questions
 
     if not allow_generate:
@@ -268,6 +260,8 @@ def get_chat_message_recommend_questions(
     chat_engine_config = ChatEngineConfig.load_from_db(
         db_session, engine_name, need_public=need_public
     )
+    if on_authorized:
+        on_authorized()
     llm = chat_engine_config.get_llama_llm(db_session)
 
     prompt_template = SafePromptTemplate(
@@ -275,7 +269,7 @@ def get_chat_message_recommend_questions(
     )
     recommend_questions = llm.predict(
         prompt_template,
-        chat_message_content=chat_message.content,
+        chat_message_content=chat_message.content[-40000:],
     )
     recommend_question_list = recommend_questions.splitlines()
     recommend_question_list = [
@@ -295,13 +289,31 @@ def get_chat_message_recommend_questions(
         regenerate_content = f"""
         Please note that you are generating a question list. You previously generated it incorrectly; try again.
         ----------------------------------------
-        {chat_message.content}
+        {chat_message.content[-40000:]}
         """
         # with format or too long for per question, it's not a question list, generate again
         recommend_questions = llm.predict(
             prompt_template,
             chat_message_content=regenerate_content,
         )
+
+    recommend_question_list = [
+        question.strip()[:500]
+        for question in recommend_questions.splitlines()
+        if question.strip()
+    ][:10]
+    from app.security.generation import current_generation
+
+    generation = current_generation.get()
+    if generation:
+        generation.check()
+    # Preserve the previous cache if generation fails. Replacement and insertion
+    # commit together while the request holds the per-chat generation lease.
+    db_session.exec(
+        delete(RecommendQuestion).where(
+            RecommendQuestion.chat_message_id == chat_message.id
+        )
+    )
 
     db_session.add(
         RecommendQuestion(

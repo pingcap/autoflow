@@ -31,4 +31,4 @@ export const providerOptionSchema = z.object({
     credentials_type: z.literal('dict'),
     default_credentials: z.object({}).passthrough(),
   }),
-])) satisfies ZodType<ProviderOption, any, any>;
+])) satisfies ZodType<ProviderOption, any>;

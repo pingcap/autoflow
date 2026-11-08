@@ -64,7 +64,7 @@ export const chatSchema = z.object({
   created_at: zodJsonDate(),
   id: z.string(),
   origin: z.string().nullable(),
-}) satisfies ZodType<Chat, any, any>;
+}) satisfies ZodType<Chat, any>;
 
 const chatMessageSourceSchema = z.object({
   id: z.number(),
@@ -86,7 +86,7 @@ export const chatMessageSchema = z.object({
   sources: chatMessageSourceSchema.array(),
   chat_id: z.string(),
   post_verification_result_url: z.string().url().nullable(),
-}) satisfies ZodType<ChatMessage, any, any>;
+}) satisfies ZodType<ChatMessage, any>;
 
 const chatDetailSchema = z.object({
   chat: chatSchema,

@@ -90,5 +90,5 @@ function TableFilterForm ({ className, filter, onFilterChange, disabled }: { cla
 
 const tableFilterSchema = z.object({
   query: z.string(),
-  top_k: z.coerce.number().optional(),
+  top_k: z.coerce.number<number>().optional(),
 });

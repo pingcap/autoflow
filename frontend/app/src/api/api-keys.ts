@@ -1,6 +1,6 @@
 import { authenticationHeaders, handleErrors, handleResponse, type Page, type PageParams, requestUrl, zodPage } from '@/lib/request';
 import { zodJsonDate } from '@/lib/zod';
-import { z, type ZodType, type ZodTypeDef } from 'zod';
+import { z, type ZodType } from 'zod';
 
 export type ApiKeyScope = 'retrieve:chunks' | 'retrieve:graph' | 'chat:write';
 
@@ -42,7 +42,7 @@ const apiKeySchema = z.object({
   chat_engine_ids: z.array(z.number()).nullable(),
   user_id: z.string(),
   id: z.number(),
-}) satisfies ZodType<ApiKey, ZodTypeDef, any>;
+}) satisfies ZodType<ApiKey, any>;
 
 const createApiKeyResponseSchema = z.object({
   api_key: z.string(),

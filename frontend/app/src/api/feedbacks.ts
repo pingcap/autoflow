@@ -37,7 +37,7 @@ const feedbackSchema = z.object({
   chat_title: z.string(),
   chat_origin: z.string().nullable(),
   chat_message_content: z.string(),
-}) satisfies ZodType<Feedback, any, any>;
+}) satisfies ZodType<Feedback, any>;
 
 export async function listFeedbacks ({ page = 1, size = 10 }: PageParams = {}): Promise<Page<Feedback>> {
   return await fetch(requestUrl('/api/v1/admin/feedbacks', { page, size }), {

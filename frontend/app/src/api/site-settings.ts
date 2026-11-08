@@ -94,7 +94,7 @@ export async function getAllSiteSettings (): Promise<AllSettings> {
     {
       headers: await authenticationHeaders(),
     })
-    .then(handleResponse(z.record(settingsItemSchema)));
+    .then(handleResponse(z.record(z.string(), settingsItemSchema)));
 }
 
 export async function updateSiteSetting (name: string, value: any) {

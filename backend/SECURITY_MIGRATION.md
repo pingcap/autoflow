@@ -132,6 +132,21 @@ historical guest conversations. A rollback is not a way to restore old credentia
 
 ## Public data behavior
 
+The frontend now uses Zod 4.6.7 with compatible form resolvers. Existing optional
+model configuration fields and numeric form values retain their API behavior.
+The unused Zod 3 adapter was removed; the lockfile no longer contains Zod 3.
+Do not use Zod 4's bundled v3 compatibility entry point to bypass the migration.
+
+Typed JSON response handlers bound decoding to 64 MiB, error bodies to 64 KiB,
+individual collections to 10,000 entries, total validation nodes to 100,000 and
+nesting to 64 levels before schema traversal. The byte ceiling accommodates the
+default 10 MiB text upload even with JSON escaping. Normal pages and document text
+remain intact; very large result sets need pagination or a raw document download.
+Deployments that increased document upload limits should review these limits with
+their UI workloads. Limits reject oversized responses instead of truncating data.
+Raw downloads and streaming chat/graph protocols remain separate from this JSON
+handler. The package patch alone does not bound schemas without collection limits.
+
 The optional external-engine answer cache stays disabled by default. If enabled,
 it reuses only completed, approved first-turn answers from the same account and
 API key (or the same signed guest browser), engine, visibility, and keyed

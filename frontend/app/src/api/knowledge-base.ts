@@ -98,12 +98,12 @@ const knowledgeBaseChunkingSentenceSplitterConfigSchema = z.object({
   chunk_size: z.number().int().min(1),
   chunk_overlap: z.number().int().min(0),
   paragraph_separator: z.string(),
-}) satisfies z.ZodType<KnowledgeBaseChunkingSentenceSplitterConfig, any, any>;
+}) satisfies z.ZodType<KnowledgeBaseChunkingSentenceSplitterConfig, any>;
 
 const knowledgeBaseChunkingMarkdownSplitterConfigSchema = z.object({
   chunk_size: z.number().int().min(1),
   chunk_header_level: z.number().int().min(1).max(6),
-}) satisfies z.ZodType<KnowledgeBaseChunkingMarkdownSplitterConfig, any, any>;
+}) satisfies z.ZodType<KnowledgeBaseChunkingMarkdownSplitterConfig, any>;
 
 const knowledgeBaseChunkingSplitterRuleSchema = z.discriminatedUnion('splitter', [
   z.object({
@@ -114,7 +114,7 @@ const knowledgeBaseChunkingSplitterRuleSchema = z.discriminatedUnion('splitter',
     splitter: z.literal('SentenceSplitter'),
     splitter_config: knowledgeBaseChunkingSentenceSplitterConfigSchema,
   }),
-]) satisfies z.ZodType<KnowledgeBaseChunkingSplitterRule, any, any>;
+]) satisfies z.ZodType<KnowledgeBaseChunkingSplitterRule, any>;
 
 export const knowledgeBaseChunkingConfigSchema = z.discriminatedUnion('mode', [
   z.object({
@@ -130,7 +130,7 @@ export const knowledgeBaseChunkingConfigSchema = z.discriminatedUnion('mode', [
       'text/markdown': knowledgeBaseChunkingSplitterRuleSchema,
     }),
   }),
-]) satisfies z.ZodType<KnowledgeBaseChunkingConfig, any, any>;
+]) satisfies z.ZodType<KnowledgeBaseChunkingConfig, any>;
 
 const knowledgeBaseSummarySchema = z.object({
   id: z.number(),
@@ -144,14 +144,14 @@ const knowledgeBaseSummarySchema = z.object({
   creator: z.object({
     id: z.string(),
   }),
-}) satisfies ZodType<KnowledgeBaseSummary, any, any>;
+}) satisfies ZodType<KnowledgeBaseSummary, any>;
 
 const knowledgeBaseSchema = knowledgeBaseSummarySchema.extend({
   data_sources: datasourceSchema.array(),
   llm: llmSummarySchema.nullable().optional(),
   embedding_model: embeddingModelSummarySchema.nullable().optional(),
   chunking_config: knowledgeBaseChunkingConfigSchema.nullable(),
-}) satisfies ZodType<KnowledgeBase, any, any>;
+}) satisfies ZodType<KnowledgeBase, any>;
 
 const knowledgeGraphIndexProgressSchema = z.object({
   vector_index: indexSchema,
@@ -169,7 +169,7 @@ const knowledgeGraphDocumentChunkSchema = z.object({
   text: z.string(),
   meta: z.object({}).passthrough(),
   embedding: z.number().array(),
-  relations: z.any(),
+  relations: z.any().optional(),
   source_uri: z.string(),
   index_status: indexStatusSchema,
   index_result: z.string().nullable(),
@@ -182,7 +182,7 @@ const vectorIndexErrorSchema = z.object({
   document_name: z.string(),
   source_uri: z.string(),
   error: z.string().nullable(),
-}) satisfies ZodType<DatasourceVectorIndexError, any, any>;
+}) satisfies ZodType<DatasourceVectorIndexError, any>;
 
 const kgIndexErrorSchema = z.object({
   document_id: z.number(),
@@ -190,7 +190,7 @@ const kgIndexErrorSchema = z.object({
   chunk_id: z.string(),
   source_uri: z.string(),
   error: z.string().nullable(),
-}) satisfies ZodType<DatasourceKgIndexError, any, any>;
+}) satisfies ZodType<DatasourceKgIndexError, any>;
 
 const knowledgeBaseLinkedChatEngine = z.object({
   id: z.number(),

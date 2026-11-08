@@ -17,7 +17,7 @@ interface CreateEntityFormComponent<R, I> extends FunctionComponent<CreateEntity
 }
 
 export function withCreateEntityForm<T, R, I = any> (
-  schema: z.ZodType<T, any, I>,
+  schema: z.ZodType<T, I>,
   createApi: (data: T) => Promise<R>,
   { submitTitle = 'Create', submittingTitle }: {
     submitTitle?: ReactNode

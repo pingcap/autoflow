@@ -160,19 +160,20 @@ export function SettingsField ({ name, item, arrayItemSchema, objectSchema, onCh
           // void handleSubmit(e);
         }}
       >
-        <FormField
-          name={item.name}
-          disabled={form.formState.isSubmitting}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{capitalCase(item.name)}</FormLabel>
-              <Control field={field} />
-              <FormDescription>{item.description}</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Operations name={item.name} defaultValue={item.default} refreshing={transitioning} />
+        <fieldset disabled={form.formState.isSubmitting} className="space-y-2">
+          <FormField
+            name={item.name}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{capitalCase(item.name)}</FormLabel>
+                <Control field={field} />
+                <FormDescription>{item.description}</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Operations name={item.name} defaultValue={item.default} refreshing={transitioning} />
+        </fieldset>
       </form>
     </Form>
   );

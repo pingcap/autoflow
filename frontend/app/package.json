@@ -14,7 +14,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.9.1",
+    "@hookform/resolvers": "^5.2.2",
     "@next/third-parties": "15.5.28",
     "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-alert-dialog": "^1.1.6",
@@ -59,7 +59,7 @@
     "react": "19.0.0",
     "react-day-picker": "^8.10.1",
     "react-dom": "19.0.0",
-    "react-hook-form": "^7.54.0",
+    "react-hook-form": "^7.91.0",
     "react-is": "19.0.0",
     "react-resizable-panels": "^2.1.7",
     "recharts": "^2.15.1",
@@ -73,7 +73,7 @@
     "tailwindcss-animate": "^1.0.7",
     "unified": "^11.0.5",
     "vaul": "^1.1.1",
-    "zod": "^3.24.0"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^1.9.0",
@@ -91,7 +91,6 @@
     "@tanstack/react-table": "^8.20.5",
     "@tanstack/store": "^0.7.7",
     "@tanstack/table-core": "^8.20.5",
-    "@tanstack/zod-form-adapter": "^0.42.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@types/d3": "^7.4.3",

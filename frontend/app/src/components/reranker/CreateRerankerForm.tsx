@@ -21,7 +21,7 @@ import { z } from 'zod';
 const unsetForm = z.object({
   name: z.string().min(1, 'Must not empty'),
   provider: z.string().min(1, 'Must not empty'),
-  top_n: z.coerce.number().int().min(1),
+  top_n: z.coerce.number<number>().int().min(1),
   config: zodJsonText().optional(),
   is_default: z.boolean().optional(),
 });

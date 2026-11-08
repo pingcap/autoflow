@@ -12,7 +12,7 @@ const schema = z.object({
   reference: z.string().min(1),
   retrieved_contexts: z.string().min(1).array(),
   extra: z.string()
-    .pipe(z.custom<string>(s => {
+    .refine(s => {
       if (!s.trim()) return true;
       try {
         JSON.parse(s);
@@ -20,7 +20,7 @@ const schema = z.object({
       } catch {
         return false;
       }
-    }, 'Invalid JSON'))
+    }, 'Invalid JSON')
     .transform(s => {
       if (s.trim()) {
         return JSON.parse(s);

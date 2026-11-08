@@ -11,7 +11,7 @@ const schema = z.object({
   evaluation_dataset_id: z.number().int(),
   chat_engine: z.string().optional(),
   run_size: z.coerce.number().int().min(1).optional(),
-}) satisfies ZodType<CreateEvaluationTaskParams, any, any>;
+}) satisfies ZodType<CreateEvaluationTaskParams, any>;
 
 const FormImpl = withCreateEntityForm(schema, createEvaluationTask);
 const field = formFieldLayout<typeof schema>();

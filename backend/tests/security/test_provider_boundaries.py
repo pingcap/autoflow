@@ -209,6 +209,127 @@ def test_provider_errors_do_not_return_or_log_credentials(monkeypatch, caplog):
     )
     assert not result.success
     assert secret not in result.error + caplog.text
+    assert result.stage == "configuration"
+    assert result.error_type == "RuntimeError"
+
+
+@pytest.mark.parametrize("stage", ["llm", "dspy"])
+def test_model_diagnostics_distinguish_provider_and_adapter_without_error_bodies(
+    monkeypatch, stage, caplog
+):
+    from app.api.admin_routes.llm import routes
+    from app.rag.llms import dspy as conversion
+
+    secret = "fixture-private-upstream-body"
+    llm = Mock()
+    monkeypatch.setattr(routes, "resolve_llm", Mock(return_value=llm))
+    if stage == "llm":
+        llm.chat.side_effect = RuntimeError(secret)
+    else:
+        monkeypatch.setattr(
+            conversion,
+            "get_dspy_lm_by_llama_llm",
+            Mock(side_effect=RuntimeError(secret)),
+        )
+    result = routes.test_llm(
+        SimpleNamespace(
+            provider=LLMProvider.OPENAI,
+            model="gpt-4o-mini",
+            config={},
+            credentials="fixture-key",
+        ),
+        Mock(),
+    )
+    assert result.stage == stage
+    assert result.error_type == "RuntimeError"
+    assert not result.success
+    assert secret not in result.model_dump_json() + caplog.text
+
+
+def test_openai_model_verification_runs_both_sdks_against_only_loopback(monkeypatch):
+    import json
+    import socket
+    from app.api.admin_routes.llm import routes
+
+    calls = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            payload = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            calls.append(self.path)
+            content = (
+                json.dumps({"answer": 2})
+                if payload.get("response_format")
+                else "[[ ## answer ## ]]\n2\n[[ ## completed ## ]]"
+            )
+            body = json.dumps(
+                {
+                    "id": "chatcmpl-fixture",
+                    "object": "chat.completion",
+                    "created": 1,
+                    "model": "gpt-4o-mini",
+                    "choices": [
+                        {
+                            "index": 0,
+                            "message": {"role": "assistant", "content": content},
+                            "finish_reason": "stop",
+                        }
+                    ],
+                    "usage": {
+                        "prompt_tokens": 1,
+                        "completion_tokens": 1,
+                        "total_tokens": 2,
+                    },
+                }
+            ).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    origin = f"http://127.0.0.1:{server.server_port}"
+    connect = socket.socket.connect
+
+    def local_only(sock, address):
+        assert isinstance(address, tuple) and address[0] in {"127.0.0.1", "::1"}, (
+            "Test attempted non-loopback access"
+        )
+        return connect(sock, address)
+
+    monkeypatch.setattr(socket.socket, "connect", local_only)
+    for proxy in [
+        "HTTP_PROXY",
+        "HTTPS_PROXY",
+        "ALL_PROXY",
+        "http_proxy",
+        "https_proxy",
+        "all_proxy",
+    ]:
+        monkeypatch.delenv(proxy, raising=False)
+    monkeypatch.setattr(settings, "PROVIDER_ALLOWED_ORIGINS", [origin])
+    try:
+        result = routes.test_llm(
+            SimpleNamespace(
+                provider=LLMProvider.OPENAI,
+                model="gpt-4o-mini",
+                config={"api_base": origin + "/v1", "timeout": 2},
+                credentials="test-only-provider-key",
+            ),
+            Mock(),
+        )
+        assert result.success, (result.stage, result.error_type)
+        assert calls == ["/v1/chat/completions", "/v1/chat/completions"]
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
 
 
 def test_supported_provider_clients_still_construct_with_explicit_credentials(

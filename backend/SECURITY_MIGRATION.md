@@ -373,8 +373,18 @@ also applies standalone response/read limits when no chat generation scope exist
 Read budgets are checked between chunks, with bounded blocking socket reads as
 described above; they are not process-kill deadlines.
 
-Provider-specific coverage and the remaining DSPy transport path are still under
-review while this PR is a draft.
+DSPy OpenAI-compatible chat calls use explicit native engines with guarded sync
+and async transports. Both keep the configured origin/key binding, ignore
+ambient proxy and provider-base variables, reject redirects and count actual
+outbound attempts against the active generation allowance. They enforce the
+same body/deadline limits as the primary model clients. Borrowed engine
+transports close each request on completion, error or early stream exit, so
+copies and different event loops do not share live HTTP pools. Model tests and
+background calls without a chat lease also have response-size and 60-second
+read budgets. The normal admitted chat deadline remains unchanged.
+
+Other provider-specific DSPy transports, including legacy text completions, are
+still under review while this PR is a draft.
 
 DSPy uses its explicit LiteLLM engine for Ollama to retain the `/api/chat`
 protocol. Automatic engine selection in the current DSPy version interprets the

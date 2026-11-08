@@ -1,17 +1,33 @@
 """Apply the active request's deadline to model transports and streamed reads."""
 
 import httpx
+import time
 from app.security.generation import current_generation
 from app.security.generation_limits import GenerationExpired
 
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 
 
+class RequestBudget:
+    def __init__(self):
+        self.generation = current_generation.get()
+        remaining = self.generation.before_outbound() if self.generation else None
+        self.deadline = time.monotonic() + (60 if remaining is None else remaining)
+
+    def check(self):
+        if self.generation:
+            self.generation.check()
+        remaining = self.deadline - time.monotonic()
+        if remaining <= 0:
+            raise GenerationExpired("Generation deadline exceeded")
+        return remaining
+
+
 def prepare(request):
-    scope = current_generation.get()
-    if not scope or not scope.lease:
-        return None
-    remaining = scope.before_outbound()
+    # Model verification and background tasks need bounded responses too, even
+    # when they do not have a chat admission lease.
+    scope = RequestBudget()
+    remaining = scope.check()
     request.headers["Accept-Encoding"] = "identity"
     try:
         if len(request.content) > 2 * 1024 * 1024:

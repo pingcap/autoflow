@@ -13,14 +13,10 @@ def get_dspy_lm_by_llama_llm(llama_llm: BaseLLM) -> dspy.LM:
     """
     match llama_llm.class_name():
         case "openai_llm":
-            return _bounded_lm(
-                model=f"openai/{llama_llm.model}",
-                max_tokens=llama_llm.max_tokens,
-                api_key=llama_llm.api_key,
-                api_base=enforce_trailing_slash(llama_llm.api_base),
-                num_retries=1,
-            )
+            return _openai_chat_lm(llama_llm)
         case "OpenAILike":
+            if llama_llm.is_chat_model:
+                return _openai_chat_lm(llama_llm)
             return _bounded_lm(
                 model=f"openai/{llama_llm.model}",
                 max_tokens=llama_llm.max_tokens,
@@ -106,3 +102,19 @@ def _bounded_lm(**kwargs) -> dspy.LM:
     kwargs["num_retries"] = 1
     # User prompts must not be persisted in a shared on-disk DSPy cache.
     return dspy.LM(cache=False, **kwargs)
+
+
+def _openai_chat_lm(llama_llm):
+    from app.security.dspy_http import openai_engines
+
+    return dspy.LM(
+        model=f"openai/{llama_llm.model}",
+        max_tokens=llama_llm.max_tokens,
+        cache=False,
+        num_retries=1,
+        **openai_engines(
+            enforce_trailing_slash(llama_llm.api_base),
+            llama_llm.api_key,
+            llama_llm.timeout,
+        ),
+    )

@@ -69,8 +69,8 @@ def test_post_verification_failure_without_message_attribute_does_not_lose_chat(
     flow.db_session = Mock()
     flow.user_question = "question"
     monkeypatch.setattr(
-        chat_flow.requests,
-        "post",
+        chat_flow,
+        "external_engine_session",
         Mock(side_effect=RuntimeError("private-token must never be logged")),
     )
     user_message = ChatMessage(id=1, role="user", content="question")

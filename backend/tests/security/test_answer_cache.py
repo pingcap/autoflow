@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -207,6 +208,11 @@ def test_external_flow_uses_authorized_scope_and_only_marks_first_turn_answers(
 ):
     from app.rag.chat import chat_flow
 
+    monkeypatch.setattr(
+        chat_flow.settings,
+        "EXTERNAL_ENGINE_ALLOWED_ORIGINS",
+        ["https://engine.example.test"],
+    )
     flow = chat_flow.ChatFlow.__new__(chat_flow.ChatFlow)
     flow.engine_config = ChatEngineConfig.model_validate(
         {
@@ -249,7 +255,13 @@ def test_external_flow_uses_authorized_scope_and_only_marks_first_turn_answers(
     )
     response = Mock()
     response.iter_lines.return_value = [b'0:"private-answer-marker"']
-    monkeypatch.setattr(chat_flow.requests, "post", Mock(return_value=response))
+    monkeypatch.setattr(
+        chat_flow,
+        "external_engine_session",
+        lambda *args: nullcontext(
+            SimpleNamespace(post=lambda *args, **kwargs: nullcontext(response))
+        ),
+    )
 
     with caplog.at_level("DEBUG", logger="app.rag.chat.chat_flow"):
         list(flow._external_chat())

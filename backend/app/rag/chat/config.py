@@ -1,4 +1,5 @@
 from app.security.prompt_template import validate_prompt
+from app.security.external_engine import validate_external_endpoint
 from pydantic import field_validator
 from app.utils.public_chat import public_engine_options
 from fastapi import HTTPException
@@ -68,6 +69,10 @@ class ExternalChatEngine(BaseModel):
     # TODO: add enable flag for this config.
     stream_chat_api_url: str = None
 
+    _validate_endpoint = field_validator("stream_chat_api_url")(
+        validate_external_endpoint
+    )
+
 
 class LinkedKnowledgeBase(BaseModel):
     id: int
@@ -96,6 +101,10 @@ class ChatEngineConfig(BaseModel):
     post_verification_url: Optional[str] = None
     post_verification_token: Optional[str] = None
     hide_sources: bool = False
+
+    _validate_verification = field_validator("post_verification_url")(
+        validate_external_endpoint
+    )
 
     _db_chat_engine: Optional[DBChatEngine] = None
     _db_llm: Optional[DBLLM] = None

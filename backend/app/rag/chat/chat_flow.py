@@ -7,7 +7,7 @@ from typing import List, Optional, Generator, Tuple, Any
 from urllib.parse import urljoin
 from uuid import UUID
 
-import requests
+from app.security.external_engine import external_engine_session
 from app.utils.langfuse_instrumentor import BoundLangfuseInstrumentor
 from app.security.langfuse_settings import read_runtime_configuration
 from langfuse.llama_index._context import langfuse_instrumentor_context
@@ -559,23 +559,23 @@ class ChatFlow:
             },
         ) as span:
             try:
-                resp = requests.post(
-                    post_verification_url,
-                    json={
-                        "external_request_id": external_request_id,
-                        "qa_content": qa_content,
-                    },
-                    headers=(
-                        {
-                            "Authorization": f"Bearer {post_verification_token}",
-                        }
-                        if post_verification_token
-                        else {}
-                    ),
-                    timeout=10,
-                )
-                resp.raise_for_status()
-                job_id = resp.json()["job_id"]
+                with external_engine_session(
+                    post_verification_url, verification=True
+                ) as session:
+                    with session.post(
+                        post_verification_url,
+                        json={
+                            "external_request_id": external_request_id,
+                            "qa_content": qa_content,
+                        },
+                        headers=(
+                            {"Authorization": f"Bearer {post_verification_token}"}
+                            if post_verification_token
+                            else {}
+                        ),
+                    ) as resp:
+                        resp.raise_for_status()
+                        job_id = resp.json()["job_id"]
                 post_verification_link = urljoin(
                     f"{post_verification_url}/", str(job_id)
                 )
@@ -746,37 +746,41 @@ class ChatFlow:
                 "response_format": response_format,
                 "namespace_name": "Default",
             }
-            res = requests.post(stream_chat_api_url, json=chat_params, stream=True)
-
-            # Notice: External type chat engine doesn't support non-streaming mode for now.
+            # External engines currently use the streaming protocol only.
             stackvm_response_text = ""
             task_id = None
-            for line in res.iter_lines():
-                if not line:
-                    continue
+            with external_engine_session(stream_chat_api_url) as session:
+                with session.post(
+                    stream_chat_api_url, json=chat_params, stream=True
+                ) as res:
+                    res.raise_for_status()
+                    for line in res.iter_lines():
+                        if not line:
+                            continue
 
-                # Append to final response text.
-                chunk = line.decode("utf-8")
-                if chunk.startswith("0:"):
-                    word = json.loads(chunk[2:])
-                    stackvm_response_text += word
-                    yield ChatEvent(
-                        event_type=ChatEventType.TEXT_PART,
-                        payload=word,
-                    )
-                else:
-                    yield line + b"\n"
+                        # Append to final response text.
+                        chunk = line.decode("utf-8")
+                        if chunk.startswith("0:"):
+                            word = json.loads(chunk[2:])
+                            stackvm_response_text += word
+                            yield ChatEvent(
+                                event_type=ChatEventType.TEXT_PART,
+                                payload=word,
+                            )
+                        else:
+                            yield line + b"\n"
 
-                try:
-                    if chunk.startswith("8:") and task_id is None:
-                        states = json.loads(chunk[2:])
-                        if len(states) > 0:
-                            # accesss task by http://endpoint/?task_id=$task_id
-                            task_id = states[0].get("task_id")
-                except Exception as e:
-                    logger.warning(
-                        "External task metadata parsing failed (%s)", type(e).__name__
-                    )
+                        try:
+                            if chunk.startswith("8:") and task_id is None:
+                                states = json.loads(chunk[2:])
+                                if len(states) > 0:
+                                    # accesss task by http://endpoint/?task_id=$task_id
+                                    task_id = states[0].get("task_id")
+                        except Exception as e:
+                            logger.warning(
+                                "External task metadata parsing failed (%s)",
+                                type(e).__name__,
+                            )
 
         response_text = stackvm_response_text
         base_url = stream_chat_api_url.replace("/api/stream_execute_vm", "")

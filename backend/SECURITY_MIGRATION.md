@@ -344,6 +344,19 @@ A running synchronous SDK call can finish its bounded I/O before cleanup; this
 is not a process-kill deadline. A disconnected SSE client does not release its
 concurrency lease until the running iterator has returned and closed. Crashed
 worker leases expire after the deadline plus a 120-second cleanup allowance.
+External chat engines and post-verification services require registration in
+`EXTERNAL_ENGINE_ALLOWED_ORIGINS` (a JSON list of exact HTTP(S) origins, without
+paths). Register the existing services before rollout, including intended private
+services. Configuration writes and runtime requests both check this policy; no
+external service is implicitly trusted. Paths are preserved, URL credentials and
+query-string secrets are rejected, redirects and ambient proxies/netrc credentials
+are disabled. External streams allow at most 4 MiB and a 120-second read budget
+(or the shorter active generation deadline); post-verification allows 64 KiB and
+10 seconds. Connections close on failure and consumer disconnect. ProviderSession
+also applies standalone response/read limits when no chat generation scope exists.
+Read budgets are checked between chunks, with bounded blocking socket reads as
+described above; they are not process-kill deadlines.
+
 Provider-specific coverage and the remaining DSPy transport path are still under
 review while this PR is a draft.
 

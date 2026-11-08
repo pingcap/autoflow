@@ -2,6 +2,7 @@
 
 import httpx
 import requests
+import time
 from app.security.provider_config import endpoint_origin, ProviderConfigurationError
 from app.security.generation import current_generation
 from app.security.generation_limits import GenerationExpired
@@ -34,47 +35,69 @@ def openai_http_clients():
 
 
 class ProviderSession(requests.Session):
-    def __init__(self, endpoint):
+    def __init__(
+        self, endpoint, *, max_seconds=60, max_response_bytes=MAX_RESPONSE_BYTES
+    ):
         super().__init__()
         self.trust_env = False
         self.allowed_origin = endpoint_origin(endpoint)
+        self.max_seconds = max_seconds
+        self.max_response_bytes = max_response_bytes
+
+    def send(self, request, **kwargs):
+        body = request.body
+        if isinstance(body, str):
+            body = body.encode()
+        if body is not None and (
+            not isinstance(body, bytes) or len(body) > 2 * 1024 * 1024
+        ):
+            raise GenerationExpired("Generation request body budget exceeded")
+        return super().send(request, **kwargs)
 
     def request(self, method, url, **kwargs):
         if endpoint_origin(url) != self.allowed_origin:
             raise ProviderConfigurationError("Provider request changed destination")
         kwargs["allow_redirects"] = False
-        kwargs["timeout"] = (10, 60)
         generation = current_generation.get()
         remaining = generation.before_outbound() if generation else None
         was_streaming = kwargs.get("stream", False)
-        if remaining is not None:
-            kwargs["timeout"] = (min(10, remaining), min(60, remaining))
-            kwargs["stream"] = True
+        seconds = (
+            min(self.max_seconds, remaining)
+            if remaining is not None
+            else self.max_seconds
+        )
+        deadline = time.monotonic() + seconds
+        kwargs["timeout"] = (min(10, seconds), min(60, seconds))
+        kwargs["stream"] = True
+        headers = requests.structures.CaseInsensitiveDict(kwargs.get("headers") or {})
+        headers["Accept-Encoding"] = "identity"
+        kwargs["headers"] = headers
         response = super().request(method, url, **kwargs)
         if 300 <= response.status_code < 400:
             response.close()
             raise ProviderConfigurationError("Provider redirects are disabled")
-        if remaining is not None:
-            original = response.iter_content
+        if response.headers.get("Content-Encoding", "identity").lower() != "identity":
+            response.close()
+            raise GenerationExpired("Compressed model responses are disabled")
+        original = response.iter_content
 
-            def bounded_content(chunk_size=1, decode_unicode=False):
-                total = 0
-                try:
-                    for chunk in original(chunk_size, decode_unicode):
+        def bounded_content(chunk_size=1, decode_unicode=False):
+            total = 0
+            try:
+                for chunk in original(chunk_size, decode_unicode):
+                    if generation:
                         generation.check()
-                        total += len(
-                            chunk.encode() if isinstance(chunk, str) else chunk
-                        )
-                        if total > MAX_RESPONSE_BYTES:
-                            raise GenerationExpired(
-                                "Generation response budget exceeded"
-                            )
-                        yield chunk
-                except BaseException:
-                    response.close()
-                    raise
+                    if time.monotonic() > deadline:
+                        raise GenerationExpired("Generation deadline exceeded")
+                    total += len(chunk.encode() if isinstance(chunk, str) else chunk)
+                    if total > self.max_response_bytes:
+                        raise GenerationExpired("Generation response budget exceeded")
+                    yield chunk
+            except BaseException:
+                response.close()
+                raise
 
-            response.iter_content = bounded_content
-            if not was_streaming:
-                response.content
+        response.iter_content = bounded_content
+        if not was_streaming:
+            response.content
         return response

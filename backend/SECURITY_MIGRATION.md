@@ -258,6 +258,16 @@ validates identifier syntax and does not establish model availability. Register
 custom origins before deployment rather than changing stored destinations or
 discarding existing model settings to make validation pass.
 
+Bedrock and Ollama embeddings also use owned synchronous/native asynchronous
+HTTP connections with request, response, deadline and attempt limits. Bedrock
+uses fixed regional destinations and explicit SigV4 identity for InvokeModel;
+ambient AWS endpoint/profile/CA settings cannot redirect the request. Titan
+dimensions/normalization and Cohere query/document batching retain their SDK
+encoding. Ollama keeps `/api/embed`, embedding instructions and model options,
+using the pinned SDK's data codecs without global clients. Calls without chat
+admission are still bounded; copies and different event loops do not share open
+HTTP pools. Cancellation closes in-flight asynchronous connections.
+
 ## Background and optional local-model services
 
 Flower is no longer started by supervisord and no compose file publishes its

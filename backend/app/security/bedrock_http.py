@@ -7,6 +7,7 @@ endpoint override, proxy, or SDK background producer participates in a call.
 from contextlib import asynccontextmanager, contextmanager
 from copy import deepcopy
 from functools import lru_cache
+from io import BytesIO
 
 import httpx
 from botocore.auth import SigV4Auth
@@ -107,8 +108,11 @@ class BedrockHTTP:
         parameters = deepcopy(parameters)
         if parameters.get("modelId") != self.model:
             raise ProviderConfigurationError("Unexpected Bedrock model")
-        inference = parameters.setdefault("inferenceConfig", {})
-        bind_output_limit(inference, "maxTokens", self.max_tokens)
+        if operation in {"Converse", "ConverseStream"}:
+            inference = parameters.setdefault("inferenceConfig", {})
+            bind_output_limit(inference, "maxTokens", self.max_tokens)
+        elif operation != "InvokeModel":
+            raise ProviderConfigurationError("Unsupported Bedrock operation")
         model = self.service.operation_model(operation)
         try:
             request = create_serializer("rest-json").serialize_to_request(
@@ -205,6 +209,14 @@ class BedrockHTTP:
     async def aconverse(self, **parameters):
         async with self.astream("Converse", parameters) as response:
             return self.parse(response, await response.aread())
+
+    def invoke_model(self, **parameters):
+        with self.stream("InvokeModel", parameters) as response:
+            return {"body": BytesIO(response.read())}
+
+    async def ainvoke_model(self, **parameters):
+        async with self.astream("InvokeModel", parameters) as response:
+            return {"body": BytesIO(await response.aread())}
 
     def events(self, parameters):
         with self.stream("ConverseStream", parameters) as response:

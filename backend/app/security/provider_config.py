@@ -113,6 +113,7 @@ EMBEDDING_FIELDS = {
     "openai_like": {"dimensions"},
     "giteeai": {"dimensions"},
     "azure_openai": {"azure_deployment"},
+    "ollama": {"query_instruction", "text_instruction"},
 }
 GENERATION_FIELDS = {
     "top_p",
@@ -226,8 +227,20 @@ def prepare_provider_config(kind, provider, model, config, credentials):
     for field in ("additional_kwargs", "ollama_additional_kwargs"):
         if field in result:
             value = result[field]
-            if not isinstance(value, dict) or set(value) - GENERATION_FIELDS:
+            allowed_options = (
+                {"dimensions", "normalize"}
+                if kind == "embedding" and provider == "bedrock"
+                else GENERATION_FIELDS
+            )
+            if not isinstance(value, dict) or set(value) - allowed_options:
                 raise ProviderConfigurationError("Unsupported generation options")
+            if "dimensions" in value and (
+                type(value["dimensions"]) is not int
+                or not 1 <= value["dimensions"] <= 65536
+            ):
+                raise ProviderConfigurationError("Invalid embedding dimensions")
+            if "normalize" in value and type(value["normalize"]) is not bool:
+                raise ProviderConfigurationError("Invalid embedding normalization")
             for token_limit in (
                 "num_predict",
                 "max_completion_tokens",

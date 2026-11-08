@@ -12,8 +12,10 @@ from app.rag.provider_adapters import (
     cohere_http_clients,
 )
 from llama_index.embeddings.cohere import CohereEmbedding
-from llama_index.embeddings.bedrock import BedrockEmbedding
-from llama_index.embeddings.ollama import OllamaEmbedding
+from app.security.embedding_clients import (
+    BoundBedrockEmbedding as BedrockEmbedding,
+    BoundOllamaEmbedding as OllamaEmbedding,
+)
 
 from app.rag.embeddings.open_like.openai_like_embedding import OpenAILikeEmbedding
 from app.rag.embeddings.local.local_embedding import LocalEmbedding
@@ -60,14 +62,7 @@ def resolve_embed_model(
             )
         case EmbeddingProvider.OLLAMA:
             return OllamaEmbedding(
-                client_kwargs={
-                    "timeout": 60,
-                    "trust_env": False,
-                    "follow_redirects": False,
-                    "headers": {
-                        "Authorization": f"Bearer {credentials or 'autoflow-local-no-auth'}"
-                    },
-                },
+                api_key=credentials,
                 model_name=model,
                 **config,
             )

@@ -43,7 +43,7 @@ def env():
 
 
 @pytest.fixture
-def database(monkeypatch):
+def database(monkeypatch, request):
     from app.core.config import settings
 
     name = "autoflow_security_" + uuid4().hex
@@ -70,7 +70,13 @@ def database(monkeypatch):
         # Some historical migrations import the global application engine.
         # A fresh interpreter prevents it retaining a previous fixture's DB.
         subprocess.run(
-            [sys.executable, "-m", "alembic", "upgrade", "head"],
+            [
+                sys.executable,
+                "-m",
+                "alembic",
+                "upgrade",
+                getattr(request, "param", "head"),
+            ],
             env=dict(os.environ, TIDB_DATABASE=name),
             check=True,
             timeout=60,

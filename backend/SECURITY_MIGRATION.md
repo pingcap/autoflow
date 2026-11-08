@@ -478,7 +478,13 @@ and removes that container after the tests. Each case installs the shipped
 Alembic migrations into a new disposable database. These tests cover concurrent
 Langfuse configuration updates, encrypted credential migration and rollback,
 provider destination/key updates, password-reset revocation and scoped answer
-cache queries on TiDB. CI runs the same script; no deployment database URL or
+cache queries on TiDB. A populated-upgrade case starts at revision
+`04947f9684ab`, migrates fake legacy provider and Langfuse credentials, upgrades
+the schema, and checks existing sessions, revoked keys, guest privacy and audit
+attribution. It also checks that schema rollback cannot reactivate unrestricted
+keys or republish guests, and that re-upgrade is idempotent. This is not a
+substitute for restoring the deployment's own private backup before rollout.
+CI runs the same script; no deployment database URL or
 credentials are accepted.
 
 ## Security events and committed audit records

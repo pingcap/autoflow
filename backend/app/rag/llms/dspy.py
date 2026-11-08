@@ -17,13 +17,15 @@ def get_dspy_lm_by_llama_llm(llama_llm: BaseLLM) -> dspy.LM:
         case "OpenAILike":
             if llama_llm.is_chat_model:
                 return _openai_chat_lm(llama_llm)
-            return _bounded_lm(
+            from app.security.dspy_text import text_engines
+
+            return dspy.LM(
                 model=f"openai/{llama_llm.model}",
-                max_tokens=llama_llm.max_tokens,
-                api_key=llama_llm.api_key,
-                api_base=enforce_trailing_slash(llama_llm.api_base),
-                model_type="chat" if llama_llm.is_chat_model else "text",
+                max_tokens=None,
+                model_type="text",
+                cache=False,
                 num_retries=1,
+                **text_engines(llama_llm),
             )
         case "GenAI":
             from app.security.dspy_google import google_engines, google_model_name

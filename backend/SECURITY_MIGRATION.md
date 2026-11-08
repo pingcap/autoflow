@@ -231,6 +231,15 @@ overrides may lower the configured token limit but cannot raise it. The Google
 SDK's internal retry multiplier is disabled; LlamaIndex keeps the configured
 retry policy and each actual request is charged to the generation allowance.
 
+OpenAI-compatible text providers keep `/completions`, their existing DSPy prompt
+delimiter and text-only generation options. The compatibility path now uses
+owned synchronous/asynchronous clients with the same response, request, deadline
+and attempt bounds, explicit credentials and output cap. Token logprobs and usage
+retain their original mapping/attribute shape. No LiteLLM global network client
+or callback lifecycle is invoked. This uses the pinned DSPy text compatibility
+hook because its native engine supports only chat/Responses; revalidate that
+hook when upgrading DSPy, rather than silently switching text models to chat.
+
 Changing an endpoint, Azure deployment or Vertex destination requires fresh
 credentials in the same update. The management UI supports this atomic update;
 JSON credentials are stored in the encrypted credentials column. Old editors

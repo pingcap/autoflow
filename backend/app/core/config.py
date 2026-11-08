@@ -127,7 +127,9 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "TiDB.AI"
     SENTRY_DSN: HttpUrl | None = None
     SENTRY_TRACES_SAMPLE_RATE: float = 1.0
-    SENTRY_PROFILES_SAMPLE_RATE: float = 1.0
+    # Kept for configuration compatibility. Profiles remain disabled until their
+    # separate envelope has a verified privacy boundary (see security/telemetry).
+    SENTRY_PROFILES_SAMPLE_RATE: float = 0.0
 
     @model_validator(mode="after")
     def _validate_sentry_sample_rate(self) -> Self:

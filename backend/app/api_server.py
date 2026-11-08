@@ -4,7 +4,7 @@ import sentry_sdk
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
-from fastapi.routing import APIRoute
+from fastapi.routing import APIRoute, iter_route_contexts
 from starlette.middleware.cors import CORSMiddleware
 from app.security.csrf import CSRFMiddleware
 from app.security.generation import GenerationBodyLimitMiddleware
@@ -13,6 +13,7 @@ from app.api.main import api_router
 from app.core.config import settings
 from app.site_settings import SiteSetting
 from app.auth.browser_session import create_browser_session, verify_browser_session
+from app.security.telemetry import privacy_options
 
 
 load_dotenv()
@@ -20,15 +21,6 @@ load_dotenv()
 
 def custom_generate_unique_id(route: APIRoute) -> str:
     return f"{route.tags[0]}-{route.name}"
-
-
-if settings.SENTRY_DSN and settings.ENVIRONMENT != "local":
-    sentry_sdk.init(
-        dsn=str(settings.SENTRY_DSN),
-        enable_tracing=True,
-        traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
-        profiles_sample_rate=settings.SENTRY_PROFILES_SAMPLE_RATE,
-    )
 
 
 @asynccontextmanager
@@ -95,3 +87,12 @@ if settings.BACKEND_CORS_ORIGINS:
     )
 
 app.add_middleware(AuditMiddleware, prefix=settings.API_V1_STR)
+
+if settings.SENTRY_DSN and settings.ENVIRONMENT != "local":
+    sentry_sdk.init(
+        dsn=str(settings.SENTRY_DSN),
+        environment=settings.ENVIRONMENT.value,
+        enable_tracing=True,
+        traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
+        **privacy_options(iter_route_contexts(app.routes)),
+    )

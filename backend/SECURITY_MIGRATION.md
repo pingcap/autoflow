@@ -102,6 +102,19 @@ Chat-flow diagnostic logs no longer copy question/goal/answer text, endpoint URL
 or exception bodies. This does not change the explicitly configured Langfuse
 prompt/answer tracing policy or erase historical logs.
 
+Sentry errors and performance transactions use an allowlist before transmission:
+error classes, code locations (no local values/source lines), registered route
+templates, HTTP method, trace identifiers and timing. Raw messages, exception
+bodies, request URLs/queries/headers/cookies/bodies, user context, arbitrary tags,
+SQL/model span descriptions, breadcrumbs and attachments are omitted. Unexpected
+event shapes are dropped. Request-body, local-variable and source-code collection
+are also disabled at the SDK. The locked Sentry 2.26.1 profile/session channels do
+not use these hooks, so profiles, automatic sessions and experimental logs/metrics
+are disabled. The legacy `SENTRY_PROFILES_SAMPLE_RATE` setting remains accepted
+but cannot enable profiles; trace sampling continues to follow
+`SENTRY_TRACES_SAMPLE_RATE`. Review historical Sentry and application-log access
+and retention separately; this change neither retrieves nor deletes old events.
+
 Public chat/config responses omit internal prompts, endpoint URLs, tokens, knowledge
 base configuration and browser identity. Enabling `hide_sources` also hides source
 and graph data in historical messages and streams. Non-admin file downloads require

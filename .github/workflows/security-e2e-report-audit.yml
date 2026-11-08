@@ -1,6 +1,6 @@
-# Temporary read-only inventory for retiring historical credential-backed reports.
-# Remove after the operator captures the result; no report or secret is uploaded.
-name: Historical E2E Report Inventory
+# Temporary retirement of the four independently inventoried E2E report deployments.
+# Remove after verification; no report or secret is uploaded.
+name: Historical E2E Report Retirement
 on:
   push:
     branches: ['chord/fix-dependabot-alerts']
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Inventory only the existing E2E report project
+      - name: Retire only the verified historical E2E report deployments
         env:
           REPORT_TOKEN: ${{ secrets.E2E_VERCEL_TOKEN }}
           REPORT_OWNER: ${{ secrets.E2E_VERCEL_ORG_ID }}
@@ -32,21 +32,38 @@ jobs:
               def redirect_request(self, *args, **kwargs):
                   return None
           opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
-          def get(path, **query):
+          def request_api(method, path, **query):
               if owner.startswith('team_'):
                   query['teamId'] = owner
               url = 'https://api.vercel.com' + path + '?' + urllib.parse.urlencode(query)
-              request = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + token})
+              request = urllib.request.Request(url, method=method, headers={'Authorization': 'Bearer ' + token})
               try:
                   with opener.open(request, timeout=15) as response:
                       raw = response.read(4 * 1024 * 1024 + 1)
                   if len(raw) > 4 * 1024 * 1024:
                       sys.exit('Report inventory: response exceeds metadata budget')
-                  return json.loads(raw)
+                  return json.loads(raw) if raw else {}
               except urllib.error.HTTPError as error:
                   sys.exit('Report inventory: API HTTP status ' + str(error.code))
               except (OSError, ValueError):
                   sys.exit('Report inventory: network or metadata decoding failure')
+          def get(path, **query):
+              return request_api('GET', path, **query)
+          # Independently merged PR #718 stops new reports before old copies go.
+          # These public source requests carry no Vercel authorization header.
+          def public_source(path):
+              url = 'https://raw.githubusercontent.com/pingcap/autoflow/main/' + path
+              try:
+                  with opener.open(url, timeout=15) as response:
+                      return response.read(65536).decode()
+              except (OSError, ValueError):
+                  sys.exit('Report retirement: main containment verification unavailable')
+          release = public_source('.github/workflows/release.yml')
+          playback = public_source('e2e/playwright.config.ts')
+          if ('e2e-test:' not in release or 'e2e-test-deploy:' in release
+                  or 'upload-artifact' in release or 'E2E_VERCEL_TOKEN' in release
+                  or "trace: 'off'" not in playback or "video: 'off'" not in playback):
+              sys.exit('Report retirement: main has not stopped report publication')
           details = get('/v9/projects/' + project)
           if (details.get('id') != project or details.get('accountId') != owner
                   or details.get('name') != 'tidb-ai-playwright'):
@@ -82,4 +99,19 @@ jobs:
           print('REPORT_INVENTORY ' + json.dumps({'project_verified': True,
                 'deployment_count': count, 'states': dict(states), 'oldest': oldest,
                 'newest': newest, 'mutation_performed': False}, sort_keys=True))
+          if (count != 4 or dict(states) != {'ERROR': 1, 'READY': 3}
+                  or oldest != 1767971194267 or newest != 1792724168132):
+              sys.exit('Report retirement: inventory changed; review before deletion')
+          if not all(re.fullmatch(r'dpl_[A-Za-z0-9]+', item) for item in seen):
+              sys.exit('Report retirement: unexpected deployment identifier format')
+          for deployment_id in sorted(seen):
+              result = request_api('DELETE', '/v13/deployments/' + deployment_id)
+              if result.get('state') != 'DELETED' or result.get('uid') != deployment_id:
+                  sys.exit('Report retirement: deletion not confirmed; stop and inspect')
+          remaining = get('/v7/deployments', projectId=project, limit=100)
+          if remaining.get('deployments') or remaining.get('pagination', {}).get('next'):
+              sys.exit('Report retirement: remaining deployments require inspection')
+          print('REPORT_RETIREMENT ' + json.dumps({'project_verified': True,
+                'main_containment_verified': True, 'deleted': 4,
+                'remaining': 0, 'project_preserved': True}, sort_keys=True))
           PY

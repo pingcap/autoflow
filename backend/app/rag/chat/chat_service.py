@@ -42,7 +42,6 @@ from app.rag.types import (
 from app.repositories import chat_engine_repo
 from app.repositories.embedding_model import embedding_model_repo
 from app.repositories.llm import llm_repo
-from app.site_settings import SiteSetting
 from app.security.prompt_template import SafePromptTemplate
 
 logger = logging.getLogger(__name__)
@@ -194,10 +193,13 @@ def check_rag_required_config(session: Session) -> RequiredConfigStatus:
 
 
 def check_rag_optional_config(session: Session) -> OptionalConfigStatus:
+    from app.security.langfuse_settings import read_public_configuration
+
+    config = read_public_configuration(session)
     langfuse = bool(
-        SiteSetting.langfuse_host
-        and SiteSetting.langfuse_secret_key
-        and SiteSetting.langfuse_public_key
+        config["configured"]
+        and config["public_key"]
+        and not config["migration_required"]
     )
     default_reranker = session.scalar(select(func.count(DBRerankerModel.id))) > 0
     return OptionalConfigStatus(

@@ -73,6 +73,10 @@ class SiteSettingProxy:
         return self.get_setting(name)
 
     def get_setting(self, name: str) -> SettingType:
+        if name == "langfuse_secret_key":
+            raise ValueError(
+                "Langfuse credentials are available only to the tracing client"
+            )
         if hasattr(default_settings, name):
             default_setting = getattr(default_settings, name)
             self.update_db_cache()
@@ -99,6 +103,13 @@ class SiteSettingProxy:
                     group=default_setting.group,
                     client=default_setting.client,
                 )
+        from app.security.langfuse_settings import public_configuration
+
+        langfuse = public_configuration(self.__db_cache)
+        result["langfuse_host"].value = langfuse["host"]
+        result["langfuse_public_key"].value = langfuse["public_key"]
+        result["langfuse_secret_key"].value = None
+        result["langfuse_secret_key"].default = ""
         return result
 
     def get_client_settings(self) -> dict:
@@ -113,6 +124,12 @@ class SiteSettingProxy:
         return hasattr(default_settings, name)
 
     def update_setting(self, session: Session, name: str, value: SettingType):
+        from app.security.langfuse_settings import LEGACY_NAMES
+
+        if name in LEGACY_NAMES:
+            raise ValueError(
+                "Save Langfuse settings together through the Langfuse configuration endpoint"
+            )
         if not self.setting_exists(name):
             raise AttributeError(f"Setting {name} does not exist.")
 

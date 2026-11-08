@@ -22,8 +22,10 @@ class LangfuseContextManager:
         except Exception:
             raise
         finally:
-            self.instrumentor.flush()
-            self.instrumentor.stop()
+            try:
+                self.instrumentor.flush()
+            finally:
+                self.instrumentor.stop()
 
     @contextmanager
     def span(
@@ -64,6 +66,8 @@ class LangfuseContextManager:
 
     @property
     def trace_url(self) -> Optional[str]:
+        if not getattr(self.instrumentor.client_instance, "enabled", False):
+            return None
         if self.langfuse_client:
             return self.langfuse_client.get_trace_url()
         else:

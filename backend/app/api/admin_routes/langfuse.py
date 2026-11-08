@@ -1,19 +1,26 @@
-import logging
-from pydantic import BaseModel
+from typing import Any
 
-from fastapi import APIRouter
-from langfuse import Langfuse
+from fastapi import APIRouter, Body, HTTPException
+from pydantic import BaseModel, Field, SecretStr, ValidationError
 
-from app.api.deps import CurrentSuperuserDep
+from app.api.deps import CurrentSuperuserDep, SessionDep
+from app.security.langfuse_settings import (
+    ConfigurationConflict,
+    LangfuseConfigurationError,
+    LangfuseUpdate,
+    read_public_configuration,
+    save_configuration,
+    validate_host,
+)
+from app.security.langfuse_http import langfuse_http_client
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
 
 
 class LangfuseSetting(BaseModel):
-    host: str = "https://us.cloud.langfuse.com"
-    public_key: str
-    secret_key: str
+    host: str = Field(default="https://us.cloud.langfuse.com", max_length=2048)
+    public_key: str = Field(min_length=1, max_length=512)
+    secret_key: SecretStr = Field(min_length=1, max_length=4096)
 
 
 class LangfuseTestResult(BaseModel):
@@ -21,23 +28,57 @@ class LangfuseTestResult(BaseModel):
     error: str = ""
 
 
+def validated(model, payload):
+    try:
+        return model.model_validate(payload)
+    except ValidationError:
+        # Default validation errors include submitted values, even secret fields.
+        raise HTTPException(422, "Invalid Langfuse configuration") from None
+
+
+@router.get("/admin/langfuse")
+def get_langfuse(user: CurrentSuperuserDep, session: SessionDep):
+    return read_public_configuration(session)
+
+
+@router.put("/admin/langfuse")
+def update_langfuse(
+    user: CurrentSuperuserDep, session: SessionDep, payload: Any = Body()
+):
+    request = validated(LangfuseUpdate, payload)
+    try:
+        result = save_configuration(session, request)
+        session.commit()
+        return result
+    except ConfigurationConflict as error:
+        session.rollback()
+        raise HTTPException(409, str(error)) from None
+    except LangfuseConfigurationError as error:
+        session.rollback()
+        raise HTTPException(400, str(error)) from None
+
+
 @router.post("/admin/langfuse/test")
 def test_langfuse(
-    user: CurrentSuperuserDep,
-    request: LangfuseSetting,
+    user: CurrentSuperuserDep, payload: Any = Body()
 ) -> LangfuseTestResult:
+    request = validated(LangfuseSetting, payload)
     try:
-        lf = Langfuse(
-            host=request.host,
-            secret_key=request.secret_key,
-            public_key=request.public_key,
-        )
-        success = lf.auth_check()
-        if not success:
-            error = "Langfuse authentication failed, please check public_key, secret_key and host."
-        else:
-            error = ""
-    except Exception as e:
+        host = validate_host(request.host)
+        with langfuse_http_client(host) as client:
+            response = client.get(
+                host + "/api/public/projects",
+                auth=(request.public_key, request.secret_key.get_secret_value()),
+            )
+            response.raise_for_status()
+            data = response.json().get("data")
+            success = isinstance(data, list) and bool(data)
+    except Exception:
+        # Never return bodies, URLs, authorization headers or exception text.
         success = False
-        error = str(e)
-    return LangfuseTestResult(success=success, error=error)
+    return LangfuseTestResult(
+        success=success,
+        error=""
+        if success
+        else "Langfuse verification failed; check credentials and the registered host.",
+    )

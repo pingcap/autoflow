@@ -8,7 +8,8 @@ from urllib.parse import urljoin
 from uuid import UUID
 
 import requests
-from langfuse.llama_index import LlamaIndexInstrumentor
+from app.utils.langfuse_instrumentor import BoundLangfuseInstrumentor
+from app.security.langfuse_settings import read_runtime_configuration
 from langfuse.llama_index._context import langfuse_instrumentor_context
 from llama_index.core import get_response_synthesizer
 from llama_index.core.base.llms.types import ChatMessage, MessageRole
@@ -38,7 +39,6 @@ from app.rag.utils import parse_goal_response_format
 from app.repositories import chat_repo, llm_repo
 from app.repositories.reranker_model import reranker_model_repo
 from app.security.answer_cache import answer_cache_context, answer_goal_key
-from app.site_settings import SiteSetting
 from app.utils.tracing import LangfuseContextManager
 
 logger = logging.getLogger(__name__)
@@ -157,15 +157,7 @@ class ChatFlow:
                 )
 
         # Init Langfuse for tracing.
-        enable_langfuse = (
-            SiteSetting.langfuse_secret_key and SiteSetting.langfuse_public_key
-        )
-        instrumentor = LlamaIndexInstrumentor(
-            host=SiteSetting.langfuse_host,
-            secret_key=SiteSetting.langfuse_secret_key,
-            public_key=SiteSetting.langfuse_public_key,
-            enabled=enable_langfuse,
-        )
+        instrumentor = BoundLangfuseInstrumentor(read_runtime_configuration(db_session))
         self._trace_manager = LangfuseContextManager(instrumentor)
 
         # Init LLM.

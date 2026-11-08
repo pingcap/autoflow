@@ -45,6 +45,52 @@ Use an interactive terminal or a mode-600 password file with `bootstrap.py
 --password-file PATH`. The isolated E2E harness generates fresh signing,
 encryption and administrator credentials for each run and never prints them.
 
+## Langfuse credentials and tracing
+
+The Langfuse integration keeps intentional prompt/answer tracing. Its destination,
+public key and encrypted secret now live in one versioned `site_settings` record;
+no new table is required. AES-GCM authenticates the destination and public key as
+well as the secret. Management responses never return plaintext or ciphertext.
+The editor saves the configuration atomically, rejects stale revisions and
+requires a fresh key when changing the destination. Removing the key explicitly
+disables tracing for new chats. In-flight chats retain their starting snapshot;
+drain them before an urgent revocation, and revoke exposed keys with Langfuse.
+
+Before restarting workers, register trusted self-hosted destinations using
+`LANGFUSE_ALLOWED_ORIGINS`, a JSON list of exact origins. The US and EU official
+cloud origins are built in. This grants network access to the registered service
+and its resolved addresses; register only operator-controlled/trusted services.
+Base paths remain supported. Clients do not inherit proxy settings or keys from
+the environment, follow redirects or accept oversized responses. Authentication
+tests return generic failures rather than upstream error bodies.
+
+With the same independent `DATA_ENCRYPTION_KEY` used for provider credentials,
+run these commands while API/worker writers are stopped:
+
+```bash
+python migrate_langfuse_credentials.py
+python migrate_langfuse_credentials.py --apply
+```
+
+The default dry-run executes only reads and in-memory encryption checks. Apply
+encrypts the old `langfuse_secret_key` and clears its plaintext in the same
+transaction. It is idempotent, reports counts only and rolls back on failure.
+The runtime refuses an unmigrated non-empty legacy key. Later data-key rotations
+must run **both** credential migration tools with `--previous-data-key-file`,
+first as dry-run, then with `--apply`, before restarting workers. Back up the
+database and old key privately beforehand. To roll back application versions,
+restore the matching private database/key backup while all writers are stopped;
+do not point older code at the new record or decrypt secrets into SQL/job logs.
+Remove restored legacy plaintext again before bringing the hardened version back.
+
+Tracing clients are scoped to one chat/configuration snapshot. Context-local
+dispatchers route concurrent LlamaIndex events to their own clients, instead of
+the SDK's first-client process singleton; completing one chat does not unregister
+another's handlers. Clients, worker queues and HTTP connections are closed on
+normal completion or failure. The SDK adapter uses interfaces of the locked
+Langfuse 2.x release; retain the real-SDK concurrency and shutdown regressions
+when upgrading it. This does not erase historical traces or revoke old keys.
+
 ## Sessions, API keys, and historical guest chats
 
 1. Back up the database and record the deployed revision. Stop/drain the old API

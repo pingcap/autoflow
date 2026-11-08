@@ -426,8 +426,18 @@ configuration remains API-key based. Real sync/async tests cover the primary and
 DSPy clients, separate deployment versions/keys, JSON schemas and tool history,
 stream usage/early closure, proxy rejection and response/deadline/attempt bounds.
 
-Other provider-specific DSPy transports, including legacy text completions, are
-still under review while this PR is a draft.
+Bedrock primary clients keep the Converse/ConverseStream protocol and AWS SigV4
+signing, using packaged botocore serializers and event parsers. Destinations are
+derived from the configured region and AWS partition; server profile files,
+endpoint/proxy/CA overrides and ambient session tokens cannot change them.
+Each synchronous or native asynchronous call owns its guarded HTTP connection.
+Async streaming no longer uses the SDK's unbounded background producer, which
+also lost the active generation context. Early exit and cancellation close the
+connection; binary stream checksums, incomplete streams, body/deadline/attempt
+limits and the configured output cap are enforced. Inline images/documents and
+tool/thinking/usage blocks remain supported. Supply media inline: SDK conversion
+must not read arbitrary local files or download remote URLs before admission.
+The Bedrock DSPy path remains under review while this PR is a draft.
 
 Ollama's primary clients and DSPy use guarded HTTPX transports. DSPy's explicit
 native engines retain `/api/chat` through the locked SDK's pure request/response

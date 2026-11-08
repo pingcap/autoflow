@@ -35,7 +35,7 @@ def resolve_llm(
                 model=model, api_key=credentials, **openai_http_clients(), **config
             )
         case LLMProvider.BEDROCK:
-            from llama_index.llms.bedrock_converse import BedrockConverse
+            from app.security.bedrock_client import BoundBedrockConverse
 
             access_key_id = credentials["aws_access_key_id"]
             secret_access_key = credentials["aws_secret_access_key"]
@@ -43,7 +43,7 @@ def resolve_llm(
 
             config.setdefault("max_tokens", 4096)
 
-            return BedrockConverse(
+            return BoundBedrockConverse(
                 model=model,
                 aws_access_key_id=access_key_id,
                 aws_secret_access_key=secret_access_key,

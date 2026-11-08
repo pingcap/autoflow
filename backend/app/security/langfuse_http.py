@@ -5,18 +5,40 @@ import httpx
 
 from app.security.langfuse_settings import LangfuseConfigurationError
 from app.security.provider_config import endpoint_origin
+from app.security.trace_network import TraceNetworkBackend
+
+REQUEST_SECONDS = 30
 
 
 class LangfuseTransport(httpx.HTTPTransport):
     def __init__(self, host):
-        super().__init__(trust_env=False, retries=0)
+        super().__init__(
+            trust_env=False,
+            retries=0,
+            limits=httpx.Limits(max_connections=5, max_keepalive_connections=2),
+        )
         self.origin = endpoint_origin(host)
+        self.network = TraceNetworkBackend()
+        # HTTPX does not expose httpcore's network_backend argument. This pinned
+        # transport is covered by real HTTP/TLS and SDK lifecycle regressions.
+        self._pool._network_backend = self.network
+
+    def abort(self):
+        self.network.abort()
 
     def handle_request(self, request):
         if endpoint_origin(str(request.url)) != self.origin:
             raise LangfuseConfigurationError("Langfuse request changed destination")
         request.headers["Accept-Encoding"] = "identity"
-        deadline = time.monotonic() + 30
+        deadline = time.monotonic() + REQUEST_SECONDS
+        token = self.network.deadline.set(deadline)
+        try:
+            return self._bounded_request(request, deadline)
+        finally:
+            self.network.deadline.reset(token)
+
+    def _bounded_request(self, request, deadline):
+        self.network.timeout(10)
         response = super().handle_request(request)
         try:
             if 300 <= response.status_code < 400:

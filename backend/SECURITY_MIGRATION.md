@@ -132,6 +132,22 @@ historical guest conversations. A rollback is not a way to restore old credentia
 
 ## Public data behavior
 
+Langfuse remains an intentional destination for prompt/answer tracing. Each chat
+now has a 256-event pending queue, a five-second final flush allowance and a shared
+three-second worker cleanup allowance. A stalled final flush discards pending
+events with a value-free warning rather than retaining the chat indefinitely.
+Only that chat's socket connections, workers and exit hooks are stopped. The
+transport enforces response deadlines while reading headers as well as bodies;
+TLS certificate and hostname checks remain enabled. OS DNS resolution and Python
+SDK CPU work are not forcibly killed; cancelled clients cannot open later network
+connections. These bounds can lose traces when Langfuse is unavailable or a chat
+exceeds the queue capacity, without changing the generated answer.
+
+Autoflow's text/JSON tracing keeps `data:` strings as text. Langfuse's automatic
+conversion of those strings into separate media uploads is disabled because that
+upload path bypasses the configured HTTP transport. Binary media tracing would
+require a separately reviewed transport before enabling it.
+
 The frontend now uses Zod 4.6.7 with compatible form resolvers. Existing optional
 model configuration fields and numeric form values retain their API behavior.
 The unused Zod 3 adapter was removed; the lockfile no longer contains Zod 3.

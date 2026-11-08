@@ -24,6 +24,7 @@ from llama_index.core.instrumentation.span_handlers import BaseSpanHandler
 from app.core.config import settings
 from app.security.langfuse_http import langfuse_http_client
 from app.security.langfuse_settings import DEFAULT_HOST, RuntimeConfiguration
+from app.security.trace_lifecycle import TraceLifecycle
 
 _active = ContextVar("autoflow_langfuse_instrumentor", default=None)
 _registration_lock = Lock()
@@ -71,6 +72,7 @@ class BoundLangfuseInstrumentor(LlamaIndexInstrumentor):
         self._langfuse = None
         self._http = None
         self._sdk_httpx_handlers = []
+        self._lifecycle = None
 
     def start(self):
         if self._tokens is not None:
@@ -93,6 +95,7 @@ class BoundLangfuseInstrumentor(LlamaIndexInstrumentor):
                         threads=1,
                         max_retries=1,
                         timeout=10,
+                        flush_interval=0.2,
                         environment=settings.ENVIRONMENT.value,
                     )
                 finally:
@@ -100,6 +103,7 @@ class BoundLangfuseInstrumentor(LlamaIndexInstrumentor):
                         h for h in httpx_logger.handlers if h not in previous_handlers
                     ]
                     httpx_logger.setLevel(previous_level)
+            self._lifecycle = TraceLifecycle(self._langfuse, self._http._transport)
             self._span_handler = LlamaIndexSpanHandler(langfuse_client=self._langfuse)
             self._event_handler = LlamaIndexEventHandler(langfuse_client=self._langfuse)
             with _registration_lock:
@@ -137,13 +141,10 @@ class BoundLangfuseInstrumentor(LlamaIndexInstrumentor):
 
     def _close_client(self):
         try:
-            if self._langfuse is not None:
+            if self._lifecycle is not None:
                 # Langfuse.shutdown() removes every httpx log handler, including
                 # unrelated application handlers. Shut down only owned resources.
-                try:
-                    self._langfuse.prompt_cache._task_manager.shutdown()
-                finally:
-                    self._langfuse.task_manager.shutdown()
+                self._lifecycle.close()
         finally:
             for handler in self._sdk_httpx_handlers:
                 logging.getLogger("httpx").removeHandler(handler)
@@ -153,5 +154,5 @@ class BoundLangfuseInstrumentor(LlamaIndexInstrumentor):
                 self._http.close()
 
     def flush(self):
-        if self._langfuse is not None:
-            self._langfuse.flush()
+        if self._lifecycle is not None:
+            self._lifecycle.flush()

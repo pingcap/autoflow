@@ -477,3 +477,192 @@ def test_streaming_trace_context_survives_worker_changes_and_disconnect():
         assert instrumentor._http.is_closed and instrumentor._tokens is None
         bodies = json.dumps(calls)
         assert "first-part" in bodies and "second-part" in bodies
+
+
+def test_final_flush_cancels_stalled_socket_and_stops_owned_workers(monkeypatch):
+    from threading import Event
+    import time
+    from app.security import trace_lifecycle
+    from app.utils.langfuse_instrumentor import BoundLangfuseInstrumentor
+    from app.utils.tracing import LangfuseContextManager
+
+    started, disconnected = Event(), Event()
+
+    class Stalled(BaseHTTPRequestHandler):
+        def do_POST(self):
+            self.rfile.read(int(self.headers["Content-Length"]))
+            started.set()
+            self.connection.settimeout(3)
+            if self.rfile.read(1) == b"":
+                disconnected.set()
+
+        def log_message(self, *args):
+            pass
+
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), Stalled)
+    thread = Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    monkeypatch.setattr(trace_lifecycle, "FLUSH_SECONDS", 0.1)
+    instrumentor = BoundLangfuseInstrumentor(
+        RuntimeConfiguration(
+            f"http://127.0.0.1:{httpd.server_port}", "pk", "key", "fixture"
+        )
+    )
+    try:
+        with LangfuseContextManager(instrumentor).observe(
+            trace_name="stalled"
+        ) as trace:
+            trace.update(input="fixture")
+            assert started.wait(timeout=2)
+            manager = instrumentor.client_instance.task_manager
+            for _ in range(300):
+                trace.update(output="bounded-event")
+            assert (
+                manager._ingestion_queue.qsize() <= trace_lifecycle.MAX_PENDING_EVENTS
+            )
+            workers = [
+                *manager._ingestion_consumers,
+                *manager._media_upload_consumers,
+                *instrumentor.client_instance.prompt_cache._task_manager._consumers,
+            ]
+            before_close = time.monotonic()
+        assert time.monotonic() - before_close < 2
+        assert disconnected.wait(timeout=1)
+        assert all(not worker.is_alive() for worker in workers)
+        assert manager._ingestion_queue.unfinished_tasks == 0
+        assert instrumentor._http.is_closed
+        assert not instrumentor._http._transport.network.streams
+        # No later event can restart a sender after this chat is closed.
+        trace.update(output="after-close")
+        assert manager._ingestion_queue.qsize() == 0
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        thread.join(timeout=2)
+
+
+def test_text_data_uri_is_preserved_without_a_separate_media_upload():
+    from app.utils.langfuse_instrumentor import BoundLangfuseInstrumentor
+    from app.utils.tracing import LangfuseContextManager
+
+    text = "data:image/png;base64,dGV4dC1maXh0dXJl"
+    with server() as (host, calls):
+        instrumentor = BoundLangfuseInstrumentor(
+            RuntimeConfiguration(host, "pk", "key", "fixture")
+        )
+        with LangfuseContextManager(instrumentor).observe(trace_name="text") as trace:
+            trace.update(input=text)
+        assert text in json.dumps(calls)
+        assert all(path == "/api/public/ingestion" for path, *_ in calls)
+
+
+def test_trickled_headers_cannot_extend_tracing_request_deadline(monkeypatch):
+    import time
+    import httpx
+    from app.security import langfuse_http
+
+    class SlowHeaders(BaseHTTPRequestHandler):
+        def do_GET(self):
+            try:
+                self.wfile.write(b"HTTP/1.1 200 OK\r\nX-Slow: ")
+                for _ in range(100):
+                    self.wfile.write(b"a")
+                    self.wfile.flush()
+                    time.sleep(0.02)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
+        def log_message(self, *args):
+            pass
+
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), SlowHeaders)
+    thread = Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    monkeypatch.setattr(langfuse_http, "REQUEST_SECONDS", 0.12)
+    host = f"http://127.0.0.1:{httpd.server_port}"
+    try:
+        with langfuse_http.langfuse_http_client(host) as client:
+            started = time.monotonic()
+            with pytest.raises((LangfuseConfigurationError, httpx.TimeoutException)):
+                client.get(host)
+            assert time.monotonic() - started < 1
+            assert not client._transport.network.streams
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        thread.join(timeout=2)
+
+
+def test_trace_socket_wrapper_preserves_tls_certificate_and_hostname_checks(tmp_path):
+    from datetime import datetime, timedelta, timezone
+    import ssl
+    import httpx
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.x509.oid import NameOID
+    from app.security.langfuse_http import langfuse_http_client
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "localhost")])
+    now = datetime.now(timezone.utc)
+    certificate = (
+        x509.CertificateBuilder()
+        .subject_name(name)
+        .issuer_name(name)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now - timedelta(minutes=1))
+        .not_valid_after(now + timedelta(hours=1))
+        .add_extension(
+            x509.SubjectAlternativeName([x509.DNSName("localhost")]), critical=False
+        )
+        .sign(key, hashes.SHA256())
+    )
+    certfile, keyfile = tmp_path / "certificate.pem", tmp_path / "key.pem"
+    certfile.write_bytes(certificate.public_bytes(serialization.Encoding.PEM))
+    keyfile.write_bytes(
+        key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption(),
+        )
+    )
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"valid TLS")
+
+        def log_message(self, *args):
+            pass
+
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(certfile, keyfile)
+    httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
+    thread = Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    host = f"https://localhost:{httpd.server_port}"
+    wrong = f"https://127.0.0.1:{httpd.server_port}"
+    try:
+        with langfuse_http_client(host) as client:
+            with pytest.raises(httpx.ConnectError):
+                client.get(host)  # An unknown certificate is not accepted.
+            assert not client._transport.network.streams
+        for url, valid in [(host, True), (wrong, False)]:
+            with langfuse_http_client(url) as client:
+                client._transport._pool._ssl_context = ssl.create_default_context(
+                    cafile=str(certfile)
+                )
+                if valid:
+                    assert client.get(url).text == "valid TLS"
+                else:
+                    with pytest.raises(httpx.ConnectError):
+                        client.get(url)
+                    assert not client._transport.network.streams
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        thread.join(timeout=2)

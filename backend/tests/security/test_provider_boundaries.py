@@ -256,7 +256,7 @@ def test_openai_model_verification_runs_both_sdks_against_only_loopback(monkeypa
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
             payload = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-            calls.append(self.path)
+            calls.append((self.path, self.headers.get("Authorization")))
             content = (
                 json.dumps({"answer": 2})
                 if payload.get("response_format")
@@ -325,7 +325,10 @@ def test_openai_model_verification_runs_both_sdks_against_only_loopback(monkeypa
             Mock(),
         )
         assert result.success, (result.stage, result.error_type)
-        assert calls == ["/v1/chat/completions", "/v1/chat/completions"]
+        assert calls == [
+            ("/v1/chat/completions", "Bearer test-only-provider-key"),
+            ("/v1/chat/completions", "Bearer test-only-provider-key"),
+        ]
     finally:
         server.shutdown()
         server.server_close()

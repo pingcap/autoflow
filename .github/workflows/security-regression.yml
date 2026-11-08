@@ -67,3 +67,5 @@ jobs:
         env:
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
         run: uv run --frozen --python 3.11 pytest tests/security -q
+      - name: TiDB transactions and shipped migration regressions
+        run: uv run --frozen --python 3.11 python scripts/test_security_tidb.py

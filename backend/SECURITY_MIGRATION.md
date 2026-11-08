@@ -397,6 +397,16 @@ The security tests launch an isolated local Redis with persistence disabled. Use
 `SECURITY_REDIS_SERVER=/path/to/redis-server` if it is not on PATH; CI installs the
 test binary explicitly. No deployment Redis database is accessed by these tests.
 
+Run `python scripts/test_security_tidb.py` from an isolated backend checkout with
+its locked dependencies and Docker available. The script refuses a deployment
+`.env`, starts a digest-pinned TiDB 8.5.4 container on ephemeral loopback ports,
+and removes that container after the tests. Each case installs the shipped
+Alembic migrations into a new disposable database. These tests cover concurrent
+Langfuse configuration updates, encrypted credential migration and rollback,
+provider destination/key updates, password-reset revocation and scoped answer
+cache queries on TiDB. CI runs the same script; no deployment database URL or
+credentials are accepted.
+
 ## Security events and committed audit records
 
 Apply revision `31f7b624d9a0` before starting the new API or workers. It adds

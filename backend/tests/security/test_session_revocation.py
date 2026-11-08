@@ -19,15 +19,16 @@ from app.models import User, UserSession, ApiKey
 GRANT = ApiKeyGrant(scopes=["retrieve:chunks"], knowledge_base_ids=[1])
 
 
-async def scenario(fail_revoke=False):
-    engine = create_async_engine("sqlite+aiosqlite://")
-    async with engine.begin() as conn:
-        await conn.run_sync(
-            lambda connection: SQLModel.metadata.create_all(
-                connection,
-                tables=[User.__table__, UserSession.__table__, ApiKey.__table__],
+async def scenario(fail_revoke=False, *, database_url=None):
+    engine = create_async_engine(database_url or "sqlite+aiosqlite://")
+    if database_url is None:
+        async with engine.begin() as conn:
+            await conn.run_sync(
+                lambda connection: SQLModel.metadata.create_all(
+                    connection,
+                    tables=[User.__table__, UserSession.__table__, ApiKey.__table__],
+                )
             )
-        )
     # SQLModel's async session supplies exec, used by the real application adapter.
     from sqlmodel.ext.asyncio.session import AsyncSession
 

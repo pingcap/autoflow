@@ -223,7 +223,10 @@ def save_configuration(session: Session, request: LangfuseUpdate, *, key=None):
             update(SiteSetting)
             .where(
                 SiteSetting.name == CONFIG_NAME,
-                SiteSetting.value == values[CONFIG_NAME],
+                # Compare the explicit revision as a JSON string. TiDB compares
+                # a JSON document with a bound SQL string differently from
+                # SQLite; whole-document equality falsely rejects valid saves.
+                SiteSetting.value["revision"].as_string() == current["revision"],
             )
             .values(value=record)
             .execution_options(synchronize_session=False)

@@ -382,17 +382,23 @@ transports close each request on completion, error or early stream exit, so
 copies and different event loops do not share live HTTP pools. Model tests and
 background calls without a chat lease also have response-size and 60-second
 read budgets. The normal admitted chat deadline remains unchanged.
+Explicit native capability hints preserve OpenAI JSONAdapter schema/tool
+selection using the bundled metadata snapshot, without a discovery request.
 
 Other provider-specific DSPy transports, including legacy text completions, are
 still under review while this PR is a draft.
 
-DSPy uses its explicit LiteLLM engine for Ollama to retain the `/api/chat`
-protocol. Automatic engine selection in the current DSPy version interprets the
-same base URL as an OpenAI-compatible endpoint. The adapter forwards the exact
-credential binding from the configured Ollama client (including the explicit
-keyless-local placeholder), preventing ambient or process-wide keys from being
-substituted. Real loopback SDK tests verify the response, path and authorization
-for both authenticated and keyless local configurations.
+Ollama's primary clients and DSPy use guarded HTTPX transports. DSPy's explicit
+native engines retain `/api/chat` through the locked SDK's pure request/response
+codecs, without its completion lifecycle: that lifecycle also queried `/api/show`
+through an unguarded global client. No global SDK client or model metadata is
+changed. Exact configured credentials (including the keyless-local placeholder),
+generation settings, JSON schemas, inline images, tool history and token counts
+are preserved. NDJSON streams are converted incrementally, require a final done
+record, and close their sockets on early exit. Custom engine capabilities are
+declared so JSONAdapter continues sending format constraints. Real loopback
+tests cover sync/async calls, streaming, concurrent credential bindings, copies,
+multiple event loops, hostile proxy settings and the body/time/attempt limits.
 
 Forwarded client IP headers are ignored by default. Only register exact proxy
 addresses/CIDRs in `GENERATION_TRUSTED_PROXY_CIDRS` when that proxy sanitizes its

@@ -7,6 +7,7 @@ from threading import Thread
 from types import SimpleNamespace
 
 import pytest
+import dspy
 from dspy.utils.exceptions import LMUnexpectedError
 
 from app.core.config import settings
@@ -20,15 +21,19 @@ from app.security.provider_config import ProviderConfigurationError
 
 @pytest.fixture
 def provider(monkeypatch):
-    state = SimpleNamespace(calls=[], mode="normal")
+    state = SimpleNamespace(calls=[], bodies=[], mode="normal")
 
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
         def do_POST(self):
-            self.rfile.read(int(self.headers["Content-Length"]))
+            state.bodies.append(
+                json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            )
             state.calls.append((self.path, self.headers.get("Authorization")))
             content = "fixture answer"
+            if state.mode == "structured":
+                content = '{"answer": "fixture answer"}'
             if state.mode == "oversized":
                 content = "x" * (4 * 1024 * 1024 + 1)
             body = json.dumps(
@@ -145,6 +150,23 @@ def test_dspy_real_calls_use_explicit_destination_and_key_without_proxy(
         current_generation.reset(token)
     assert budget.provider_calls == 1
     assert provider.calls == [("/v1/chat/completions", "Bearer explicit-fixture-key")]
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+def test_dspy_custom_engine_preserves_json_adapter_capabilities(provider, asynchronous):
+    provider.mode = "structured"
+    predictor = dspy.Predict("question -> answer")
+    with dspy.context(lm=provider.lm, adapter=dspy.JSONAdapter()):
+        result = (
+            asyncio.run(predictor.acall(question="fixture"))
+            if asynchronous
+            else predictor(question="fixture")
+        )
+    assert result.answer == "fixture answer"
+    assert len(provider.calls) == 1
+    format_ = provider.bodies[0]["response_format"]
+    assert format_["type"] == "json_schema"
+    assert format_["json_schema"]["schema"]["properties"]["answer"]["type"] == "string"
 
 
 @pytest.mark.parametrize("asynchronous", [False, True])

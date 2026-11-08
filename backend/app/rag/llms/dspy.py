@@ -54,16 +54,27 @@ def get_dspy_lm_by_llama_llm(llama_llm: BaseLLM) -> dspy.LM:
                 aws_region_name=llama_llm.region_name,
             )
         case "Ollama_llm":
-            return _bounded_lm(
-                # Keep Ollama's /api/chat protocol; DSPy's automatic native
-                # engine treats api_base as an OpenAI-compatible /v1 base.
-                engine="litellm",
+            from app.security.dspy_ollama import ollama_engines
+
+            return dspy.LM(
                 model=f"ollama_chat/{llama_llm.model}",
-                api_base=llama_llm.base_url,
-                api_key=_ollama_key(llama_llm),
-                timeout=llama_llm.request_timeout,
+                cache=False,
                 temperature=llama_llm.temperature,
+                max_tokens=llama_llm.additional_kwargs.get("num_predict", 4096),
                 num_retries=1,
+                **ollama_engines(
+                    llama_llm.model,
+                    llama_llm.base_url,
+                    _ollama_key(llama_llm),
+                    llama_llm.request_timeout,
+                    function_calling=llama_llm.is_function_calling_model,
+                    thinking=llama_llm.thinking,
+                    generation_options={
+                        "num_ctx": llama_llm.context_window,
+                        **llama_llm.additional_kwargs,
+                    },
+                    json_mode=llama_llm.json_mode,
+                ),
             )
         case "azure_openai_llm":
             return _bounded_lm(
@@ -116,5 +127,6 @@ def _openai_chat_lm(llama_llm):
             enforce_trailing_slash(llama_llm.api_base),
             llama_llm.api_key,
             llama_llm.timeout,
+            model=llama_llm.model,
         ),
     )

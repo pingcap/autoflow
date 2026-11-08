@@ -137,6 +137,10 @@ def resolve_llm(
             config.setdefault("request_timeout", 60 * 10)
             config.setdefault("context_window", 8192)
             from ollama import Client, AsyncClient
+            from app.security.generation_http import (
+                GenerationTransport,
+                GenerationAsyncTransport,
+            )
 
             options = {
                 "host": config["base_url"],
@@ -149,8 +153,12 @@ def resolve_llm(
             }
             return Ollama(
                 model=model,
-                client=Client(**options),
-                async_client=AsyncClient(**options),
+                client=Client(
+                    transport=GenerationTransport(trust_env=False), **options
+                ),
+                async_client=AsyncClient(
+                    transport=GenerationAsyncTransport(trust_env=False), **options
+                ),
                 **config,
             )
         case _:

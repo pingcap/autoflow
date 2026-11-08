@@ -3,6 +3,8 @@
 from contextlib import asynccontextmanager, contextmanager
 
 import httpx
+import dspy
+from dspy.clients.capabilities import capabilities
 from dspy.clients.engines import LM15Engine, AsyncLM15Engine
 from dspy.lm15 import RouterConfig
 from dspy._vendor.lm15.transports import TransportResponse, AsyncTransportResponse
@@ -80,7 +82,7 @@ class AsyncModelTransport(ModelTransport):
                 )
 
 
-def openai_engines(endpoint, credential, timeout):
+def openai_engines(endpoint, credential, timeout, *, model):
     # Explicit custom engines prevent automatic fallback to LiteLLM when
     # unrelated process-level API_BASE/proxy variables happen to be present.
     options = dict(
@@ -88,7 +90,7 @@ def openai_engines(endpoint, credential, timeout):
         api_keys={"openai-chat": credential},
         base_urls={"openai-chat": endpoint},
     )
-    return {
+    engines = {
         "engine": LM15Engine(
             RouterConfig(**options, transport=ModelTransport(endpoint, timeout))
         ),
@@ -96,3 +98,24 @@ def openai_engines(endpoint, credential, timeout):
             RouterConfig(**options, transport=AsyncModelTransport(endpoint, timeout))
         ),
     }
+    # Custom engine objects do not inherit DSPy's adapter capability hints.
+    # Resolve the native hints offline (app bootstrap pins the bundled metadata
+    # snapshot); do not send a discovery request or assume every model supports
+    # schemas/tools. This LM is used for planning only, never for inference.
+    planner = dspy.LM(
+        model=f"openai/{model}",
+        engine="lm15",
+        cache=False,
+        temperature=None,
+        max_tokens=None,
+    )
+    try:
+        hints = capabilities(planner)
+    finally:
+        planner.close()
+    for engine in engines.values():
+        engine.supports_function_calling = hints.function_calling
+        engine.supports_reasoning = hints.reasoning
+        engine.supports_response_schema = hints.response_schema
+        engine.supported_params = hints.params
+    return engines

@@ -101,7 +101,13 @@ do
   sleep 1
 done
 
-npx playwright test ${PLAYWRIGHT_ARGS}
+if npx playwright test ${PLAYWRIGHT_ARGS}; then
+  :
+else
+  e2e_test_status=$?
+  docker compose logs --no-color --tail 1000 backend 2>/dev/null | python3 safe-model-diagnostics.py
+  exit "$e2e_test_status"
+fi
 
 if [ ! "${CI}" ]; then
   npx playwright show-report

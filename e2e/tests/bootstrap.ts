@@ -1,3 +1,4 @@
+import { readModelVerification } from '../utils/model-verification';
 import { expect, test } from '@playwright/test';
 
 test.use({
@@ -164,12 +165,8 @@ test('Bootstrap', async ({ browser, page }) => {
       ]);
       expect(verification.status(), 'LLM verification request must succeed').toBe(200);
       // Never print request/response bodies: they may contain provider credentials.
-      const result = await verification.json().catch(() => {
-        throw new Error('LLM verification returned invalid JSON');
-      });
-      const stage = ['configuration', 'llm', 'dspy'].includes(result.stage) ? result.stage : 'unknown';
-      const errorType = typeof result.error_type === 'string' && /^[A-Za-z_][A-Za-z0-9_]{0,79}$/.test(result.error_type)
-        ? result.error_type : 'unknown';
+      const result = await readModelVerification(verification);
+      const { stage, errorType } = result;
       expect(result.success === true, `LLM verification failed (${stage}/${errorType})`).toBe(true);
 
       // Wait for finish by check the url changes

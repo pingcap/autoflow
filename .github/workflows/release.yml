@@ -145,7 +145,7 @@ jobs:
     e2e-test:
       name: E2E Test
       runs-on: ubuntu-latest
-      timeout-minutes: 10
+      timeout-minutes: 30
       defaults:
         run:
           working-directory: e2e
@@ -172,6 +172,9 @@ jobs:
           run: npm ci
 
         - name: Install Playwright Browsers
+          timeout-minutes: 8
+          env:
+            PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT: '60000'
           run: npx playwright install --with-deps chromium
 
         - name: Prepare Tests
@@ -194,3 +197,5 @@ jobs:
             E2E_RERANKER_PROVIDER: ${{vars.E2E_RERANKER_PROVIDER || 'jinaai'}}
             E2E_RERANKER_MODEL: ${{vars.E2E_RERANKER_MODEL || ''}}
             E2E_RERANKER_CREDENTIALS: ${{secrets.E2E_RERANKER_CREDENTIALS}}
+
+        # Credential-backed E2E reports are not uploaded or published.

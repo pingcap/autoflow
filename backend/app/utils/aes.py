@@ -1,36 +1,48 @@
+"""Versioned, authenticated encryption for provider credentials."""
+
 import os
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import padding
+
+from cryptography.exceptions import InvalidTag
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+
+MAGIC = b"AFGCM2\x00"
+MAX_PLAINTEXT_BYTES = 60 * 1024
 
 
 class AESCipher:
-    def __init__(self, key: bytes) -> None:
-        self.key = key
-        self.backend = default_backend()
+    def __init__(self, key: bytes, *, context: str = "provider.credentials"):
+        if len(key) != 32:
+            raise ValueError("A 32-byte data-encryption key is required")
+        derived = HKDF(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=None,
+            info=b"autoflow/provider-credentials/v2",
+        ).derive(key)
+        self._cipher = AESGCM(derived)
+        self._aad = MAGIC + context.encode("utf-8")
 
     def encrypt(self, plain_text: str) -> bytes:
-        # generate a random initialization vector
-        iv = os.urandom(16)
-        cipher = Cipher(algorithms.AES(self.key), modes.CFB(iv), backend=self.backend)
-        encryptor = cipher.encryptor()
-
-        # fill the last block with padding
-        padder = padding.PKCS7(algorithms.AES.block_size).padder()
-        padded_data = padder.update(plain_text.encode()) + padder.finalize()
-        encrypted = encryptor.update(padded_data) + encryptor.finalize()
-        return iv + encrypted
+        data = plain_text.encode("utf-8")
+        if len(data) > MAX_PLAINTEXT_BYTES:
+            raise ValueError("Credential value is too large")
+        nonce = os.urandom(12)
+        return MAGIC + nonce + self._cipher.encrypt(nonce, data, self._aad)
 
     def decrypt(self, encrypted_text: bytes) -> str:
-        # get the initialization vector and the encrypted data
-        iv = encrypted_text[:16]
-        encrypted_data = encrypted_text[16:]
-
-        cipher = Cipher(algorithms.AES(self.key), modes.CFB(iv), backend=self.backend)
-        decryptor = cipher.decryptor()
-
-        # remove the padding
-        decrypted_padded = decryptor.update(encrypted_data) + decryptor.finalize()
-        unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
-        decrypted = unpadder.update(decrypted_padded) + unpadder.finalize()
-        return decrypted
+        data = bytes(encrypted_text)
+        if not data.startswith(MAGIC):
+            raise ValueError(
+                "Legacy provider credentials require the explicit migration tool"
+            )
+        if not len(MAGIC) + 28 <= len(data) <= len(MAGIC) + 28 + MAX_PLAINTEXT_BYTES:
+            raise ValueError("Invalid encrypted credential")
+        try:
+            offset = len(MAGIC)
+            return self._cipher.decrypt(
+                data[offset : offset + 12], data[offset + 12 :], self._aad
+            ).decode("utf-8")
+        except (InvalidTag, UnicodeDecodeError, ValueError):
+            raise ValueError("Credential authentication failed") from None

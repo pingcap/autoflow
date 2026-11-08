@@ -1,3 +1,3 @@
 export async function authenticationHeaders (): Promise<Record<string, string>> {
-  return {};
+  return { 'X-CSRF-Guard': '1' };
 }

@@ -92,7 +92,7 @@ embedding_provider_options: List[EmbeddingProviderOption] = [
         default_embedding_model="nomic-embed-text",
         embedding_model_description="Documentation: https://ollama.com/blog/embedding-models",
         default_config={
-            "api_base": "http://localhost:11434",
+            "base_url": "http://localhost:11434",
         },
         config_description="api_base is the base URL of the Ollama server, ensure it can be accessed from this server.",
         credentials_display_name="Ollama API Key",
@@ -151,8 +151,8 @@ embedding_provider_options: List[EmbeddingProviderOption] = [
         },
         config_description="api_url is the embedding endpoint url serviced by the autoflow local embedding server.",
         credentials_display_name="Local Embedding API Key",
-        credentials_description="Local Embedding server doesn't require an API key, set a dummy string here is ok.",
+        credentials_description="The SIDECAR_AUTH_TOKEN configured for your private local model service.",
         credentials_type="str",
-        default_credentials="dummy",
+        default_credentials="SIDECAR_AUTH_TOKEN",
     ),
 ]

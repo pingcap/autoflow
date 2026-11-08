@@ -1,7 +1,7 @@
 import { type ProviderOption, providerOptionSchema } from '@/api/providers';
 import { authenticationHeaders, handleErrors, handleResponse, type Page, type PageParams, requestUrl, zodPage } from '@/lib/request';
 import { zodJsonDate } from '@/lib/zod';
-import { z, type ZodType, type ZodTypeDef } from 'zod';
+import { z, type ZodType } from 'zod';
 
 export interface LLMSummary {
   id: number;
@@ -43,18 +43,18 @@ export const llmSummarySchema = z.object({
   provider: z.string(),
   model: z.string(),
   is_default: z.boolean(),
-}) satisfies ZodType<LLMSummary, ZodTypeDef, any>;
+}) satisfies ZodType<LLMSummary, any>;
 
 const llmSchema = llmSummarySchema.extend({
-  config: z.any(),
+  config: z.any().optional(),
   created_at: zodJsonDate().nullable(),
   updated_at: zodJsonDate().nullable(),
-}) satisfies ZodType<LLM, ZodTypeDef, any>;
+}) satisfies ZodType<LLM, any>;
 
 const llmOptionSchema = providerOptionSchema.and(z.object({
   default_llm_model: z.string(),
   llm_model_description: z.string(),
-})) satisfies ZodType<LlmOption, any, any>;
+})) satisfies ZodType<LlmOption, any>;
 
 export async function listLlmOptions () {
   return await fetch(requestUrl(`/api/v1/admin/llms/providers/options`), {

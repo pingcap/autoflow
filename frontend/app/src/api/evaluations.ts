@@ -109,7 +109,7 @@ const evaluationDatasetSchema = z.object({
   user_id: z.string(),
   created_at: zodJsonDate(),
   updated_at: zodJsonDate(),
-}) satisfies ZodType<EvaluationDataset, any, any>;
+}) satisfies ZodType<EvaluationDataset, any>;
 
 const evaluationDatasetItemSchema = z.object({
   created_at: zodJsonDate(),
@@ -120,7 +120,7 @@ const evaluationDatasetItemSchema = z.object({
   retrieved_contexts: z.string().array(),
   extra: zodJson(),
   evaluation_dataset_id: z.number(),
-}) satisfies ZodType<EvaluationDatasetItem, any, any>;
+}) satisfies ZodType<EvaluationDatasetItem, any>;
 
 const evaluationTaskSummarySchema = z.object({
   not_start: z.number(),
@@ -135,7 +135,7 @@ const evaluationTaskSummarySchema = z.object({
   max_semantic_similarity: z.number().nullable(),
   std_factual_correctness: z.number().nullable(),
   std_semantic_similarity: z.number().nullable(),
-}) satisfies ZodType<EvaluationTaskSummary, any, any>;
+}) satisfies ZodType<EvaluationTaskSummary, any>;
 
 const evaluationTaskSchema = z.object({
   id: z.number(),
@@ -144,7 +144,7 @@ const evaluationTaskSchema = z.object({
   created_at: zodJsonDate(),
   updated_at: zodJsonDate(),
   dataset_id: z.number(),
-}) satisfies ZodType<EvaluationTask, any, any>;
+}) satisfies ZodType<EvaluationTask, any>;
 
 const evaluationTaskWithSummarySchema = evaluationTaskSchema.extend({
   summary: evaluationTaskSummarySchema,
@@ -165,7 +165,7 @@ const evaluationTaskItemSchema = z.object({
   factual_correctness: z.number().nullable(),
   semantic_similarity: z.number().nullable(),
   evaluation_task_id: z.number(),
-}) satisfies ZodType<EvaluationTaskItem, any, any>;
+}) satisfies ZodType<EvaluationTaskItem, any>;
 
 // Datasets
 

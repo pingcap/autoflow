@@ -1,3 +1,4 @@
+from app.security.provider_http import openai_http_clients
 from typing import Any, List, Optional
 
 from llama_index.core.base.embeddings.base import DEFAULT_EMBED_BATCH_SIZE
@@ -36,8 +37,21 @@ class OpenAILikeEmbedding(BaseEmbedding):
 
         self._model_kwargs = kwargs or {}
         self.model = model
-        self._client = OpenAI(api_key=api_key, base_url=api_base)
-        self._aclient = AsyncOpenAI(api_key=api_key, base_url=api_base)
+        clients = openai_http_clients()
+        self._client = OpenAI(
+            api_key=api_key,
+            base_url=api_base,
+            http_client=clients["http_client"],
+            timeout=60,
+            max_retries=1,
+        )
+        self._aclient = AsyncOpenAI(
+            api_key=api_key,
+            base_url=api_base,
+            http_client=clients["async_http_client"],
+            timeout=60,
+            max_retries=1,
+        )
 
     def get_embeddings(self, sentences: list[str]) -> List[List[float]]:
         """Get embeddings."""

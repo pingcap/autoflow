@@ -1,3 +1,4 @@
+import { safeAnalyticsId } from '@/lib/analytics-id';
 import { authenticationHeaders, handleErrors, handleResponse, requestUrl } from '@/lib/request';
 import { z } from 'zod';
 
@@ -93,7 +94,7 @@ export async function getAllSiteSettings (): Promise<AllSettings> {
     {
       headers: await authenticationHeaders(),
     })
-    .then(handleResponse(z.record(settingsItemSchema)));
+    .then(handleResponse(z.record(z.string(), settingsItemSchema)));
 }
 
 export async function updateSiteSetting (name: string, value: any) {
@@ -111,5 +112,5 @@ export async function getPublicSiteSettings (): Promise<PublicWebsiteSettings> {
   return fetch(requestUrl(`/api/v1/site-config`), {
     headers: await authenticationHeaders(),
     credentials: 'include',
-  }).then(handleErrors).then(res => res.json());
+  }).then(handleErrors).then(res => res.json()).then((settings: PublicWebsiteSettings) => ({ ...settings, ga_id: safeAnalyticsId(settings.ga_id) }));
 }

@@ -21,7 +21,7 @@ import { z } from 'zod';
 const unsetForm = z.object({
   name: z.string().min(1, 'Must not empty'),
   provider: z.string().min(1, 'Must not empty'),
-  top_n: z.coerce.number().int().min(1),
+  top_n: z.coerce.number<number>().int().min(1),
   config: zodJsonText().optional(),
   is_default: z.boolean().optional(),
 });
@@ -97,7 +97,7 @@ export function CreateRerankerForm ({ transitioning, onCreated }: { transitionin
               </field.Basic>
               <field.Basic name="credentials" label={provider.credentials_display_name} description={provider.credentials_description}>
                 {provider.credentials_type === 'str'
-                  ? <FormInput placeholder={provider.default_credentials} />
+                  ? <FormInput type="password" autoComplete="new-password" placeholder={provider.default_credentials} />
                   : <CodeInput language="json" placeholder={JSON.stringify(provider.default_credentials, undefined, 2)} />
                 }
               </field.Basic>

@@ -126,19 +126,29 @@ def evaluate_task(evaluation_task_item: EvaluationTaskItem):
     logger.debug(f"Dataset {ragas_dataset.to_pandas().head()}")
 
     evaluator_llm = LlamaIndexLLMWrapper(
-        OpenAI(model="gpt-4o", api_key=settings.EVALUATION_OPENAI_API_KEY)
+        OpenAI(
+            model="gpt-4o",
+            api_key=settings.EVALUATION_OPENAI_API_KEY.get_secret_value()
+            if settings.EVALUATION_OPENAI_API_KEY
+            else None,
+        )
     )
     evaluator_embeddings = LlamaIndexEmbeddingsWrapper(
         OpenAIEmbedding(
-            model="text-embedding-3-large", api_key=settings.EVALUATION_OPENAI_API_KEY
+            model="text-embedding-3-large",
+            api_key=settings.EVALUATION_OPENAI_API_KEY.get_secret_value()
+            if settings.EVALUATION_OPENAI_API_KEY
+            else None,
         )
     )
 
+    factual_correctness = FactualCorrectness(llm=evaluator_llm)
+    semantic_similarity = SemanticSimilarity(embeddings=evaluator_embeddings)
     metrics = [
         # LLMContextRecall(llm=evaluator_llm),  # retrieved_contexts required
-        FactualCorrectness(llm=evaluator_llm),
+        factual_correctness,
         # Faithfulness(llm=evaluator_llm),  # retrieved_contexts required
-        SemanticSimilarity(embeddings=evaluator_embeddings),
+        semantic_similarity,
     ]
 
     try:
@@ -158,11 +168,13 @@ def evaluate_task(evaluation_task_item: EvaluationTaskItem):
             )
 
         logger.debug(f"result {result_list[0]}")
+        # ragas appends the mode to the result column of mode-based metrics,
+        # e.g. "factual_correctness(mode=f1)".
         evaluation_task_item.factual_correctness = result_list[0][
-            FactualCorrectness.name
+            f"{factual_correctness.name}(mode={factual_correctness.mode})"
         ]
         evaluation_task_item.semantic_similarity = result_list[0][
-            SemanticSimilarity.name
+            semantic_similarity.name
         ]
         evaluation_task_item.status = EvaluationStatus.DONE
 

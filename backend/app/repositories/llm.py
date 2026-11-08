@@ -1,3 +1,4 @@
+from app.security.provider_config import validate_provider_write
 from typing import Type, Optional
 
 from fastapi import Depends
@@ -37,6 +38,7 @@ class LLMRepo(BaseRepo):
         return session.exec(stmt).one_or_none() is not None
 
     def create(self, session: Session, llm: LLM) -> LLM:
+        llm.config = validate_provider_write("llm", llm)
         # If there is no exiting model, the first model is
         # automatically set as the default model.
         if not self.exists_any_model(session):
@@ -53,7 +55,13 @@ class LLMRepo(BaseRepo):
         return llm
 
     def update(self, session: Session, llm: LLM, llm_update: LLMUpdate) -> LLM:
-        for field, value in llm_update.model_dump(exclude_unset=True).items():
+        # Bind validation to the latest committed credentials under a row lock.
+        session.refresh(llm, with_for_update=True)
+        changes = llm_update.model_dump(exclude_unset=True)
+        validated_config = validate_provider_write("llm", llm, changes)
+        if "config" in changes:
+            changes["config"] = validated_config
+        for field, value in changes.items():
             setattr(llm, field, value)
             flag_modified(llm, field)
 

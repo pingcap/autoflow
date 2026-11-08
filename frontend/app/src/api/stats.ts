@@ -29,7 +29,7 @@ const trendBaseSchema = z.object({
 const chatUserTrendItemSchema = trendBaseSchema.extend({
   user: z.number(),
   anonymous: z.number(),
-}) satisfies ZodType<ChatUserTrendItem, any, any>;
+}) satisfies ZodType<ChatUserTrendItem, any>;
 
 const chatOriginTrendItemSchema = trendBaseSchema.and(
   z.preprocess((input) => {
@@ -40,9 +40,9 @@ const chatOriginTrendItemSchema = trendBaseSchema.and(
       return input;
     }
   }, z.record(z.string(), z.number())),
-) satisfies ZodType<ChatOriginTrendItem, any, any>;
+) satisfies ZodType<ChatOriginTrendItem, any>;
 
-function trendResponse<T> (item: ZodType<T, any, any>): ZodType<TrendResponse<T>, any, any> {
+function trendResponse<T> (item: ZodType<T, any>): ZodType<TrendResponse<T>, any> {
   return z.object({
     start_date: zodDateOnlyString(),
     end_date: zodDateOnlyString(),

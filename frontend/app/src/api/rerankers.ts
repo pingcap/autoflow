@@ -1,7 +1,7 @@
 import { type ProviderOption, providerOptionSchema } from '@/api/providers';
 import { authenticationHeaders, handleErrors, handleResponse, type Page, type PageParams, requestUrl, zodPage } from '@/lib/request';
 import { zodJsonDate } from '@/lib/zod';
-import { z, type ZodType, type ZodTypeDef } from 'zod';
+import { z, type ZodType } from 'zod';
 
 export interface Reranker {
   id: number;
@@ -44,17 +44,17 @@ const rerankerSchema = z.object({
   provider: z.string(),
   model: z.string(),
   top_n: z.number(),
-  config: z.any(),
+  config: z.any().optional(),
   is_default: z.boolean(),
   created_at: zodJsonDate().nullable(),
   updated_at: zodJsonDate().nullable(),
-}) satisfies ZodType<Reranker, ZodTypeDef, any>;
+}) satisfies ZodType<Reranker, any>;
 
 const rerankerOptionSchema = providerOptionSchema.and(z.object({
   default_top_n: z.number(),
   default_reranker_model: z.string(),
   reranker_model_description: z.string(),
-})) satisfies ZodType<RerankerOption, any, any>;
+})) satisfies ZodType<RerankerOption, any>;
 
 export async function listRerankerOptions () {
   return await fetch(requestUrl(`/api/v1/admin/reranker-models/providers/options`), {

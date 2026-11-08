@@ -28,10 +28,10 @@ This document provides instructions for deploying the entire Autoflow applicatio
     ```
 
     Replace the following placeholders with your own values:
-    - `SECRET_KEY`: you can generate a random secret key using:
-      ```python
-      `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`
-      ```
+    - `SECRET_KEY`: an independently generated signing secret of at least 32 bytes.
+    - `DATA_ENCRYPTION_KEY`: base64 encoding of 32 independently generated random bytes.
+      Configure both through your secret store and keep `.env` private (`chmod 600 .env`).
+      Never reuse a signing key as an encryption key or commit these values.
     - `TIDB_HOST`, `TIDB_USER`, `TIDB_PASSWORD` and `TIDB_DATABASE`: you can get these values from the TiDB cluster you set up before.
       - Note: if you are using a self-managed TiDB cluster, you need to set `TIDB_SSL=false`.
     - `EMBEDDING_MAX_TOKENS`: set them according to the embedding model you choose before, it can not be changed after the deployment.(We will remove it in the future, and move it to the admin panel)
@@ -45,22 +45,24 @@ This document provides instructions for deploying the entire Autoflow applicatio
 4. Bootstrap the database with initial data:
 
     ```bash
-    # Use default admin credentials (admin@example.com with random password)
-    docker compose run backend /bin/sh -c "python bootstrap.py"
+    # Enter the administrator password interactively (hidden input).
+    docker compose run --rm backend python bootstrap.py
 
-    # Or specify a custom admin email
-    docker compose run backend /bin/sh -c "python bootstrap.py --email new-admin@example.com"
+    # Or mount a private password file for noninteractive setup.
+    docker compose run --rm -v /secure/admin-password:/run/secrets/admin-password:ro backend \
+      python bootstrap.py --email new-admin@example.com --password-file /run/secrets/admin-password
     ```
 
-    Running the bootstrap script creates an admin user. You can find the username and password in the output.
+    Password files must have mode 600; passwords must contain 16–1024 characters.
+    Passwords are never printed in container logs. To reset the administrator's
+    password and revoke previous sessions and API keys:
 
     ```bash
-    # Reset admin password (random generated)
-    docker compose run backend /bin/sh -c "python bootstrap.py -r"
-
-    # Or specify a new password
-    docker compose run backend /bin/sh -c "python bootstrap.py -r --password <new_password>"
+    docker compose run --rm backend python bootstrap.py --reset-password
     ```
+
+    Existing deployments must follow the backend `SECURITY_MIGRATION.md` before
+    upgrading; provider credentials require an explicit encryption migration.
 
 5. Start the services:
 

@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple
 from llama_index.core.instrumentation import get_dispatcher
 from llama_index.core.llms import LLM
 from llama_index.core.schema import NodeWithScore, QueryBundle
-from llama_index.core.prompts.rich import RichPromptTemplate
+from app.security.prompt_template import SafePromptTemplate
 from pydantic import BaseModel
 from sqlmodel import Session
 
@@ -102,14 +102,14 @@ class RetrieveFlow:
         self, knowledge_graph: KnowledgeGraphRetrievalResult
     ) -> str:
         if self.engine_config.knowledge_graph.using_intent_search:
-            kg_context_template = RichPromptTemplate(
+            kg_context_template = SafePromptTemplate(
                 self.engine_config.llm.intent_graph_knowledge
             )
             return kg_context_template.format(
                 sub_queries=knowledge_graph.to_subqueries_dict(),
             )
         else:
-            kg_context_template = RichPromptTemplate(
+            kg_context_template = SafePromptTemplate(
                 self.engine_config.llm.normal_graph_knowledge
             )
             return kg_context_template.format(
@@ -120,7 +120,7 @@ class RetrieveFlow:
     def _refine_user_question(
         self, user_question: str, knowledge_graph_context: str
     ) -> str:
-        prompt_template = RichPromptTemplate(
+        prompt_template = SafePromptTemplate(
             self.engine_config.llm.condense_question_prompt
         )
         refined_question = self._fast_llm.predict(

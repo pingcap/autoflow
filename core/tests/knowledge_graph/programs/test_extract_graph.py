@@ -101,10 +101,10 @@ def test_extract_graph(extractor, evaluator):
     )
 
     # Generate knowledge graph
-    actual_knowledge = extractor.forward(text)
+    actual_knowledge = extractor(text)
 
     # Use LLM to evaluate the completeness
-    evaluation_result = evaluator.forward(expected_knowledge, actual_knowledge)
+    evaluation_result = evaluator(expected_knowledge, actual_knowledge)
     final_score = evaluation_result.score
 
     logger.info(f"Final score: {final_score}")

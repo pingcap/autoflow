@@ -247,6 +247,7 @@ def legacy_search_graph(session: SessionDep, kb_id: int, request: GraphSearchReq
         # TODO: throw InternalServerError
         raise e
 
+
 @router.post("/admin/knowledge_bases/{kb_id}/graph/entire_graph")
 def get_entire_knowledge_graph(session: SessionDep, kb_id: int):
     try:
@@ -264,25 +265,25 @@ def get_entire_knowledge_graph(session: SessionDep, kb_id: int):
         # TODO: throw InternalServerError
         raise e
 
+
 @router.get("/admin/knowledge_bases/{kb_id}/graph/entire_graph/stream")
 def stream_entire_knowledge_graph(session: SessionDep, kb_id: int):
     try:
         kb = knowledge_base_repo.must_get(session, kb_id)
         graph_store = get_kb_tidb_graph_store(session, kb)
-        
+
         def generate():
             for chunk in graph_store.stream_entire_knowledge_graph(chunk_size=5000):
                 yield f"data: {json.dumps(jsonable_encoder(chunk))}\n\n"
             yield f"data: {json.dumps({'type': 'complete'})}\n\n"
-        
+
         return StreamingResponse(
             generate(),
             media_type="text/event-stream",
             headers={
-                "Cache-Control": "no-cache",
+                "Cache-Control": "no-store",
                 "Connection": "keep-alive",
-                "Access-Control-Allow-Origin": "*",
-            }
+            },
         )
 
     except KBNotFound as e:

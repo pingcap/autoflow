@@ -33,7 +33,7 @@ const getVerifyResponse = z.object({
   status: z.enum([VerifyStatus.CREATED, VerifyStatus.EXTRACTING, VerifyStatus.VALIDATING, VerifyStatus.SUCCESS, VerifyStatus.FAILED, VerifyStatus.SKIPPED]),
   message: z.string().nullish(),
   runs_report: z.string().nullable(),
-}) satisfies ZodType<MessageVerifyResponse, any, any>;
+}) satisfies ZodType<MessageVerifyResponse, any>;
 
 export async function getVerify (url: string) {
   return await fetch(url).then(handleResponse(getVerifyResponse));

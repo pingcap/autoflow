@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from app.api.routes import (
     chat_engine,
     index,
@@ -54,9 +54,10 @@ from app.api.routes.retrieve import (
     routes as retrieve_routes,
 )
 
-from app.auth.users import auth_backend, fastapi_users
+from app.auth.users import auth_backend, fastapi_users, current_superuser
 
 api_router = APIRouter()
+admin_router = APIRouter(dependencies=[Depends(current_superuser)])
 api_router.include_router(index.router, tags=["index"])
 api_router.include_router(chat.router, tags=["chat"])
 api_router.include_router(feedback.router, tags=["chat"])
@@ -65,37 +66,43 @@ api_router.include_router(api_key.router, tags=["auth"])
 api_router.include_router(document.router, tags=["documents"])
 api_router.include_router(chat_engine.router, tags=["chat-engines"])
 api_router.include_router(retrieve_routes.router, tags=["retrieve"])
-api_router.include_router(admin_user_router)
-api_router.include_router(admin_chat_engine.router, tags=["admin/chat-engines"])
-api_router.include_router(admin_document_router, tags=["admin/documents"])
-api_router.include_router(admin_feedback.router)
-api_router.include_router(admin_site_settings.router, tags=["admin/site_settings"])
-api_router.include_router(admin_upload.router, tags=["admin/upload"])
-api_router.include_router(admin_knowledge_base_router, tags=["admin/knowledge_base"])
-api_router.include_router(admin_kb_graph_router, tags=["admin/knowledge_base/graph"])
-api_router.include_router(
+admin_router.include_router(admin_user_router)
+admin_router.include_router(admin_chat_engine.router, tags=["admin/chat-engines"])
+admin_router.include_router(admin_document_router, tags=["admin/documents"])
+admin_router.include_router(admin_feedback.router)
+admin_router.include_router(admin_site_settings.router, tags=["admin/site_settings"])
+admin_router.include_router(admin_upload.router, tags=["admin/upload"])
+admin_router.include_router(admin_knowledge_base_router, tags=["admin/knowledge_base"])
+admin_router.include_router(admin_kb_graph_router, tags=["admin/knowledge_base/graph"])
+admin_router.include_router(
     admin_kb_graph_knowledge_router, tags=["admin/knowledge_base/graph/knowledge"]
 )
-api_router.include_router(
+admin_router.include_router(
     admin_kb_data_source_router, tags=["admin/knowledge_base/data_source"]
 )
-api_router.include_router(
+admin_router.include_router(
     admin_kb_document_router, tags=["admin/knowledge_base/document"]
 )
-api_router.include_router(admin_kb_chunk_router, tags=["admin/knowledge_base/chunk"])
-api_router.include_router(admin_llm_router, tags=["admin/llm"])
-api_router.include_router(admin_embedding_model_router, tags=["admin/embedding_model"])
-api_router.include_router(admin_reranker_model_router, tags=["admin/reranker_model"])
-api_router.include_router(admin_langfuse.router, tags=["admin/langfuse"])
-api_router.include_router(admin_legacy_retrieve.router, tags=["admin/retrieve_old"])
-api_router.include_router(admin_stats.router, tags=["admin/stats"])
-api_router.include_router(admin_semantic_cache.router, tags=["admin/semantic_cache"])
-api_router.include_router(admin_evaluation_task.router, tags=["admin/evaluation/task"])
+admin_router.include_router(admin_kb_chunk_router, tags=["admin/knowledge_base/chunk"])
+admin_router.include_router(admin_llm_router, tags=["admin/llm"])
+admin_router.include_router(
+    admin_embedding_model_router, tags=["admin/embedding_model"]
+)
+admin_router.include_router(admin_reranker_model_router, tags=["admin/reranker_model"])
+admin_router.include_router(admin_langfuse.router, tags=["admin/langfuse"])
+admin_router.include_router(admin_legacy_retrieve.router, tags=["admin/retrieve_old"])
+admin_router.include_router(admin_stats.router, tags=["admin/stats"])
+admin_router.include_router(admin_semantic_cache.router, tags=["admin/semantic_cache"])
+admin_router.include_router(
+    admin_evaluation_task.router, tags=["admin/evaluation/task"]
+)
 
-api_router.include_router(
+admin_router.include_router(
     admin_evaluation_dataset.router, tags=["admin/evaluation/dataset"]
 )
-api_router.include_router(admin_user.router)
+admin_router.include_router(admin_user.router)
+
+api_router.include_router(admin_router)
 
 api_router.include_router(
     fastapi_users.get_auth_router(auth_backend), prefix="/auth", tags=["auth"]

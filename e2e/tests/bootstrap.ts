@@ -1,7 +1,9 @@
+import { readModelVerification } from '../utils/model-verification';
 import { expect, test } from '@playwright/test';
 
 test.use({
-  trace: !!process.env.CI ? 'off' : 'on',
+  trace: 'off',
+  video: 'off',
 });
 
 test('Bootstrap', async ({ browser, page }) => {
@@ -54,7 +56,14 @@ test('Bootstrap', async ({ browser, page }) => {
     await passwordInput.fill(PASSWORD);
 
     // Click login
-    await loginButton.click();
+    const [loginResponse] = await Promise.all([
+      page.waitForResponse(response =>
+        new URL(response.url()).pathname === '/api/v1/auth/login'
+        && response.request().method() === 'POST'),
+      loginButton.click(),
+    ]);
+    // Report only status: response bodies and request data may contain credentials.
+    expect(loginResponse.status(), 'Browser login must succeed before configuring the site').toBe(204);
 
     // Wait for dialog dismiss
     await page.getByRole('dialog', { name: 'Sign In' }).waitFor({ state: 'detached' });
@@ -148,7 +157,17 @@ test('Bootstrap', async ({ browser, page }) => {
       // Click create button
       const createButton = page.getByRole('button', { name: 'Create LLM' });
       await createButton.scrollIntoViewIfNeeded();
-      await createButton.click();
+      const [verification] = await Promise.all([
+        page.waitForResponse(response =>
+          new URL(response.url()).pathname === '/api/v1/admin/llms/test'
+          && response.request().method() === 'POST'),
+        createButton.click(),
+      ]);
+      expect(verification.status(), 'LLM verification request must succeed').toBe(200);
+      // Never print request/response bodies: they may contain provider credentials.
+      const result = await readModelVerification(verification);
+      const { stage, errorType } = result;
+      expect(result.success === true, `LLM verification failed (${stage}/${errorType})`).toBe(true);
 
       // Wait for finish by check the url changes
       await page.waitForURL(/\/llms\/\d+/);

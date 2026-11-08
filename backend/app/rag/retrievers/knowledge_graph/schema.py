@@ -20,7 +20,7 @@ class MetadataFilterConfig(BaseModel):
 
 
 class KnowledgeGraphRetrieverConfig(BaseModel):
-    depth: int = 2
+    depth: int = Field(default=2, ge=0, le=3)
     include_meta: bool = False
     with_degree: bool = False
     metadata_filter: Optional[MetadataFilterConfig] = None

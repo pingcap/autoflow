@@ -1,7 +1,7 @@
 import { type ProviderOption, providerOptionSchema } from '@/api/providers';
 import { authenticationHeaders, handleNullableResponse, handleResponse, type PageParams, requestUrl, zodPage } from '@/lib/request';
 import { zodJsonDate } from '@/lib/zod';
-import { z, type ZodType, type ZodTypeDef } from 'zod';
+import { z, type ZodType } from 'zod';
 
 export interface EmbeddingModelSummary {
   id: number;
@@ -45,18 +45,18 @@ export const embeddingModelSummarySchema = z.object({
   model: z.string(),
   vector_dimension: z.number(),
   is_default: z.boolean(),
-}) satisfies ZodType<EmbeddingModelSummary, ZodTypeDef, any>;
+}) satisfies ZodType<EmbeddingModelSummary, any>;
 
 const embeddingModelSchema = embeddingModelSummarySchema.extend({
-  config: z.any(),
+  config: z.any().optional(),
   created_at: zodJsonDate().nullable().optional(),
   updated_at: zodJsonDate().nullable().optional(),
-}) satisfies ZodType<EmbeddingModel, ZodTypeDef, any>;
+}) satisfies ZodType<EmbeddingModel, any>;
 
 const embeddingModelOptionSchema = providerOptionSchema.and(z.object({
   default_embedding_model: z.string(),
   embedding_model_description: z.string(),
-})) satisfies ZodType<EmbeddingModelOption, any, any>;
+})) satisfies ZodType<EmbeddingModelOption, any>;
 
 export async function listEmbeddingModelOptions () {
   return await fetch(requestUrl(`/api/v1/admin/embedding-models/providers/options`), {

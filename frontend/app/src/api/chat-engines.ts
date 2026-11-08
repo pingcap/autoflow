@@ -26,6 +26,7 @@ export interface CreateChatEngineParams {
 
 export interface ChatEngineOptions {
   external_engine_config?: {
+    enabled?: boolean;
     stream_chat_api_url?: string | null
   } | null;
   clarify_question?: boolean | null;
@@ -96,10 +97,11 @@ const llmOptionsSchema =
     // provider: z.string(),
     // reranker_provider: z.string(),
     // reranker_top_k: z.number(),
-  }).passthrough() as ZodType<ChatEngineLLMOptions, any, any>;
+  }).passthrough() as ZodType<ChatEngineLLMOptions, any>;
 
 const chatEngineOptionsSchema = z.object({
   external_engine_config: z.object({
+    enabled: z.boolean().optional(),
     stream_chat_api_url: z.string().optional().nullable(),
   }).nullable().optional(),
   clarify_question: z.boolean().nullable().optional(),
@@ -122,7 +124,7 @@ const chatEngineOptionsSchema = z.object({
       }
     }
     return option;
-  }) satisfies ZodType<ChatEngineOptions, any, any>;
+  }) satisfies ZodType<ChatEngineOptions, any>;
 
 const chatEngineSchema = z.object({
   id: z.number(),
@@ -136,7 +138,7 @@ const chatEngineSchema = z.object({
   reranker_id: z.number().nullable(),
   is_default: z.boolean(),
   is_public: z.boolean(),
-}) satisfies ZodType<ChatEngine, any, any>;
+}) satisfies ZodType<ChatEngine, any>;
 
 export async function getDefaultChatEngineOptions (): Promise<ChatEngineOptions> {
   return await fetch(requestUrl('/api/v1/admin/chat-engines-default-config'), {

@@ -21,6 +21,10 @@ cp .env.example .env
 Edit `.env` to set environment variables.
 
 
+Configure independent `SECRET_KEY` and base64 `DATA_ENCRYPTION_KEY` values in the
+private environment file. Existing deployments must follow
+[the security migration instructions](SECURITY_MIGRATION.md) before upgrading.
+
 ### Run migrations
 
 ```bash

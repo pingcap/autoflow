@@ -6,11 +6,10 @@ import { DangerousActionButton } from '@/components/dangerous-action-button';
 import { ProviderSelect } from '@/components/form/biz';
 import { FormInput, FormSwitch } from '@/components/form/control-widget';
 import { formFieldLayout } from '@/components/form/field-layout';
-import { CodeInput } from '@/components/form/widgets/CodeInput';
+import { ModelConnectionForm } from '@/components/model-connection-form';
 import { useLLMProviders } from '@/components/llm/hooks';
 import { fieldAccessor, GeneralSettingsField, type GeneralSettingsFieldAccessor, GeneralSettingsForm } from '@/components/settings-form';
 import type { KeyOfType } from '@/lib/typing-utils';
-import { zodJsonText } from '@/lib/zod';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
@@ -63,27 +62,6 @@ export function UpdateLlmForm ({ llm }: { llm: LLM }) {
             <FormInput />
           </field.Basic>
         </GeneralSettingsField>
-        {provider && (
-          provider.credentials_type === 'str'
-            ? (
-              <GeneralSettingsField accessor={stringCredentialAccessor} schema={stringCredentialSchema}>
-                <field.Basic label="Credentials" name="value" description={provider?.credentials_description}>
-                  <FormInput placeholder={provider.default_credentials} />
-                </field.Basic>
-              </GeneralSettingsField>
-            ) : (
-              <GeneralSettingsField accessor={dictCredentialAccessor} schema={dictCredentialSchema}>
-                <field.Basic label="Credentials" name="value" description={provider?.credentials_description}>
-                  <CodeInput language="json" placeholder={JSON.stringify(provider.default_credentials, undefined, 2)} />
-                </field.Basic>
-              </GeneralSettingsField>
-            )
-        )}
-        <GeneralSettingsField accessor={configAccessor} schema={configSchema}>
-          <field.Basic label="Config" name="value" description={provider?.config_description}>
-            <CodeInput language="json" />
-          </field.Basic>
-        </GeneralSettingsField>
         <GeneralSettingsField accessor={isDefaultAccessor} schema={anySchema}>
           <field.Contained label="Is Default" name="value">
             <FormSwitch />
@@ -100,6 +78,15 @@ export function UpdateLlmForm ({ llm }: { llm: LLM }) {
           </field.Basic>
         </GeneralSettingsField>
       </GeneralSettingsForm>
+      <ModelConnectionForm
+        config={llm.config}
+        credentialType={provider?.credentials_type}
+        disabled={transitioning}
+        onSave={async value => {
+          await updateLlm(llm.id, value);
+          startTransition(() => { router.refresh(); });
+        }}
+      />
       <DangerousActionButton
         variant="destructive"
         disabled={transitioning}
@@ -133,43 +120,12 @@ const getDatetimeAccessor = (key: KeyOfType<LLM, Date | undefined | null>): Gene
 };
 
 const nameSchema = z.string();
-const configSchema = zodJsonText();
 
 const nameAccessor = fieldAccessor<UpdateLLM, 'name'>('name');
 const idAccessor = fieldAccessor<LLM, 'id'>('id');
 const providerAccessor = fieldAccessor<LLM, 'provider'>('provider');
 const modelAccessor = fieldAccessor<LLM, 'model'>('model');
-const configAccessor: GeneralSettingsFieldAccessor<UpdateLLM, string> = {
-  path: ['config'],
-  get (data) {
-    return JSON.stringify(data.config, undefined, 2);
-  },
-  set (data, value) {
-    return {
-      ...data,
-      // TODO: This is already converted to object by zodJsonText().
-      config: value,
-    };
-  },
-};
+
 const isDefaultAccessor = fieldAccessor<LLM, 'is_default'>('is_default');
 const createdAtAccessor = getDatetimeAccessor('created_at');
 const updatedAtAccessor = getDatetimeAccessor('updated_at');
-
-const stringCredentialSchema = z.string().optional();
-const dictCredentialSchema = zodJsonText();
-
-const stringCredentialAccessor = fieldAccessor<UpdateLLM, 'credentials'>('credentials', '');
-const dictCredentialAccessor: GeneralSettingsFieldAccessor<UpdateLLM, string> = {
-  path: ['credentials'],
-  get (data) {
-    return JSON.stringify(data.config, undefined, 2);
-  },
-  set (data, value) {
-    return {
-      ...data,
-      // TODO: This is already converted to object by zodJsonText().
-      config: value,
-    };
-  },
-};

@@ -86,4 +86,4 @@ export const chatDataPartSchema = z.object({
   chat: chatSchema,
   user_message: chatMessageSchema,
   assistant_message: chatMessageSchema,
-}) satisfies ZodType<ChatInitialData, any, any>;
+}) satisfies ZodType<ChatInitialData, any>;

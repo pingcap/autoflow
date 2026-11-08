@@ -1,5 +1,5 @@
 from typing import List, Optional
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from app.rag.retrievers.knowledge_graph.schema import (
     KnowledgeGraphRetrieverConfig,
@@ -11,7 +11,7 @@ class SynopsisEntityCreate(BaseModel):
     description: str
     topic: str
     meta: dict
-    entities: List[int]
+    entities: List[int] = Field(min_length=1, max_length=100)
 
     @model_validator(mode="after")
     def validate_entities(self):
@@ -33,9 +33,9 @@ class RelationshipUpdate(BaseModel):
 
 
 class GraphSearchRequest(BaseModel):
-    query: str
+    query: str = Field(min_length=1, max_length=8192)
     include_meta: bool = True
-    depth: int = 2
+    depth: int = Field(default=2, ge=0, le=3)
     with_degree: bool = True
     relationship_meta_filters: dict = {}
 
@@ -48,7 +48,7 @@ class KBKnowledgeGraphRetrievalConfig(BaseModel):
 
 
 class KBRetrieveKnowledgeGraphRequest(BaseModel):
-    query: str
+    query: str = Field(min_length=1, max_length=8192)
     llm_id: int
     retrieval_config: KBKnowledgeGraphRetrievalConfig
 
@@ -57,18 +57,18 @@ class KBRetrieveKnowledgeGraphRequest(BaseModel):
 
 
 class KnowledgeRequest(BaseModel):
-    query: str
-    similarity_threshold: float = 0.55
-    top_k: int = 10
+    query: str = Field(min_length=1, max_length=8192)
+    similarity_threshold: float = Field(default=0.55, ge=0, le=1, allow_inf_nan=False)
+    top_k: int = Field(default=10, ge=1, le=100)
 
 
 class KnowledgeNeighborRequest(BaseModel):
-    entities_ids: List[int]
-    query: str
-    max_depth: int = 1
-    max_neighbors: int = 20
-    similarity_threshold: float = 0.55
+    entities_ids: List[int] = Field(min_length=1, max_length=100)
+    query: str = Field(min_length=1, max_length=8192)
+    max_depth: int = Field(default=1, ge=0, le=3)
+    max_neighbors: int = Field(default=20, ge=1, le=100)
+    similarity_threshold: float = Field(default=0.55, ge=0, le=1, allow_inf_nan=False)
 
 
 class KnowledgeChunkRequest(BaseModel):
-    relationships_ids: List[int]
+    relationships_ids: List[int] = Field(min_length=1, max_length=100)

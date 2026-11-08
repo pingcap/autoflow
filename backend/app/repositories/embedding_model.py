@@ -1,9 +1,12 @@
+from app.security.provider_config import validate_provider_write
 from typing import Optional, Type
 
 from fastapi_pagination import Params, Page
 from fastapi_pagination.ext.sqlmodel import paginate
 from sqlalchemy.orm.attributes import flag_modified
-from sqlmodel import Session, select, update
+from sqlmodel import Session, select, update, delete
+from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
 
 from app.api.admin_routes.embedding_model.models import (
     EmbeddingModelUpdate,
@@ -42,6 +45,7 @@ class EmbeddingModelRepo(BaseRepo):
         return session.exec(stmt).one_or_none() is not None
 
     def create(self, session: Session, create: EmbeddingModelCreate):
+        create.config = validate_provider_write("embedding", create)
         # If there is currently no model, the first model will be
         # set as the default model.
         if not self.exists_any_model(session):
@@ -71,7 +75,13 @@ class EmbeddingModelRepo(BaseRepo):
         embed_model: EmbeddingModel,
         partial_update: EmbeddingModelUpdate,
     ) -> EmbeddingModel:
-        for field, value in partial_update.model_dump(exclude_unset=True).items():
+        # Bind validation to the latest committed credentials under a row lock.
+        session.refresh(embed_model, with_for_update=True)
+        changes = partial_update.model_dump(exclude_unset=True)
+        validated_config = validate_provider_write("embedding", embed_model, changes)
+        if "config" in changes:
+            changes["config"] = validated_config
+        for field, value in changes.items():
             setattr(embed_model, field, value)
             flag_modified(embed_model, field)
 
@@ -80,15 +90,31 @@ class EmbeddingModelRepo(BaseRepo):
         return embed_model
 
     def delete(self, session: Session, model: EmbeddingModel):
-        # TODO: Support to specify a new embedding model to replace the current embedding model.
-        session.exec(
-            update(KnowledgeBase)
+        referenced = (
+            select(KnowledgeBase.id)
             .where(KnowledgeBase.embedding_model_id == model.id)
-            .values(embedding_model_id=None)
+            .exists()
         )
-
-        session.delete(model)
-        session.commit()
+        try:
+            result = session.exec(
+                delete(EmbeddingModel)
+                .where(EmbeddingModel.id == model.id, ~referenced)
+                .execution_options(synchronize_session=False)
+            )
+            if result.rowcount != 1:
+                session.rollback()
+                raise HTTPException(
+                    status_code=409,
+                    detail="Embedding model is referenced or no longer available",
+                )
+            session.commit()
+        except IntegrityError as error:
+            session.rollback()
+            if getattr(error.orig, "args", ()) and error.orig.args[0] in (1451, 1217):
+                raise HTTPException(
+                    status_code=409, detail="Embedding model is in use"
+                ) from None
+            raise
 
     # Default model
 

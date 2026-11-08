@@ -1,7 +1,7 @@
 from abc import ABC
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models import Document
 
@@ -9,7 +9,7 @@ from app.models import Document
 class RerankerConfig(BaseModel):
     enabled: bool = True
     model_id: int = None
-    top_n: int = 10
+    top_n: int = Field(default=10, ge=1, le=100)
 
 
 class MetadataFilterConfig(BaseModel):
@@ -18,9 +18,9 @@ class MetadataFilterConfig(BaseModel):
 
 
 class VectorSearchRetrieverConfig(BaseModel):
-    top_k: int = 10
-    similarity_top_k: Optional[int] = None
-    oversampling_factor: Optional[int] = 5
+    top_k: int = Field(default=10, ge=1, le=100)
+    similarity_top_k: Optional[int] = Field(default=None, ge=1, le=100)
+    oversampling_factor: Optional[int] = Field(default=5, ge=1, le=10)
     reranker: Optional[RerankerConfig] = None
     metadata_filter: Optional[MetadataFilterConfig] = None
 

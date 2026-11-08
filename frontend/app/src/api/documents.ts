@@ -49,7 +49,7 @@ export const documentSchema = z.object({
   mime_type: z.string(),
   source_uri: z.string(),
   index_status: z.string(),
-  index_result: z.unknown(),
+  index_result: z.unknown().optional(),
   data_source: z.object({
     id: z.number(),
     name: z.string(),
@@ -58,7 +58,7 @@ export const documentSchema = z.object({
     id: z.number(),
     name: z.string(),
   }).nullable(),
-}) satisfies ZodType<Document, any, any>;
+}) satisfies ZodType<Document, any>;
 
 const zDate = z.coerce.date().or(z.literal('').transform(() => undefined)).optional();
 const zDateRange = z.tuple([zDate, zDate]).optional();

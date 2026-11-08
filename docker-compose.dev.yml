@@ -35,8 +35,6 @@ services:
       dockerfile: Dockerfile
       args:
         BUILDKIT_INLINE_CACHE: 1
-    ports:
-      - "5556:5555"
     env_file:
       - .env
     volumes:
@@ -51,9 +49,14 @@ services:
       dockerfile: Dockerfile
       args:
         BUILDKIT_INLINE_CACHE: 1
-    ports:
-      - "5002:5001"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    init: true
+    pids_limit: 256
+    mem_limit: 8g
+    cpus: 2
     environment:
+      - SIDECAR_AUTH_TOKEN=${SIDECAR_AUTH_TOKEN:-}
       - PRE_LOAD_DEFAULT_EMBEDDING_MODEL=true
       - PRE_LOAD_DEFAULT_RERANKER_MODEL=false
       - TRANSFORMERS_OFFLINE=1

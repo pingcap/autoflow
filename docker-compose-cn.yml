@@ -45,8 +45,6 @@ services:
     restart: always
     depends_on:
       - redis
-    ports:
-      - "5555:5555"
     env_file:
       - .env
     volumes:
@@ -59,11 +57,17 @@ services:
         max-file: "6"
 
   local-embedding-reranker:
-    image: registry.cn-beijing.aliyuncs.com/pingcap-ee/tidb.ai-local-embedding-reranker:v4-with-cache
-    ports:
-      - 5001:5001
+    image: autoflow-local-models:security
+    build:
+      context: backend/local_embedding_reranker
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    init: true
+    pids_limit: 256
+    mem_limit: 8g
+    cpus: 2
     environment:
-      - HF_ENDPOINT=https://hf-mirror.com
+      - SIDECAR_AUTH_TOKEN=${SIDECAR_AUTH_TOKEN:-}
       - PRE_LOAD_DEFAULT_EMBEDDING_MODEL=true
       # If you want to pre-load the default reranker model, change the following environment to true
       - PRE_LOAD_DEFAULT_RERANKER_MODEL=false

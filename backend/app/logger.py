@@ -10,11 +10,13 @@ dictConfig(
         "version": 1,
         "disable_existing_loggers": False,
         "formatters": {
+            "security": {"()": "app.security.audit.SecurityEventFormatter"},
             "default": {
                 "format": "%(asctime)s - %(name)s:%(lineno)d - %(levelname)s - %(message)s",
             },
         },
         "handlers": {
+            "security": {"class": "logging.StreamHandler", "formatter": "security"},
             "console": {
                 "class": "logging.StreamHandler",
                 "formatter": "default",
@@ -25,6 +27,11 @@ dictConfig(
             "handlers": ["console"],
         },
         "loggers": {
+            "security.audit": {
+                "level": "INFO",
+                "handlers": ["security"],
+                "propagate": False,
+            },
             "uvicorn.error": {
                 "level": "ERROR",
                 "handlers": ["console"],

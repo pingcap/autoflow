@@ -1,4 +1,5 @@
-from typing import List
+from app.security.provider_config import ProviderConfigurationError
+from typing import List, Literal
 
 from fastapi import APIRouter, Depends
 from fastapi_pagination import Page, Params
@@ -33,6 +34,8 @@ def list_llms(
 class LLMTestResult(BaseModel):
     success: bool
     error: str = ""
+    stage: Literal["configuration", "llm", "dspy"] | None = None
+    error_type: str | None = None
 
 
 @router.post("/admin/llms/test")
@@ -40,6 +43,7 @@ def test_llm(
     db_llm: LLM,
     user: CurrentSuperuserDep,
 ) -> LLMTestResult:
+    stage = "configuration"
     try:
         llm = resolve_llm(
             provider=db_llm.provider,
@@ -47,12 +51,14 @@ def test_llm(
             config=db_llm.config,
             credentials=db_llm.credentials,
         )
+        stage = "llm"
         llm.chat([ChatMessage(role="user", content="Who are you?")])
 
         # Test with dspy LM.
         import dspy
         from app.rag.llms.dspy import get_dspy_lm_by_llama_llm
 
+        stage = "dspy"
         dspy_lm = get_dspy_lm_by_llama_llm(llm)
         with dspy.context(lm=dspy_lm):
             math = dspy.Predict("question -> answer: float")
@@ -62,9 +68,15 @@ def test_llm(
         success = True
         error = ""
     except Exception as e:
-        logger.info(f"Failed to test LLM: {e}")
-        success = False
-        error = str(e)
+        logger.info("Model test failed (%s, %s)", stage, type(e).__name__)
+        error = (
+            str(e)
+            if isinstance(e, ProviderConfigurationError)
+            else "Model test failed. Check the endpoint, credentials and model configuration."
+        )
+        return LLMTestResult(
+            success=False, error=error, stage=stage, error_type=type(e).__name__
+        )
     return LLMTestResult(success=success, error=error)
 
 

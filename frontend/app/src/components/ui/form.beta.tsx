@@ -107,7 +107,7 @@ function Form<
   TFormValidator extends FormPrimitives.Validator<TFormData, unknown> | undefined = undefined,
 > ({ children, disabled, submissionError, form }: FormProps<TFormData, TFormValidator>) {
   return (
-    <FormContext value={{ form, submissionError, disabled }}>
+    <FormContext value={{ form: form as FormPrimitives.ReactFormExtendedApi<any, any>, submissionError, disabled }}>
       {children}
     </FormContext>
   );

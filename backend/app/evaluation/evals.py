@@ -262,11 +262,13 @@ class Evaluation:
 
     @retry(stop=stop_after_attempt(2), wait=wait_fixed(5))
     def _generate_answer_by_tidb_ai(self, messages: list) -> (str, str):
+        if not settings.TIDB_AI_API_KEY:
+            raise ValueError("A scoped chat API key is required for evaluation")
         response = requests.post(
             settings.TIDB_AI_CHAT_ENDPOINT,
             headers={
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {settings.TIDB_AI_API_KEY}",
+                "Authorization": f"Bearer {settings.TIDB_AI_API_KEY.get_secret_value()}",
                 "Origin": "evaluation",
             },
             json={
@@ -288,11 +290,13 @@ class Evaluation:
         return answer, trace_id
 
     def generate_answer_by_tidb_ai(self, messages: list) -> str:
+        if not settings.TIDB_AI_API_KEY:
+            raise ValueError("A scoped chat API key is required for evaluation")
         response = requests.post(
             settings.TIDB_AI_CHAT_ENDPOINT,
             headers={
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {settings.TIDB_AI_API_KEY}",
+                "Authorization": f"Bearer {settings.TIDB_AI_API_KEY.get_secret_value()}",
             },
             json={
                 "messages": messages,

@@ -1,5 +1,6 @@
 import { normalizeServerErrors } from '@/lib/request/index';
 import { z, ZodType } from 'zod';
+import { readBoundedResponseText, readValidatedJson } from './validation-budget';
 
 export async function handleErrors (responseOrPromise: Response | PromiseLike<Response>): Promise<Response> {
   const response = await responseOrPromise;
@@ -8,28 +9,28 @@ export async function handleErrors (responseOrPromise: Response | PromiseLike<Re
   }
 
   try {
-    const jsonBody = await response.clone().json();
-    return Promise.reject(normalizeServerErrors(response, jsonBody));
-  } catch {
+    const body = await readBoundedResponseText(response, 65536);
+    let parsed: unknown;
     try {
-      const textBody = await response.clone().text();
-      return Promise.reject(normalizeServerErrors(response, textBody));
+      parsed = JSON.parse(body);
     } catch {
-      return Promise.reject(normalizeServerErrors(response, `${response.status} ${response.statusText}`));
+      parsed = body;
     }
+    return Promise.reject(normalizeServerErrors(response, parsed));
+  } catch {
+    return Promise.reject(normalizeServerErrors(response, `${response.status} ${response.statusText}`));
   }
 }
 
 export function handleResponse<S extends ZodType> (schema: S): ((responseOrPromise: Response | PromiseLike<Response>) => Promise<z.infer<S>>) {
   return async (responseOrPromise) => {
     const response = await Promise.resolve(responseOrPromise).then(handleErrors);
-    const body = await response.json();
+    const body = await readValidatedJson(response);
 
     try {
       return schema.parse(body);
     } catch (e) {
-      console.error(e);
-      console.error(`Cannot parse response json data for ${response.url} ${response.status}, check your frontend and backend versions.`, e);
+      console.error('Response validation failed; check frontend and backend versions.');
       throw e;
     }
   };
@@ -44,13 +45,12 @@ export function handleNullableResponse<S extends ZodType> (schema: S): ((respons
     }
 
     await handleErrors(response);
-    const body = await response.json();
+    const body = await readValidatedJson(response);
 
     try {
       return schema.parse(body);
     } catch (e) {
-      console.error(e);
-      console.error(`Cannot parse response json data for ${response.url} ${response.status}, check your frontend and backend versions.`, 2);
+      console.error('Response validation failed; check frontend and backend versions.');
       throw e;
     }
   };

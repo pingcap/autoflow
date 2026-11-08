@@ -24,6 +24,15 @@ function handler (request: NextRequest) {
   requestHeaders.delete('X-Invoke-Query');
   requestHeaders.delete('X-Middleware-Invoke');
 
+  // Verify browser provenance at this origin before forwarding cookie writes.
+  // Cross-origin requests retain their Origin for the backend's exact allowlist.
+  if (request.headers.get('Origin') === request.nextUrl.origin) {
+    requestHeaders.delete('Origin');
+    requestHeaders.delete('Referer');
+    requestHeaders.set('X-CSRF-Guard', '1');
+  }
+
+
   return fetch(newUrl, {
     cache: 'no-cache',
     method: request.method,
@@ -31,11 +40,11 @@ function handler (request: NextRequest) {
     body: request.body,
     duplex: request.body instanceof ReadableStream ? 'half' : 'half',
   }).then(response => {
-    console.log('[proxy]', request.method, newUrl.toString(), response.status, response.statusText, response.headers.get('Content-Type'));
+    console.log('[proxy]', request.method, response.status);
     return response;
-  }, error => {
-    console.error('[proxy]', request.method, newUrl.toString(), error);
-    return Promise.reject(error);
+  }, () => {
+    console.error('[proxy]', request.method, 'Upstream request failed');
+    return new Response(JSON.stringify({ detail: 'Upstream service unavailable' }), { status: 502, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
   });
 }
 

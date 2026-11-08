@@ -82,9 +82,9 @@ reranker_provider_options: List[RerankerProviderOption] = [
         },
         config_description="api_url is the url of the tidb ai local reranker server.",
         credentials_display_name="Local Reranker API Key",
-        credentials_description="Local Reranker server doesn't require an API key, set a dummy string here is ok.",
+        credentials_description="The SIDECAR_AUTH_TOKEN configured for your private local model service.",
         credentials_type="str",
-        default_credentials="dummy",
+        default_credentials="SIDECAR_AUTH_TOKEN",
     ),
     RerankerProviderOption(
         provider=RerankerProvider.VLLM,

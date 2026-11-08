@@ -17,7 +17,7 @@ import { z } from 'zod';
  * - If T is Record<string, any>, TFormData is itself
  */
 export function formFieldLayout<T> (): TypedFormFieldLayouts<
-  T extends z.ZodType<any, any, any>
+  T extends z.ZodType<any, any>
     ? z.input<T>
     : T extends CreateEntityFormBetaProps<any, infer I>
       ? I

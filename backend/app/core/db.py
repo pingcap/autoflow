@@ -9,12 +9,14 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
+from app.security.audit import install_audit_hooks
 
 
 # TiDB Serverless clusters have a limitation: if there are no active connections for 5 minutes,
 # they will shut down, which closes all connections, so we need to recycle the connections
 engine = create_engine(
     str(settings.SQLALCHEMY_DATABASE_URI),
+    hide_parameters=True,
     pool_size=20,
     max_overflow=40,
     pool_recycle=300,
@@ -34,6 +36,7 @@ def get_ssl_context():
 
 async_engine = create_async_engine(
     str(settings.SQLALCHEMY_ASYNC_DATABASE_URI),
+    hide_parameters=True,
     pool_recycle=300,
     connect_args={
         # seems config ssl in url is not working
@@ -68,3 +71,5 @@ async def get_db_async_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 get_db_async_session_context = contextlib.asynccontextmanager(get_db_async_session)
+
+install_audit_hooks()

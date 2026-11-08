@@ -1,5 +1,6 @@
 from typing import Any, List, Optional
-import requests
+from app.security.provider_http import ProviderSession
+from app.rag.local_model_batches import local_model_batches
 
 from llama_index.core.bridge.pydantic import Field, PrivateAttr
 from llama_index.core.callbacks import CBEventType, EventPayload
@@ -33,11 +34,13 @@ class LocalRerank(BaseNodePostprocessor):
         top_n: int = 2,
         model: str = "BAAI/bge-reranker-v2-m3",
         api_url: str = "http://127.0.0.1:5001/api/v1/reranker",
+        api_key: str = "",
     ):
         super().__init__(top_n=top_n, model=model)
         self.api_url = api_url
         self.model = model
-        self._session = requests.Session()
+        self._session = ProviderSession(self.api_url)
+        self._session.headers["Authorization"] = f"Bearer {api_key}"
 
     @classmethod
     def class_name(cls) -> str:
@@ -75,20 +78,24 @@ class LocalRerank(BaseNodePostprocessor):
                 node.node.get_content(metadata_mode=MetadataMode.EMBED)
                 for node in nodes
             ]
-            resp = self._session.post(  # type: ignore
-                self.api_url,
-                json={
-                    "query": query_bundle.query_str,
-                    "model": self.model,
-                    "passages": texts,
-                },
-            )
-            resp.raise_for_status()
-            resp_json = resp.json()
-            if "scores" not in resp_json:
-                raise RuntimeError(f"Got error from reranker: {resp_json}")
-
-            results = zip(range(len(nodes)), resp_json["scores"])
+            scores = []
+            for batch in local_model_batches(texts, query=query_bundle.query_str):
+                with self._session.post(
+                    self.api_url,
+                    json={
+                        "query": query_bundle.query_str,
+                        "model": self.model,
+                        "passages": batch,
+                    },
+                ) as response:
+                    response.raise_for_status()
+                    values = response.json().get("scores")
+                    if not isinstance(values, list) or len(values) != len(batch):
+                        raise RuntimeError(
+                            "Local reranker returned an invalid response"
+                        )
+                    scores.extend(values)
+            results = zip(range(len(nodes)), scores)
             results = sorted(results, key=lambda x: x[1], reverse=True)[: self.top_n]
 
             new_nodes = []

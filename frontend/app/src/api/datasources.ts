@@ -91,12 +91,12 @@ const datasourceSpecSchema = z.discriminatedUnion('data_source_type', [
     data_source_type: z.enum(['web_sitemap']),
     config: z.object({ url: z.string() }),
   })],
-) satisfies ZodType<DatasourceSpec, any, any>;
+) satisfies ZodType<DatasourceSpec, any>;
 
 export const datasourceSchema = z.object({
   id: z.number(),
   name: z.string(),
-}).and(datasourceSpecSchema) satisfies ZodType<Datasource, any, any>;
+}).and(datasourceSpecSchema) satisfies ZodType<Datasource, any>;
 
 const uploadSchema = z.object({
   id: z.number(),
@@ -107,7 +107,7 @@ const uploadSchema = z.object({
   user_id: z.string(),
   created_at: zodJsonDate().optional(),
   updated_at: zodJsonDate().optional(),
-}) satisfies ZodType<Upload, any, any>;
+}) satisfies ZodType<Upload, any>;
 z.object({
   vector_index: indexSchema,
   documents: totalSchema,

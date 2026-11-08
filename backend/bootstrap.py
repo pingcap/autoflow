@@ -1,5 +1,6 @@
-import secrets
 import asyncio
+from pathlib import Path
+import sys
 from sqlmodel import select, func
 from sqlmodel.ext.asyncio.session import AsyncSession
 from colorama import Fore, Style
@@ -7,6 +8,29 @@ import click
 
 from app.core.db import get_db_async_session_context
 from app.models import User, ChatEngine
+
+
+def require_password(value: str | None) -> str:
+    if value is None and sys.stdin.isatty():
+        value = click.prompt(
+            "Administrator password", hide_input=True, confirmation_prompt=True
+        )
+    if not value or not 16 <= len(value) <= 1024:
+        raise click.ClickException(
+            "Supply a 16–1024 character password using --password-file or an interactive terminal"
+        )
+    return value
+
+
+def read_private_password(path: Path) -> str:
+    import stat
+
+    info = path.lstat()
+    if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077 or info.st_size > 4096:
+        raise click.ClickException(
+            "Password file must be a private regular file (chmod 600)"
+        )
+    return require_password(path.read_text().rstrip("\r\n"))
 
 
 async def ensure_admin_user(
@@ -18,7 +42,7 @@ async def ensure_admin_user(
         from app.auth.users import create_user
 
         admin_email = email or "admin@example.com"
-        admin_password = password or secrets.token_urlsafe(16)
+        admin_password = require_password(password)
         user = await create_user(
             session,
             email=admin_email,
@@ -27,12 +51,11 @@ async def ensure_admin_user(
             is_verified=True,
             is_superuser=True,
         )
-        print(Fore.RED + "\n" + "!" * 80)
         print(
-            Fore.RED + "[IMPORTANT] Admin user created with email: "
-            f"{admin_email} and password: {admin_password}"
+            Fore.GREEN
+            + "Admin user created. Use the supplied password to sign in."
+            + Style.RESET_ALL
         )
-        print(Fore.RED + "!" * 80 + "\n" + Style.RESET_ALL)
     else:
         print(Fore.YELLOW + "Admin user already exists, skipping...")
 
@@ -47,16 +70,16 @@ async def reset_admin_password(
     else:
         from app.auth.users import update_user_password
 
-        admin_password = new_password or secrets.token_urlsafe(16)
-        updated_user = await update_user_password(
+        admin_password = require_password(new_password)
+        await update_user_password(
             session,
             user_id=user.id,
             new_password=admin_password,
         )
         print(
-            Fore.GREEN + "Admin user password reset SUCCESS!\n"
-            f"email: {updated_user.email} \n"
-            f"password: {admin_password}" + Style.RESET_ALL
+            Fore.GREEN
+            + "Admin password reset; previous sessions and API keys revoked."
+            + Style.RESET_ALL
         )
 
 
@@ -92,12 +115,15 @@ async def bootstrap(
     "--email", default=None, help="Admin user email, default=admin@example.com"
 )
 @click.option(
-    "--password", default=None, help="Admin user password, default=random generated"
+    "--password-file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="Read the administrator password from a private file (never print it)",
 )
 @click.option("--reset-password", "-r", is_flag=True, help="Reset admin user password.")
-def main(email: str | None, password: str | None, reset_password: bool):
+def main(email: str | None, password_file: Path | None, reset_password: bool):
     """Bootstrap the application with optional admin credentials."""
     print(Fore.GREEN + "Bootstrapping the application..." + Style.RESET_ALL)
+    password = read_private_password(password_file) if password_file else None
     asyncio.run(bootstrap(email, password, reset_password))
     print(Fore.GREEN + "Bootstrapping completed." + Style.RESET_ALL)
 

@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+from app.auth.chat_access import user_can_edit_chat
 import json
 import logging
 from datetime import datetime, UTC
@@ -5,13 +7,14 @@ from typing import List, Optional, Generator, Tuple, Any
 from urllib.parse import urljoin
 from uuid import UUID
 
-import requests
-from langfuse.llama_index import LlamaIndexInstrumentor
+from app.security.external_engine import external_engine_session
+from app.utils.langfuse_instrumentor import BoundLangfuseInstrumentor
+from app.security.langfuse_settings import read_runtime_configuration
 from langfuse.llama_index._context import langfuse_instrumentor_context
 from llama_index.core import get_response_synthesizer
 from llama_index.core.base.llms.types import ChatMessage, MessageRole
 from llama_index.core.schema import NodeWithScore
-from llama_index.core.prompts.rich import RichPromptTemplate
+from app.security.prompt_template import SafePromptTemplate
 
 from sqlmodel import Session
 from app.core.config import settings
@@ -33,8 +36,9 @@ from app.rag.llms.dspy import get_dspy_lm_by_llama_llm
 from app.rag.retrievers.knowledge_graph.schema import KnowledgeGraphRetrievalResult
 from app.rag.types import ChatEventType, ChatMessageSate
 from app.rag.utils import parse_goal_response_format
-from app.repositories import chat_repo
-from app.site_settings import SiteSetting
+from app.repositories import chat_repo, llm_repo
+from app.repositories.reranker_model import reranker_model_repo
+from app.security.answer_cache import answer_cache_context, answer_goal_key
 from app.utils.tracing import LangfuseContextManager
 
 logger = logging.getLogger(__name__)
@@ -61,6 +65,9 @@ class ChatFlow:
         chat_messages: List[ChatMessage],
         engine_name: str = "default",
         chat_id: Optional[UUID] = None,
+        api_key_id: Optional[int] = None,
+        allowed_engine_ids: Optional[List[int]] = None,
+        on_authorized=None,
     ) -> None:
         self.chat_id = chat_id
         self.db_session = db_session
@@ -71,33 +78,52 @@ class ChatFlow:
         # Load chat engine and chat session.
         self.user_question, self.chat_history = parse_chat_messages(chat_messages)
         if chat_id:
-            # FIXME:
-            #   only chat owner or superuser can access the chat,
-            #   anonymous user can only access anonymous chat by track_id
             self.db_chat_obj = chat_repo.get(self.db_session, chat_id)
-            if not self.db_chat_obj:
+            if not self.db_chat_obj or not user_can_edit_chat(
+                self.db_chat_obj, user, browser_id
+            ):
                 raise ChatNotFound(chat_id)
-            try:
-                self.engine_config = ChatEngineConfig.load_from_db(
-                    db_session, self.db_chat_obj.engine.name
-                )
-                self.db_chat_engine = self.engine_config.get_db_chat_engine()
-            except Exception as e:
-                logger.error(f"Failed to load chat engine config: {e}")
-                self.engine_config = ChatEngineConfig.load_from_db(
-                    db_session, engine_name
-                )
-                self.db_chat_engine = self.engine_config.get_db_chat_engine()
+            if api_key_id is not None and (
+                not user
+                or self.db_chat_obj.user_id != user.id
+                or self.db_chat_obj.api_key_id != api_key_id
+                or self.db_chat_obj.engine_id not in (allowed_engine_ids or [])
+            ):
+                raise ChatNotFound(chat_id)
+            if not self.db_chat_obj.engine:
+                raise ChatNotFound(chat_id)
+            self.engine_config = ChatEngineConfig.load_from_db(
+                db_session,
+                self.db_chat_obj.engine.name,
+                need_public=not (user and user.is_superuser),
+            )
+            self.db_chat_engine = self.engine_config.get_db_chat_engine()
+            if api_key_id is not None and self.db_chat_engine.id not in (
+                allowed_engine_ids or []
+            ):
+                raise HTTPException(status_code=404, detail="Chat engine not found")
             logger.info(
                 f"Init ChatFlow for chat {chat_id} (chat_engine: {self.db_chat_obj.engine.name})"
             )
+            if on_authorized:
+                on_authorized()
             self.chat_history = [
-                ChatMessage(role=m.role, content=m.content, additional_kwargs={})
-                for m in chat_repo.get_messages(self.db_session, self.db_chat_obj)
+                ChatMessage(role=role, content=content, additional_kwargs={})
+                for role, content in chat_repo.get_context_messages(
+                    self.db_session, self.db_chat_obj, 40000 - len(self.user_question)
+                )
             ]
         else:
-            self.engine_config = ChatEngineConfig.load_from_db(db_session, engine_name)
+            self.engine_config = ChatEngineConfig.load_from_db(
+                db_session, engine_name, need_public=not (user and user.is_superuser)
+            )
             self.db_chat_engine = self.engine_config.get_db_chat_engine()
+            if api_key_id is not None and self.db_chat_engine.id not in (
+                allowed_engine_ids or []
+            ):
+                raise HTTPException(status_code=404, detail="Chat engine not found")
+            if on_authorized:
+                on_authorized()
             self.db_chat_obj = chat_repo.create(
                 self.db_session,
                 DBChat(
@@ -106,13 +132,10 @@ class ChatFlow:
                     engine_id=self.db_chat_engine.id,
                     engine_options=self.engine_config.screenshot(),
                     user_id=self.user.id if self.user else None,
+                    api_key_id=api_key_id,
                     browser_id=self.browser_id,
                     origin=origin,
-                    visibility=(
-                        ChatVisibility.PUBLIC
-                        if not self.user
-                        else ChatVisibility.PRIVATE
-                    ),
+                    visibility=ChatVisibility.PRIVATE,
                 ),
             )
             chat_id = self.db_chat_obj.id
@@ -134,15 +157,7 @@ class ChatFlow:
                 )
 
         # Init Langfuse for tracing.
-        enable_langfuse = (
-            SiteSetting.langfuse_secret_key and SiteSetting.langfuse_public_key
-        )
-        instrumentor = LlamaIndexInstrumentor(
-            host=SiteSetting.langfuse_host,
-            secret_key=SiteSetting.langfuse_secret_key,
-            public_key=SiteSetting.langfuse_public_key,
-            enabled=enable_langfuse,
-        )
+        instrumentor = BoundLangfuseInstrumentor(read_runtime_configuration(db_session))
         self._trace_manager = LangfuseContextManager(instrumentor)
 
         # Init LLM.
@@ -191,7 +206,7 @@ class ChatFlow:
                     response_text, source_documents = yield from self._builtin_chat()
                     trace.update(output=response_text)
         except Exception as e:
-            logger.exception(e)
+            logger.error("Chat processing failed (%s)", type(e).__name__)
             yield ChatEvent(
                 event_type=ChatEventType.ERROR_PART,
                 payload="Encountered an error while processing the chat. Please try again later.",
@@ -356,7 +371,7 @@ class ChatFlow:
                     ),
                 )
 
-            prompt_template = RichPromptTemplate(refined_question_prompt)
+            prompt_template = SafePromptTemplate(refined_question_prompt)
             refined_question = self._fast_llm.predict(
                 prompt_template,
                 graph_knowledges=knowledge_graph_context,
@@ -403,7 +418,7 @@ class ChatFlow:
                 "knowledge_graph_context": knowledge_graph_context,
             },
         ) as span:
-            prompt_template = RichPromptTemplate(
+            prompt_template = SafePromptTemplate(
                 self.engine_config.llm.clarifying_question_prompt
             )
 
@@ -467,7 +482,7 @@ class ChatFlow:
             name="generate_answer", input=user_question
         ) as span:
             # Initialize response synthesizer.
-            text_qa_template = RichPromptTemplate(
+            text_qa_template = SafePromptTemplate(
                 template_str=self.engine_config.llm.text_qa_prompt
             )
             text_qa_template = text_qa_template.partial_format(
@@ -491,7 +506,7 @@ class ChatFlow:
                 event_type=ChatEventType.MESSAGE_ANNOTATIONS_PART,
                 payload=ChatStreamMessagePayload(
                     state=ChatMessageSate.SOURCE_NODES,
-                    context=source_documents,
+                    context=[] if self.engine_config.hide_sources else source_documents,
                 ),
             )
 
@@ -544,23 +559,23 @@ class ChatFlow:
             },
         ) as span:
             try:
-                resp = requests.post(
-                    post_verification_url,
-                    json={
-                        "external_request_id": external_request_id,
-                        "qa_content": qa_content,
-                    },
-                    headers=(
-                        {
-                            "Authorization": f"Bearer {post_verification_token}",
-                        }
-                        if post_verification_token
-                        else {}
-                    ),
-                    timeout=10,
-                )
-                resp.raise_for_status()
-                job_id = resp.json()["job_id"]
+                with external_engine_session(
+                    post_verification_url, verification=True
+                ) as session:
+                    with session.post(
+                        post_verification_url,
+                        json={
+                            "external_request_id": external_request_id,
+                            "qa_content": qa_content,
+                        },
+                        headers=(
+                            {"Authorization": f"Bearer {post_verification_token}"}
+                            if post_verification_token
+                            else {}
+                        ),
+                    ) as resp:
+                        resp.raise_for_status()
+                        job_id = resp.json()["job_id"]
                 post_verification_link = urljoin(
                     f"{post_verification_url}/", str(job_id)
                 )
@@ -573,7 +588,13 @@ class ChatFlow:
 
                 return post_verification_link
             except Exception as e:
-                logger.exception("Failed to post verification: %s", e.message)
+                logger.warning(
+                    "Post verification failed",
+                    extra={
+                        "event": "post_verification_failed",
+                        "error_type": type(e).__name__,
+                    },
+                )
                 return None
 
     def _chat_finish(
@@ -631,23 +652,38 @@ class ChatFlow:
         langfuse_instrumentor_context.get().update(ctx)
 
         cache_messages = None
+        cache_context = None
         goal, response_format = self.user_question, {}
         if settings.ENABLE_QUESTION_CACHE and len(self.chat_history) == 0:
             try:
-                logger.info(
-                    f"start to find_best_answer_for_question with question: {self.user_question}"
+                default_model = None
+                if (
+                    not self.engine_config._db_llm
+                    or not self.engine_config._db_fast_llm
+                ):
+                    default_model = llm_repo.get_default(self.db_session)
+                cache_context = answer_cache_context(
+                    self.engine_config,
+                    self.knowledge_bases,
+                    [
+                        self.engine_config._db_llm or default_model,
+                        self.engine_config._db_fast_llm or default_model,
+                        self.engine_config._db_reranker
+                        or reranker_model_repo.get_default(self.db_session),
+                        *[kb.embedding_model for kb in self.knowledge_bases],
+                    ],
                 )
                 cache_messages = chat_repo.find_best_answer_for_question(
-                    self.db_session, self.user_question
+                    self.db_session,
+                    self.user_question,
+                    chat=self.db_chat_obj,
+                    cache_context=cache_context,
                 )
                 if cache_messages and len(cache_messages) > 0:
-                    logger.info(
-                        f"find_best_answer_for_question result {len(cache_messages)} for question {self.user_question}"
-                    )
+                    logger.debug("Scoped question cache hit")
             except Exception as e:
-                logger.error(
-                    f"Failed to find best answer for question {self.user_question}: {e}"
-                )
+                cache_context = None
+                logger.warning("Question cache lookup failed (%s)", type(e).__name__)
 
         if not cache_messages or len(cache_messages) == 0:
             try:
@@ -673,29 +709,21 @@ class ChatFlow:
             except Exception as e:
                 goal = self.user_question
                 logger.warning(
-                    f"Failed to generate refined goal, fallback to use user question as goal directly: {e}",
-                    exc_info=True,
-                    extra={},
+                    "Goal refinement failed; using the question (%s)",
+                    type(e).__name__,
                 )
 
             cache_messages = None
-            if settings.ENABLE_QUESTION_CACHE:
+            if cache_context:
                 try:
-                    logger.info(
-                        f"start to find_recent_assistant_messages_by_goal with goal: {goal}, response_format: {response_format}"
-                    )
                     cache_messages = chat_repo.find_recent_assistant_messages_by_goal(
                         self.db_session,
-                        {"goal": goal, "Lang": response_format.get("Lang", "English")},
-                        90,
-                    )
-                    logger.info(
-                        f"find_recent_assistant_messages_by_goal result {len(cache_messages)} for goal {goal}"
+                        answer_goal_key(goal, response_format),
+                        chat=self.db_chat_obj,
+                        cache_context=cache_context,
                     )
                 except Exception as e:
-                    logger.error(
-                        f"Failed to find recent assistant messages by goal: {e}"
-                    )
+                    logger.error("Goal cache lookup failed (%s)", type(e).__name__)
 
         stream_chat_api_url = (
             self.engine_config.external_engine_config.stream_chat_api_url
@@ -712,43 +740,47 @@ class ChatFlow:
                         payload=chunk,
                     )
         else:
-            logger.debug(
-                f"Chatting with external chat engine (api_url: {stream_chat_api_url}) to answer for user question: {self.user_question}"
-            )
+            logger.debug("Requesting an external chat answer")
             chat_params = {
                 "goal": goal,
                 "response_format": response_format,
                 "namespace_name": "Default",
             }
-            res = requests.post(stream_chat_api_url, json=chat_params, stream=True)
-
-            # Notice: External type chat engine doesn't support non-streaming mode for now.
+            # External engines currently use the streaming protocol only.
             stackvm_response_text = ""
             task_id = None
-            for line in res.iter_lines():
-                if not line:
-                    continue
+            with external_engine_session(stream_chat_api_url) as session:
+                with session.post(
+                    stream_chat_api_url, json=chat_params, stream=True
+                ) as res:
+                    res.raise_for_status()
+                    for line in res.iter_lines():
+                        if not line:
+                            continue
 
-                # Append to final response text.
-                chunk = line.decode("utf-8")
-                if chunk.startswith("0:"):
-                    word = json.loads(chunk[2:])
-                    stackvm_response_text += word
-                    yield ChatEvent(
-                        event_type=ChatEventType.TEXT_PART,
-                        payload=word,
-                    )
-                else:
-                    yield line + b"\n"
+                        # Append to final response text.
+                        chunk = line.decode("utf-8")
+                        if chunk.startswith("0:"):
+                            word = json.loads(chunk[2:])
+                            stackvm_response_text += word
+                            yield ChatEvent(
+                                event_type=ChatEventType.TEXT_PART,
+                                payload=word,
+                            )
+                        else:
+                            yield line + b"\n"
 
-                try:
-                    if chunk.startswith("8:") and task_id is None:
-                        states = json.loads(chunk[2:])
-                        if len(states) > 0:
-                            # accesss task by http://endpoint/?task_id=$task_id
-                            task_id = states[0].get("task_id")
-                except Exception as e:
-                    logger.error(f"Failed to get task_id from chunk: {e}")
+                        try:
+                            if chunk.startswith("8:") and task_id is None:
+                                states = json.loads(chunk[2:])
+                                if len(states) > 0:
+                                    # accesss task by http://endpoint/?task_id=$task_id
+                                    task_id = states[0].get("task_id")
+                        except Exception as e:
+                            logger.warning(
+                                "External task metadata parsing failed (%s)",
+                                type(e).__name__,
+                            )
 
         response_text = stackvm_response_text
         base_url = stream_chat_api_url.replace("/api/stream_execute_vm", "")
@@ -762,10 +794,8 @@ class ChatFlow:
             db_assistant_message.post_verification_result_url = (
                 post_verification_result_url
             )
-        except Exception:
-            logger.error(
-                "Specific error occurred during post verification job.", exc_info=True
-            )
+        except Exception as e:
+            logger.error("Post verification failed (%s)", type(e).__name__)
 
         trace_url = f"{base_url}?task_id={task_id}" if task_id else ""
         message_meta = {
@@ -773,6 +803,9 @@ class ChatFlow:
             "goal": goal,
             **response_format,
         }
+        if cache_context:
+            message_meta["_answer_cache_context"] = cache_context
+            message_meta["_answer_cache_goal"] = answer_goal_key(goal, response_format)
 
         db_assistant_message.content = response_text
         db_assistant_message.trace_url = trace_url
@@ -810,16 +843,15 @@ class ChatFlow:
             if goal.startswith("Goal: "):
                 goal = goal[len("Goal: ") :].strip()
         except Exception as e:
-            logger.error(f"Failed to refine question with related knowledge graph: {e}")
+            logger.warning("Question refinement failed (%s)", type(e).__name__)
             goal = self.user_question
 
         response_format = {}
         try:
             clean_goal, response_format = parse_goal_response_format(goal)
-            logger.info(f"clean goal: {clean_goal}, response_format: {response_format}")
             if clean_goal:
                 goal = clean_goal
         except Exception as e:
-            logger.error(f"Failed to parse goal and response format: {e}")
+            logger.warning("Goal format parsing failed (%s)", type(e).__name__)
 
         return goal, response_format

@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import IO
 
 from app.file_storage.base import FileStorage
@@ -7,7 +8,11 @@ from app.core.config import settings
 
 class LocalFileStorage(FileStorage):
     def path(self, name: str) -> str:
-        return os.path.join(settings.LOCAL_FILE_STORAGE_PATH, name)
+        root = Path(settings.LOCAL_FILE_STORAGE_PATH).resolve()
+        path = (root / name).resolve()
+        if Path(name).is_absolute() or path == root or not path.is_relative_to(root):
+            raise ValueError("Invalid storage path")
+        return str(path)
 
     def open(self, name: str, mode: str = "rb") -> IO:
         return open(self.path(name), mode)

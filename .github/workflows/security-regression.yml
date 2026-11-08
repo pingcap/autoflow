@@ -1,0 +1,71 @@
+name: Security Regression
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'core/**'
+      - '.github/workflows/regression.yml'
+      - '.github/workflows/security-regression.yml'
+      - '.github/scripts/security_sidecar_smoke.py'
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'core/**'
+      - '.github/workflows/regression.yml'
+      - '.github/workflows/security-regression.yml'
+      - '.github/scripts/security_sidecar_smoke.py'
+permissions:
+  contents: read
+jobs:
+  core-sdk-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: core
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: '0.13.6'
+          enable-cache: true
+          cache-dependency-glob: core/uv.lock
+      - run: uv sync --frozen --no-dev --python 3.11
+      - name: SDK compatibility with isolated HTTP fixtures
+        run: uv run --frozen --no-dev --python 3.11 python -m unittest discover -s security_tests -v
+  backend-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: '0.13.6'
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --frozen --python 3.11
+      - name: Backend model-cache lock compatibility
+        run: uv run --frozen --python 3.11 python -m unittest discover -s ../core/security_tests -p test_filelock_compatibility.py -v
+      - run: uv run --frozen --python 3.11 playwright install --with-deps chromium
+      - name: Install isolated Redis test server
+        run: sudo apt-get update -qq && sudo apt-get install -y redis-server
+      - name: Isolated security and database regression tests
+        env:
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
+        run: uv run --frozen --python 3.11 pytest tests/security -q
+      - name: TiDB transactions and shipped migration regressions
+        run: uv run --frozen --python 3.11 python scripts/test_security_tidb.py

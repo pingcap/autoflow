@@ -12,6 +12,7 @@ import { useMemo } from 'react';
 
 export function MessageContextSources ({ message }: { message: ChatMessageController | undefined }) {
   const sources = useChatMessageField(message, 'sources');
+  const chatId = useChatMessageField(message, 'chat_id');
   const ongoing = useChatMessageStreamState(message);
 
   const shouldShow = useChatMessageStreamContainsState(message, AppChatStreamState.SEARCH_RELATED_DOCUMENTS);
@@ -42,7 +43,7 @@ export function MessageContextSources ({ message }: { message: ChatMessageContro
       {hasSources && <ScrollArea className="h-max w-full">
         <ul className="flex gap-2 py-4">
           {reducedContext?.map((source, index) => (
-            <MessageContextSource key={source.source_uri} context={source} animation={animation} index={index} />
+            <MessageContextSource key={source.source_uri} context={source} chatId={chatId} animation={animation} index={index} />
           ))}
         </ul>
         <ScrollBar orientation="horizontal" />
@@ -59,7 +60,7 @@ export function MessageContextSources ({ message }: { message: ChatMessageContro
   );
 }
 
-function MessageContextSource ({ index, animation, context }: { index: number, animation: boolean, context: ChatMessageSource }) {
+function MessageContextSource ({ index, animation, context, chatId }: { index: number, animation: boolean, context: ChatMessageSource, chatId?: string }) {
   const source = useMemo(() => {
     return parseSource(context.source_uri);
   }, [context.source_uri]);
@@ -72,7 +73,7 @@ function MessageContextSource ({ index, animation, context }: { index: number, a
       initial={animation && { x: '-30%', opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
     >
-      <a className="flex flex-col justify-between space-y-1 p-2 max-w-full h-full" {...parseHref(context)}>
+      <a className="flex flex-col justify-between space-y-1 p-2 max-w-full h-full" rel="noopener noreferrer" {...parseHref(context, chatId)}>
         <div className="font-normal line-clamp-3 opacity-90">
           {context.name}
         </div>

@@ -15,7 +15,9 @@ class BaseLLM(UpdatableBaseModel):
 
 class LLM(BaseLLM, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    credentials: Any = Field(sa_column=Column(AESEncryptedColumn, nullable=True))
+    credentials: Any = Field(
+        sa_column=Column(AESEncryptedColumn("llms.credentials"), nullable=True)
+    )
 
     __tablename__ = "llms"
 

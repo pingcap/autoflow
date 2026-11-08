@@ -1,10 +1,11 @@
+from app.security.provider_config import prepare_provider_config
 from typing import Optional
 from sqlmodel import Session
 
 from llama_index.core.postprocessor.types import BaseNodePostprocessor
-from llama_index.postprocessor.jinaai_rerank import JinaRerank
-from llama_index.postprocessor.cohere_rerank import CohereRerank
-from llama_index.postprocessor.xinference_rerank import XinferenceRerank
+from app.rag.provider_adapters import BoundedJinaRerank as JinaRerank
+from app.rag.provider_adapters import BoundedCohereRerank as CohereRerank
+from app.rag.provider_adapters import BoundedXinferenceRerank as XinferenceRerank
 from llama_index.postprocessor.bedrock_rerank import AWSBedrockRerank
 
 from app.rag.rerankers.baisheng.baisheng_reranker import BaishengRerank
@@ -35,6 +36,7 @@ def resolve_reranker(
     config: dict,
     credentials: str | list | dict | None,
 ) -> BaseNodePostprocessor:
+    config = prepare_provider_config("reranker", provider, model, config, credentials)
     match provider:
         case RerankerProvider.JINA:
             return JinaRerank(
@@ -59,6 +61,7 @@ def resolve_reranker(
             )
         case RerankerProvider.LOCAL:
             return LocalRerank(
+                api_key=credentials,
                 model=model,
                 top_n=top_n,
                 **config,

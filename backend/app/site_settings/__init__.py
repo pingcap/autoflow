@@ -1,4 +1,5 @@
 import time
+from app.utils.analytics import safe_analytics_id
 import threading
 import logging
 from sqlmodel import Session, select
@@ -72,6 +73,10 @@ class SiteSettingProxy:
         return self.get_setting(name)
 
     def get_setting(self, name: str) -> SettingType:
+        if name == "langfuse_secret_key":
+            raise ValueError(
+                "Langfuse credentials are available only to the tracing client"
+            )
         if hasattr(default_settings, name):
             default_setting = getattr(default_settings, name)
             self.update_db_cache()
@@ -98,24 +103,42 @@ class SiteSettingProxy:
                     group=default_setting.group,
                     client=default_setting.client,
                 )
+        from app.security.langfuse_settings import public_configuration
+
+        langfuse = public_configuration(self.__db_cache)
+        result["langfuse_host"].value = langfuse["host"]
+        result["langfuse_public_key"].value = langfuse["public_key"]
+        result["langfuse_secret_key"].value = None
+        result["langfuse_secret_key"].default = ""
         return result
 
     def get_client_settings(self) -> dict:
         # Retrieve all client settings utilized in the frontend.
         # These settings determine the behavior of the frontend and are accessible to all users.
         settings = self.get_all_settings()
-        return {k: s.value for k, s in settings.items() if s.client}
+        public = {k: s.value for k, s in settings.items() if s.client}
+        public["ga_id"] = safe_analytics_id(public.get("ga_id"))
+        return public
 
     def setting_exists(self, name: str) -> bool:
         return hasattr(default_settings, name)
 
     def update_setting(self, session: Session, name: str, value: SettingType):
+        from app.security.langfuse_settings import LEGACY_NAMES
+
+        if name in LEGACY_NAMES:
+            raise ValueError(
+                "Save Langfuse settings together through the Langfuse configuration endpoint"
+            )
         if not self.setting_exists(name):
             raise AttributeError(f"Setting {name} does not exist.")
 
         _default_setting: SettingValue = getattr(default_settings, name)
         if not isinstance(value, type_mapping[_default_setting.data_type]):
             raise ValueError(f"{name} must be of type `{_default_setting.data_type}`.")
+
+        if name == "ga_id" and value and not safe_analytics_id(value):
+            raise ValueError("ga_id must be a Google Analytics measurement ID")
 
         db_setting_obj = session.exec(
             select(DBSiteSetting).filter(DBSiteSetting.name == name)

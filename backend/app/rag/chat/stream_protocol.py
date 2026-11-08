@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from app.models import ChatMessage, Chat
 from app.rag.types import ChatEventType, ChatMessageSate
+from app.utils.public_chat import chat_hides_sources, public_chat_message
 
 
 class ChatStreamPayload:
@@ -22,8 +23,12 @@ class ChatStreamDataPayload(ChatStreamPayload):
         return [
             {
                 "chat": self.chat.model_dump(mode="json"),
-                "user_message": self.user_message.model_dump(mode="json"),
-                "assistant_message": self.assistant_message.model_dump(mode="json"),
+                "user_message": public_chat_message(
+                    self.user_message, chat_hides_sources(self.chat)
+                ).model_dump(mode="json"),
+                "assistant_message": public_chat_message(
+                    self.assistant_message, chat_hides_sources(self.chat)
+                ).model_dump(mode="json"),
             }
         ]
 

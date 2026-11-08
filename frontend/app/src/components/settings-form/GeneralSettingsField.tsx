@@ -31,7 +31,7 @@ export function GeneralSettingsField<Data, FieldData> ({
   accessor, schema, children, readonly: fieldReadonly = false,
 }: {
   accessor: GeneralSettingsFieldAccessor<Data, FieldData>,
-  schema: z.ZodType<FieldData, any, any>,
+  schema: z.ZodType<FieldData, any>,
   readonly?: boolean,
   children: ReactNode,
 }) {
@@ -40,10 +40,10 @@ export function GeneralSettingsField<Data, FieldData> ({
     validators: {
       onChange: z.object({
         value: schema,
-      }).strict() as ZodType<{ value: FieldData }, any, any>,
+      }).strict() as ZodType<{ value: FieldData }, any>,
       onSubmit: z.object({
         value: schema,
-      }).strict() as ZodType<{ value: FieldData }, any, any>,
+      }).strict() as ZodType<{ value: FieldData }, any>,
     },
     defaultValues: {
       value: accessor.get(data),

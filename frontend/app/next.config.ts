@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   output: process.env.STANDALONE ? 'standalone' : undefined,
   transpilePackages: ['monaco-editor'],
   experimental: {
-    optimizePackageImports: ['ai', 'lucide-react'],
+    optimizePackageImports: ['lucide-react'],
     turbo: {
       rules: {
         '*.svg': {

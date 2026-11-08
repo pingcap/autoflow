@@ -86,6 +86,22 @@ historical guest conversations. A rollback is not a way to restore old credentia
 
 ## Public data behavior
 
+The optional external-engine answer cache stays disabled by default. If enabled,
+it reuses only completed, approved first-turn answers from the same account and
+API key (or the same signed guest browser), engine, visibility, and keyed
+configuration snapshot. The snapshot includes private engine settings, linked
+knowledge-base and model revisions; only the digest is stored in message metadata.
+There is no administrator or public-chat bypass. Both question and refined-goal
+lookups return at most one answer from the last 15 days, and goal matching includes
+the complete response format. Conversations with history bypass the cache.
+Existing answers without the new context are not reused or backfilled. No database
+migration or deletion is needed. Cache expiry is not immediate document-content
+invalidation: keep the feature disabled when current corpus freshness is required.
+
+Chat-flow diagnostic logs no longer copy question/goal/answer text, endpoint URLs
+or exception bodies. This does not change the explicitly configured Langfuse
+prompt/answer tracing policy or erase historical logs.
+
 Public chat/config responses omit internal prompts, endpoint URLs, tokens, knowledge
 base configuration and browser identity. Enabling `hide_sources` also hides source
 and graph data in historical messages and streams. Non-admin file downloads require

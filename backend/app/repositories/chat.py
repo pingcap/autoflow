@@ -1,7 +1,9 @@
 from sqlalchemy import and_, false
+from sqlalchemy.orm import lazyload
+import re
 import enum
 from uuid import UUID
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from datetime import datetime, UTC, date, timedelta
 from collections import defaultdict
 
@@ -186,45 +188,62 @@ class ChatRepo(BaseRepo):
         session.refresh(chat_message)
         return chat_message
 
-    def find_recent_assistant_messages_by_goal(
-        self, session: Session, metadata: Dict[str, Any], days: int = 15
-    ) -> List[ChatMessage]:
+    def _answer_cache_query(self, chat: Chat, cache_context: str, days: int):
+        """Reuse only this principal's completed first-turn answers in this context.
+
+        `chat` must come from the authorized ChatFlow, never from request fields.
+        Even administrators do not get a cross-owner cache bypass.
         """
-        Search for 'assistant' role chat messages with a specific goal within the recent days.
-
-        Args:
-            session (Session): The database session.
-            goal (str): The goal value to match in meta.goal.
-            days (int, optional): Number of recent days to include in the search. Defaults to 2.
-
-        Returns:
-            List[ChatMessage]: A list of ChatMessage instances that match the criteria.
-        """
-        # Calculate the cutoff datetime based on the current UTC time minus the specified number of days
-        cutoff = datetime.now(UTC) - timedelta(days=days)
-
-        query = select(ChatMessage).where(
-            ChatMessage.role == "assistant",
-            ChatMessage.created_at >= cutoff,
-            ChatMessage.is_best_answer.is_(True),  # Use is_ for boolean fields
-        )
-
-        # Dynamically add filters for each key-value pair in metadata
-        for key, value in metadata.items():
-            json_path = f"$.{key}"
-            filter_condition = (
-                func.JSON_UNQUOTE(func.JSON_EXTRACT(ChatMessage.meta, json_path))
-                == value
+        query = (
+            select(ChatMessage)
+            .options(lazyload("*"))
+            .join(Chat, Chat.id == ChatMessage.chat_id)
+            .where(
+                Chat.deleted_at.is_(None),
+                Chat.engine_id == chat.engine_id,
+                Chat.visibility == chat.visibility,
+                ChatMessage.role == "assistant",
+                ChatMessage.ordinal == 2,
+                ChatMessage.is_best_answer.is_(True),
+                ChatMessage.finished_at.is_not(None),
+                ChatMessage.created_at >= datetime.now(UTC) - timedelta(days=days),
+                ChatMessage.meta["_answer_cache_context"].as_string() == cache_context,
             )
-            query = query.where(filter_condition)
+            .order_by(desc(ChatMessage.created_at), desc(ChatMessage.id))
+            .limit(1)
+        )
+        if (
+            chat.deleted_at
+            or not chat.engine_id
+            or not re.fullmatch(r"[0-9a-f]{64}", cache_context)
+        ):
+            return query.where(false())
+        if chat.user_id:
+            query = query.where(Chat.user_id == chat.user_id)
+            return query.where(
+                Chat.api_key_id == chat.api_key_id
+                if chat.api_key_id is not None
+                else Chat.api_key_id.is_(None)
+            )
+        if chat.browser_id and chat.api_key_id is None:
+            return query.where(
+                Chat.user_id.is_(None),
+                Chat.api_key_id.is_(None),
+                Chat.browser_id == chat.browser_id,
+            )
+        return query.where(false())
 
-        # Order by created_at in descending order
-        query = query.order_by(desc(ChatMessage.created_at))
-
+    def find_recent_assistant_messages_by_goal(
+        self, session: Session, goal_key: str, *, chat: Chat, cache_context: str
+    ) -> List[ChatMessage]:
+        """Return at most one scoped answer matching the complete goal and format."""
+        query = self._answer_cache_query(chat, cache_context, days=15).where(
+            ChatMessage.meta["_answer_cache_goal"].as_string() == goal_key
+        )
         return session.exec(query).all()
 
     def find_best_answer_for_question(
-        self, session: Session, user_question: str
+        self, session: Session, user_question: str, *, chat: Chat, cache_context: str
     ) -> List[ChatMessage]:
         """Find best answer messages for a specific user question.
 
@@ -240,35 +259,17 @@ class ChatRepo(BaseRepo):
         Returns:
             List of matching assistant messages marked as best answers
         """
-        cutoff = datetime.now(UTC) - timedelta(days=15)
-
-        # First, get all best answers from assistant (using the is_best_answer index)
-        best_answer_chat_ids = select(ChatMessage.chat_id).where(
-            ChatMessage.is_best_answer == 1,  # Using the index for efficiency
-            ChatMessage.role == "assistant",
-            ChatMessage.ordinal == 2,
-            ChatMessage.created_at >= cutoff,
-        )
-
-        # Then, find user questions that match our target question and belong to chats with best answers
+        # Question matching is data only; all answer reads use the scoped query.
         matching_chat_ids = select(ChatMessage.chat_id).where(
-            ChatMessage.chat_id.in_(best_answer_chat_ids),
             ChatMessage.role == "user",
             ChatMessage.ordinal == 1,
             ChatMessage.content == user_question.strip(),
         )
 
         # Finally, get the best answers that correspond to the matching user questions
-        query = select(ChatMessage).where(
-            ChatMessage.is_best_answer == 1,
-            ChatMessage.role == "assistant",
-            ChatMessage.ordinal == 2,
+        query = self._answer_cache_query(chat, cache_context, days=15).where(
             ChatMessage.chat_id.in_(matching_chat_ids),
         )
-
-        query = query.order_by(desc(ChatMessage.created_at))
-
-        # Execute the query and return all results
         return session.exec(query).all()
 
     def chat_trend_by_user(

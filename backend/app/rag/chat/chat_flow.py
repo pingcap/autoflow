@@ -35,7 +35,9 @@ from app.rag.llms.dspy import get_dspy_lm_by_llama_llm
 from app.rag.retrievers.knowledge_graph.schema import KnowledgeGraphRetrievalResult
 from app.rag.types import ChatEventType, ChatMessageSate
 from app.rag.utils import parse_goal_response_format
-from app.repositories import chat_repo
+from app.repositories import chat_repo, llm_repo
+from app.repositories.reranker_model import reranker_model_repo
+from app.security.answer_cache import answer_cache_context, answer_goal_key
 from app.site_settings import SiteSetting
 from app.utils.tracing import LangfuseContextManager
 
@@ -212,7 +214,7 @@ class ChatFlow:
                     response_text, source_documents = yield from self._builtin_chat()
                     trace.update(output=response_text)
         except Exception as e:
-            logger.exception(e)
+            logger.error("Chat processing failed (%s)", type(e).__name__)
             yield ChatEvent(
                 event_type=ChatEventType.ERROR_PART,
                 payload="Encountered an error while processing the chat. Please try again later.",
@@ -658,23 +660,38 @@ class ChatFlow:
         langfuse_instrumentor_context.get().update(ctx)
 
         cache_messages = None
+        cache_context = None
         goal, response_format = self.user_question, {}
         if settings.ENABLE_QUESTION_CACHE and len(self.chat_history) == 0:
             try:
-                logger.info(
-                    f"start to find_best_answer_for_question with question: {self.user_question}"
+                default_model = None
+                if (
+                    not self.engine_config._db_llm
+                    or not self.engine_config._db_fast_llm
+                ):
+                    default_model = llm_repo.get_default(self.db_session)
+                cache_context = answer_cache_context(
+                    self.engine_config,
+                    self.knowledge_bases,
+                    [
+                        self.engine_config._db_llm or default_model,
+                        self.engine_config._db_fast_llm or default_model,
+                        self.engine_config._db_reranker
+                        or reranker_model_repo.get_default(self.db_session),
+                        *[kb.embedding_model for kb in self.knowledge_bases],
+                    ],
                 )
                 cache_messages = chat_repo.find_best_answer_for_question(
-                    self.db_session, self.user_question
+                    self.db_session,
+                    self.user_question,
+                    chat=self.db_chat_obj,
+                    cache_context=cache_context,
                 )
                 if cache_messages and len(cache_messages) > 0:
-                    logger.info(
-                        f"find_best_answer_for_question result {len(cache_messages)} for question {self.user_question}"
-                    )
+                    logger.debug("Scoped question cache hit")
             except Exception as e:
-                logger.error(
-                    f"Failed to find best answer for question {self.user_question}: {e}"
-                )
+                cache_context = None
+                logger.warning("Question cache lookup failed (%s)", type(e).__name__)
 
         if not cache_messages or len(cache_messages) == 0:
             try:
@@ -700,29 +717,21 @@ class ChatFlow:
             except Exception as e:
                 goal = self.user_question
                 logger.warning(
-                    f"Failed to generate refined goal, fallback to use user question as goal directly: {e}",
-                    exc_info=True,
-                    extra={},
+                    "Goal refinement failed; using the question (%s)",
+                    type(e).__name__,
                 )
 
             cache_messages = None
-            if settings.ENABLE_QUESTION_CACHE:
+            if cache_context:
                 try:
-                    logger.info(
-                        f"start to find_recent_assistant_messages_by_goal with goal: {goal}, response_format: {response_format}"
-                    )
                     cache_messages = chat_repo.find_recent_assistant_messages_by_goal(
                         self.db_session,
-                        {"goal": goal, "Lang": response_format.get("Lang", "English")},
-                        90,
-                    )
-                    logger.info(
-                        f"find_recent_assistant_messages_by_goal result {len(cache_messages)} for goal {goal}"
+                        answer_goal_key(goal, response_format),
+                        chat=self.db_chat_obj,
+                        cache_context=cache_context,
                     )
                 except Exception as e:
-                    logger.error(
-                        f"Failed to find recent assistant messages by goal: {e}"
-                    )
+                    logger.error("Goal cache lookup failed (%s)", type(e).__name__)
 
         stream_chat_api_url = (
             self.engine_config.external_engine_config.stream_chat_api_url
@@ -739,9 +748,7 @@ class ChatFlow:
                         payload=chunk,
                     )
         else:
-            logger.debug(
-                f"Chatting with external chat engine (api_url: {stream_chat_api_url}) to answer for user question: {self.user_question}"
-            )
+            logger.debug("Requesting an external chat answer")
             chat_params = {
                 "goal": goal,
                 "response_format": response_format,
@@ -775,7 +782,9 @@ class ChatFlow:
                             # accesss task by http://endpoint/?task_id=$task_id
                             task_id = states[0].get("task_id")
                 except Exception as e:
-                    logger.error(f"Failed to get task_id from chunk: {e}")
+                    logger.warning(
+                        "External task metadata parsing failed (%s)", type(e).__name__
+                    )
 
         response_text = stackvm_response_text
         base_url = stream_chat_api_url.replace("/api/stream_execute_vm", "")
@@ -789,10 +798,8 @@ class ChatFlow:
             db_assistant_message.post_verification_result_url = (
                 post_verification_result_url
             )
-        except Exception:
-            logger.error(
-                "Specific error occurred during post verification job.", exc_info=True
-            )
+        except Exception as e:
+            logger.error("Post verification failed (%s)", type(e).__name__)
 
         trace_url = f"{base_url}?task_id={task_id}" if task_id else ""
         message_meta = {
@@ -800,6 +807,9 @@ class ChatFlow:
             "goal": goal,
             **response_format,
         }
+        if cache_context:
+            message_meta["_answer_cache_context"] = cache_context
+            message_meta["_answer_cache_goal"] = answer_goal_key(goal, response_format)
 
         db_assistant_message.content = response_text
         db_assistant_message.trace_url = trace_url
@@ -837,16 +847,15 @@ class ChatFlow:
             if goal.startswith("Goal: "):
                 goal = goal[len("Goal: ") :].strip()
         except Exception as e:
-            logger.error(f"Failed to refine question with related knowledge graph: {e}")
+            logger.warning("Question refinement failed (%s)", type(e).__name__)
             goal = self.user_question
 
         response_format = {}
         try:
             clean_goal, response_format = parse_goal_response_format(goal)
-            logger.info(f"clean goal: {clean_goal}, response_format: {response_format}")
             if clean_goal:
                 goal = clean_goal
         except Exception as e:
-            logger.error(f"Failed to parse goal and response format: {e}")
+            logger.warning("Goal format parsing failed (%s)", type(e).__name__)
 
         return goal, response_format

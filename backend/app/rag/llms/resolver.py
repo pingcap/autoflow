@@ -1,4 +1,4 @@
-from app.security.provider_http import openai_http_clients, ProviderSession
+from app.security.provider_http import openai_http_clients
 from app.security.provider_config import prepare_provider_config
 from typing import Optional
 
@@ -52,53 +52,41 @@ def resolve_llm(
             )
         case LLMProvider.GEMINI:
             from llama_index.llms.google_genai import GoogleGenAI
-
-            from google.genai.types import HttpOptions
+            from app.security.google_http import GEMINI_ENDPOINT, google_options
 
             return GoogleGenAI(
                 model=model,
                 api_key=credentials,
-                http_options=HttpOptions(
-                    timeout=int(config.pop("timeout", 60) * 1000),
-                    client_args={"trust_env": False, "follow_redirects": False},
-                    async_client_args={
-                        "trust_env": False,
-                        "follow_redirects": False,
-                        "allow_redirects": False,
-                    },
+                **google_options(
+                    GEMINI_ENDPOINT,
+                    vertex=False,
+                    timeout=config.pop("timeout", 60),
+                    max_tokens=config["max_tokens"],
                 ),
                 **config,
             )
         case LLMProvider.VERTEX_AI | LLMProvider.ANTHROPIC_VERTEX:
             from llama_index.llms.google_genai import GoogleGenAI
             from llama_index.llms.google_genai.base import VertexAIConfig
-            from google.oauth2 import service_account
-            from google.auth.transport.requests import Request
-
-            google_creds: service_account.Credentials = (
-                service_account.Credentials.from_service_account_info(
-                    credentials,
-                    scopes=["https://www.googleapis.com/auth/cloud-platform"],
-                )
+            from app.security.google_http import (
+                BoundServiceAccount,
+                google_options,
+                vertex_endpoint,
             )
-            with ProviderSession(
-                "https://oauth2.googleapis.com/token"
-            ) as oauth_session:
-                google_creds.refresh(request=Request(session=oauth_session))
+
+            google_creds = BoundServiceAccount.from_service_account_info(
+                credentials, scopes=["https://www.googleapis.com/auth/cloud-platform"]
+            )
+            google_creds.refresh()
             project = credentials.get("project_id") or config.get("project")
             location = config.get("location", "us-west1")
 
-            from google.genai.types import HttpOptions
-
             llm = GoogleGenAI(
-                http_options=HttpOptions(
-                    timeout=int(config.pop("timeout", 60) * 1000),
-                    client_args={"trust_env": False, "follow_redirects": False},
-                    async_client_args={
-                        "trust_env": False,
-                        "follow_redirects": False,
-                        "allow_redirects": False,
-                    },
+                **google_options(
+                    vertex_endpoint(location),
+                    vertex=True,
+                    timeout=config.pop("timeout", 60),
+                    max_tokens=config["max_tokens"],
                 ),
                 model=model,
                 vertexai_config=VertexAIConfig(

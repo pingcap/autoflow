@@ -26,24 +26,16 @@ def get_dspy_lm_by_llama_llm(llama_llm: BaseLLM) -> dspy.LM:
                 num_retries=1,
             )
         case "GenAI":
-            if "models/" in llama_llm.model:
-                # For Gemini
-                model_name = llama_llm.model.split("models/")[1]
-                return _bounded_lm(
-                    model=f"gemini/{model_name}",
-                    max_tokens=llama_llm._max_tokens,
-                    api_key=llama_llm._client._api_client.api_key,
-                )
-            else:
-                # For Vertex AI
-                return _bounded_lm(
-                    model=f"vertex_ai/{llama_llm.model}",
-                    max_tokens=llama_llm._max_tokens,
-                    context_window=llama_llm.context_window,
-                    temperature=llama_llm.temperature,
-                    vertex_location=llama_llm._location,
-                    vertex_credentials=llama_llm._credentials,
-                )
+            from app.security.dspy_google import google_engines, google_model_name
+
+            return dspy.LM(
+                model=google_model_name(llama_llm),
+                max_tokens=None,
+                temperature=llama_llm.temperature,
+                cache=False,
+                num_retries=1,
+                **google_engines(llama_llm),
+            )
         case "Bedrock_Converse_LLM":
             return _bounded_lm(
                 model=f"bedrock/converse/{llama_llm.model}",

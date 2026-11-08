@@ -217,6 +217,20 @@ accounts must use the standard Google OAuth token endpoint. Do not enable
 `GOOGLE_GENAI_USE_VERTEXAI` for a Gemini API-key model; select an explicit Vertex
 provider instead. Register the actual Ollama/local-sidecar origin before use.
 
+Google Gemini/Vertex SDK and DSPy calls now use the same explicit destination,
+identity and configured output limit. Gemini keeps `v1beta`; Vertex keeps
+`v1beta1` with its configured project/location, including the global endpoint.
+Ambient Google base URLs, credentials, recording/replay and proxy settings do
+not select another destination or persist prompts. Synchronous and asynchronous
+model/metadata requests reject redirects and compressed responses, enforce the
+shared generation deadline/call allowance and bound uploads/responses to 2/4 MiB.
+Vertex service-account renewal, including later expiry and copied credentials,
+uses the same bounded OAuth transport; renewal consumes a provider call.
+DSPy retains JSON schemas, tool history and SSE usage reporting. Runtime output
+overrides may lower the configured token limit but cannot raise it. The Google
+SDK's internal retry multiplier is disabled; LlamaIndex keeps the configured
+retry policy and each actual request is charged to the generation allowance.
+
 Changing an endpoint, Azure deployment or Vertex destination requires fresh
 credentials in the same update. The management UI supports this atomic update;
 JSON credentials are stored in the encrypted credentials column. Old editors

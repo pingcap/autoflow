@@ -66,6 +66,8 @@ def provider(monkeypatch, tmp_path):
                 if state.mode == "oversized"
                 else "fixture answer"
             )
+            if state.mode == "adapter":
+                content = "[[ ## answer ## ]]\nfixture answer\n\n[[ ## completed ## ]]"
             usage = {
                 "inputTokens": 1,
                 "outputTokens": 2,
@@ -74,6 +76,16 @@ def provider(monkeypatch, tmp_path):
                 "cacheWriteInputTokens": 5,
             }
             blocks = [{"text": content}]
+            if state.mode == "schema_tool":
+                blocks = [
+                    {
+                        "toolUse": {
+                            "toolUseId": "fixture-json",
+                            "name": "json_tool_call",
+                            "input": {"answer": "fixture answer"},
+                        }
+                    }
+                ]
             if state.mode == "tools":
                 blocks = [
                     {
@@ -92,7 +104,9 @@ def provider(monkeypatch, tmp_path):
             body = json.dumps(
                 {
                     "output": {"message": {"role": "assistant", "content": blocks}},
-                    "stopReason": "end_turn",
+                    "stopReason": "tool_use"
+                    if state.mode in {"tools", "schema_tool"}
+                    else "end_turn",
                     "usage": usage,
                     "metrics": {"latencyMs": 1},
                 }
@@ -143,15 +157,36 @@ def provider(monkeypatch, tmp_path):
                         ),
                     ]
                 else:
+                    pieces = (
+                        [
+                            "[[ ## answer ## ]]\n",
+                            "fixture ",
+                            "answer",
+                            "\n\n[[ ## completed ## ]]",
+                        ]
+                        if state.mode == "adapter"
+                        else [content]
+                    )
                     chunks += [
                         frame(
                             "contentBlockDelta",
-                            {"delta": {"text": content}, "contentBlockIndex": 0},
+                            {"delta": {"text": piece}, "contentBlockIndex": 0},
                         )
+                        for piece in pieces
                     ]
                 chunks += [
-                    frame("contentBlockStop", {"contentBlockIndex": 0}),
-                    frame("messageStop", {"stopReason": "end_turn"}),
+                    frame(
+                        "contentBlockStop",
+                        {"contentBlockIndex": 1 if state.mode == "tools" else 0},
+                    ),
+                    frame(
+                        "messageStop",
+                        {
+                            "stopReason": "tool_use"
+                            if state.mode == "tools"
+                            else "end_turn"
+                        },
+                    ),
                     frame("metadata", {"usage": usage, "metrics": {"latencyMs": 1}}),
                 ]
                 body = b"".join(chunks)
@@ -166,6 +201,8 @@ def provider(monkeypatch, tmp_path):
                         "exception",
                     )
             status = {"redirect": 302, "auth": 403}.get(state.mode, 200)
+            if state.mode == "auth":
+                body = b'{"message":"fixture-secret-echo"}'
             self.send_response(status)
             self.send_header(
                 "Content-Type",
@@ -225,6 +262,7 @@ def provider(monkeypatch, tmp_path):
     for name, value in {
         "AWS_ENDPOINT_URL": "http://127.0.0.1:1",
         "AWS_ENDPOINT_URL_BEDROCK_RUNTIME": "http://127.0.0.1:1",
+        "AWS_BEDROCK_RUNTIME_ENDPOINT": "http://127.0.0.1:1",
         "AWS_ACCESS_KEY_ID": "ambient-id",
         "AWS_SECRET_ACCESS_KEY": "ambient-secret",
         "AWS_SESSION_TOKEN": "ambient-token",

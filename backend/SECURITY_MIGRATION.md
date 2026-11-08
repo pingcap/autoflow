@@ -437,7 +437,14 @@ connection; binary stream checksums, incomplete streams, body/deadline/attempt
 limits and the configured output cap are enforced. Inline images/documents and
 tool/thinking/usage blocks remain supported. Supply media inline: SDK conversion
 must not read arbitrary local files or download remote URLs before admission.
-The Bedrock DSPy path remains under review while this PR is a draft.
+DSPy Bedrock now shares the same owned Converse transport and explicit identity.
+Only LiteLLM's in-memory request/response codecs are used; its network clients,
+ambient endpoint/session-token lookup and automatic retry lifecycle are bypassed.
+Chat/JSON adapters, inline binary media, tools, thinking, usage and native or
+`streamify` streaming remain supported. Missing reasoning-token counts stay
+unknown instead of triggering a tokenizer download. The pinned DSPy legacy
+compatibility hook preserves provider-shaped documents and file names that its
+canonical request cannot represent; revalidate this hook when upgrading DSPy.
 
 Ollama's primary clients and DSPy use guarded HTTPX transports. DSPy's explicit
 native engines retain `/api/chat` through the locked SDK's pure request/response

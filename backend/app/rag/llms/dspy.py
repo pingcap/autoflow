@@ -39,13 +39,14 @@ def get_dspy_lm_by_llama_llm(llama_llm: BaseLLM) -> dspy.LM:
                 **google_engines(llama_llm),
             )
         case "Bedrock_Converse_LLM":
-            return _bounded_lm(
+            from app.security.dspy_bedrock import bedrock_engines
+
+            return dspy.LM(
                 model=f"bedrock/converse/{llama_llm.model}",
-                # Notice: Bedrock's default max_tokens is 512, which is too small for the application.
-                max_tokens=llama_llm.max_tokens or 8192,
-                aws_access_key_id=llama_llm.aws_access_key_id,
-                aws_secret_access_key=llama_llm.aws_secret_access_key,
-                aws_region_name=llama_llm.region_name,
+                max_tokens=None,
+                cache=False,
+                num_retries=1,
+                **bedrock_engines(llama_llm),
             )
         case "Ollama_llm":
             from app.security.dspy_ollama import ollama_engines
@@ -116,13 +117,6 @@ def _ollama_key(llama_llm):
             "Ollama requires an explicit credential binding"
         )
     return authorization[7:]
-
-
-def _bounded_lm(**kwargs) -> dspy.LM:
-    kwargs.setdefault("timeout", 60)
-    kwargs["num_retries"] = 1
-    # User prompts must not be persisted in a shared on-disk DSPy cache.
-    return dspy.LM(cache=False, **kwargs)
 
 
 def _openai_chat_lm(llama_llm):

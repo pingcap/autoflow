@@ -2,7 +2,7 @@ from app.security.provider_http import openai_http_clients
 from app.security.provider_config import prepare_provider_config
 from typing import Optional
 
-from llama_index.embeddings.azure_openai import AzureOpenAIEmbedding
+from app.security.azure_clients import BoundAzureOpenAIEmbedding as AzureOpenAIEmbedding
 from sqlmodel import Session
 
 from llama_index.core.base.embeddings.base import BaseEmbedding

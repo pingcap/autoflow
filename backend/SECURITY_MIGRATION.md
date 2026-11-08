@@ -249,6 +249,15 @@ Model-test responses and logs no longer contain provider exception payloads.
 JSON credential edits now update the credentials field correctly; the previous
 field accessor mapped the submitted value to the wrong frontend field.
 
+Existing OpenAI-compatible embedding `dimensions` and Azure embedding
+`azure_deployment` settings remain supported. Changing either Azure deployment
+alias requires new credentials in the same update. Azure embedding clients use
+the configured API key even when an ambient Entra token exists, including SDK
+client copies. Vertex model identifiers retain their `@version` suffix; this
+validates identifier syntax and does not establish model availability. Register
+custom origins before deployment rather than changing stored destinations or
+discarding existing model settings to make validation pass.
+
 ## Background and optional local-model services
 
 Flower is no longer started by supervisord and no compose file publishes its

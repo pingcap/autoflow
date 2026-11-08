@@ -2,6 +2,7 @@
 
 from openai import AzureOpenAI as AzureClient, AsyncAzureOpenAI as AsyncAzureClient
 from llama_index.llms.azure_openai import AzureOpenAI
+from llama_index.embeddings.azure_openai import AzureOpenAIEmbedding
 
 from app.security.provider_config import ProviderConfigurationError
 
@@ -28,7 +29,7 @@ class ExplicitAsyncAzureClient(_ExplicitAPIKey, AsyncAzureClient):
     pass
 
 
-class BoundAzureOpenAI(AzureOpenAI):
+class _BoundAzureClients:
     def _get_client(self):
         if not self.reuse_client:
             return ExplicitAzureClient(**self._get_credential_kwargs())
@@ -46,3 +47,11 @@ class BoundAzureOpenAI(AzureOpenAI):
                 **self._get_credential_kwargs(is_async=True)
             )
         return self._aclient
+
+
+class BoundAzureOpenAI(_BoundAzureClients, AzureOpenAI):
+    pass
+
+
+class BoundAzureOpenAIEmbedding(_BoundAzureClients, AzureOpenAIEmbedding):
+    pass

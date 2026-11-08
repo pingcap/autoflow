@@ -19,6 +19,7 @@ ENDPOINT_FIELDS = {"api_base", "base_url", "api_url", "azure_endpoint"}
 DESTINATION_FIELDS = ENDPOINT_FIELDS | {
     "engine",
     "deployment_name",
+    "azure_deployment",
     "api_version",
     "project",
     "location",
@@ -108,6 +109,11 @@ PROVIDER_FIELDS = {
     "vllm": {"base_url"},
     "xinference": {"base_url"},
 }
+EMBEDDING_FIELDS = {
+    "openai_like": {"dimensions"},
+    "giteeai": {"dimensions"},
+    "azure_openai": {"azure_deployment"},
+}
 GENERATION_FIELDS = {
     "top_p",
     "top_k",
@@ -175,9 +181,15 @@ def prepare_provider_config(kind, provider, model, config, credentials):
     provider = str(getattr(provider, "value", provider))
     if provider not in PROVIDER_FIELDS or kind not in COMMON:
         raise ProviderConfigurationError("Unsupported model provider")
+    model_pattern = r"[A-Za-z0-9_.:/-]{1,256}"
+    if provider in {"vertex_ai", "anthropic_vertex"}:
+        # Vertex versions use identifiers such as claude-3-5-sonnet@20241022.
+        # This remains a model path, never an authority or a complete URL.
+        model_pattern = r"[A-Za-z0-9_.:/-]+(?:@[A-Za-z0-9_.-]+)?"
     if (
         not isinstance(model, str)
-        or not re.fullmatch(r"[A-Za-z0-9_.:/-]{1,256}", model)
+        or not 1 <= len(model) <= 256
+        or not re.fullmatch(model_pattern, model)
         or model.startswith("/")
         or "://" in model
         or ".." in model.split("/")
@@ -206,7 +218,10 @@ def prepare_provider_config(kind, provider, model, config, credentials):
         if "base_url" in result:
             raise ProviderConfigurationError("Specify only one Ollama endpoint")
         result["base_url"] = result.pop("api_base")
-    if set(result) - (COMMON[kind] | PROVIDER_FIELDS[provider]):
+    allowed_fields = COMMON[kind] | PROVIDER_FIELDS[provider]
+    if kind == "embedding":
+        allowed_fields |= EMBEDDING_FIELDS.get(provider, set())
+    if set(result) - allowed_fields:
         raise ProviderConfigurationError("Unsupported model configuration fields")
     for field in ("additional_kwargs", "ollama_additional_kwargs"):
         if field in result:

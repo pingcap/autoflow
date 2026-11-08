@@ -384,6 +384,24 @@ background calls without a chat lease also have response-size and 60-second
 read budgets. The normal admitted chat deadline remains unchanged.
 Explicit native capability hints preserve OpenAI JSONAdapter schema/tool
 selection using the bundled metadata snapshot, without a discovery request.
+OpenAI-compatible and Azure native transports enforce the model's configured
+output-token cap on the actual request, including canonical calls and LM copies.
+They preserve the primary client's model-specific `max_tokens` or
+`max_completion_tokens` spelling, allow smaller per-call limits, and cap larger
+ones. This keeps reasoning models usable below DSPy's suggested 16k-token
+constructor default without increasing Autoflow's configured allowance.
+
+Azure DSPy calls use the same guarded native transport, while retaining the
+configured legacy deployment URL, gateway prefix, `api-version`, deployment
+model and API key. They do not silently switch existing installations to Azure's
+newer `/openai/v1` endpoint. The primary Azure SDK clients also bind API-key
+authentication explicitly: the underlying SDK otherwise prefers a process-wide
+`AZURE_OPENAI_AD_TOKEN`, even when the model has its own configured key. Owned
+client subclasses prevent this substitution, including after `with_options()`
+copies; they do not change the process environment. Autoflow's supported Azure
+configuration remains API-key based. Real sync/async tests cover the primary and
+DSPy clients, separate deployment versions/keys, JSON schemas and tool history,
+stream usage/early closure, proxy rejection and response/deadline/attempt bounds.
 
 Other provider-specific DSPy transports, including legacy text completions, are
 still under review while this PR is a draft.

@@ -123,9 +123,9 @@ def resolve_llm(
                 **config,
             )
         case LLMProvider.AZURE_OPENAI:
-            from llama_index.llms.azure_openai import AzureOpenAI
+            from app.security.azure_clients import BoundAzureOpenAI
 
-            return AzureOpenAI(
+            return BoundAzureOpenAI(
                 **openai_http_clients(),
                 model=model,
                 api_key=credentials,

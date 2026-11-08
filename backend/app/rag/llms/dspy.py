@@ -77,14 +77,30 @@ def get_dspy_lm_by_llama_llm(llama_llm: BaseLLM) -> dspy.LM:
                 ),
             )
         case "azure_openai_llm":
-            return _bounded_lm(
+            from app.security.dspy_azure import azure_engines
+
+            return dspy.LM(
                 model=f"azure/{llama_llm.model}",
-                max_tokens=llama_llm.max_tokens,
+                # DSPy recommends >=16k for reasoning models at construction.
+                # Enforce the configured smaller allowance on the wire instead.
+                max_tokens=None,
                 temperature=llama_llm.temperature,
-                api_key=llama_llm.api_key,
-                api_base=enforce_trailing_slash(llama_llm.azure_endpoint),
-                api_version=llama_llm.api_version,
-                deployment_id=llama_llm.engine,
+                cache=False,
+                num_retries=1,
+                **azure_engines(
+                    llama_llm.azure_endpoint,
+                    llama_llm.api_key,
+                    llama_llm.timeout,
+                    model=llama_llm.model,
+                    deployment=llama_llm.engine,
+                    api_version=llama_llm.api_version,
+                    max_tokens=llama_llm.max_tokens or 4096,
+                    token_parameter=(
+                        "max_completion_tokens"
+                        if "max_completion_tokens" in llama_llm._get_model_kwargs()
+                        else "max_tokens"
+                    ),
+                ),
             )
         case _:
             raise ValueError(f"Got unknown LLM provider: {llama_llm.class_name()}")
@@ -120,7 +136,9 @@ def _openai_chat_lm(llama_llm):
 
     return dspy.LM(
         model=f"openai/{llama_llm.model}",
-        max_tokens=llama_llm.max_tokens,
+        # The guarded transport enforces the configured output cap, including
+        # reasoning models whose recommended SDK defaults exceed that cap.
+        max_tokens=None,
         cache=False,
         num_retries=1,
         **openai_engines(
@@ -128,5 +146,11 @@ def _openai_chat_lm(llama_llm):
             llama_llm.api_key,
             llama_llm.timeout,
             model=llama_llm.model,
+            max_tokens=llama_llm.max_tokens or 4096,
+            token_parameter=(
+                "max_completion_tokens"
+                if "max_completion_tokens" in llama_llm._get_model_kwargs()
+                else "max_tokens"
+            ),
         ),
     )

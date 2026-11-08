@@ -7,9 +7,9 @@ export async function loginViaApi ({ request }: { request: APIRequestContext }) 
     usp.set('password', process.env.PASSWORD);
 
     const response = await request.post('/api/v1/auth/login', {
-      headers: { 'X-CSRF-Guard': '1' },
       data: usp.toString(),
       headers: {
+        'X-CSRF-Guard': '1',
         'Content-Type': 'application/x-www-form-urlencoded',
       },
     });

@@ -98,3 +98,33 @@ def test_credentialed_cors_rejects_nonexact_origins(origins):
 def test_legacy_wildcard_cors_regex_cannot_be_enabled():
     with pytest.raises(ValidationError):
         Settings(_env_file=None, BACKEND_CORS_ORIGIN_REGEXP=".*")
+
+
+def test_e2e_browser_origin_can_login_through_container_proxy():
+    from pathlib import Path
+    from dotenv import dotenv_values
+
+    # Read only the public allowlist, not deployment configuration or credentials.
+    fixture = Path(__file__).resolve().parents[3] / "e2e/.env.backend"
+    origins = dotenv_values(fixture)["BACKEND_CORS_ORIGINS"].split(",")
+    app = FastAPI()
+
+    @app.post("/api/v1/auth/login", status_code=204)
+    def login():
+        pass
+
+    app.add_middleware(
+        CSRFMiddleware, allowed_origins=origins, cookie_names=["session", "bid"]
+    )
+    with TestClient(app, base_url="http://backend:8000") as client:
+        for origin, status in [
+            ("http://127.0.0.1:3000", 204),
+            ("http://localhost:3000", 204),
+            ("http://127.0.0.1:3001", 403),
+            ("http://localhost:3000.evil.example", 403),
+        ]:
+            response = client.post(
+                "/api/v1/auth/login",
+                headers={"Origin": origin, "Cookie": "bid=test-browser"},
+            )
+            assert response.status_code == status

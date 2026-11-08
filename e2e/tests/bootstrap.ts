@@ -55,7 +55,14 @@ test('Bootstrap', async ({ browser, page }) => {
     await passwordInput.fill(PASSWORD);
 
     // Click login
-    await loginButton.click();
+    const [loginResponse] = await Promise.all([
+      page.waitForResponse(response =>
+        new URL(response.url()).pathname === '/api/v1/auth/login'
+        && response.request().method() === 'POST'),
+      loginButton.click(),
+    ]);
+    // Report only status: response bodies and request data may contain credentials.
+    expect(loginResponse.status(), 'Browser login must succeed before configuring the site').toBe(204);
 
     // Wait for dialog dismiss
     await page.getByRole('dialog', { name: 'Sign In' }).waitFor({ state: 'detached' });

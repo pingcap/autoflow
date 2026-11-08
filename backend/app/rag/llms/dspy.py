@@ -1,4 +1,5 @@
 import dspy
+from app.security.provider_config import ProviderConfigurationError
 
 from llama_index.core.base.llms.base import BaseLLM
 
@@ -58,8 +59,12 @@ def get_dspy_lm_by_llama_llm(llama_llm: BaseLLM) -> dspy.LM:
             )
         case "Ollama_llm":
             return _bounded_lm(
+                # Keep Ollama's /api/chat protocol; DSPy's automatic native
+                # engine treats api_base as an OpenAI-compatible /v1 base.
+                engine="litellm",
                 model=f"ollama_chat/{llama_llm.model}",
                 api_base=llama_llm.base_url,
+                api_key=_ollama_key(llama_llm),
                 timeout=llama_llm.request_timeout,
                 temperature=llama_llm.temperature,
                 num_retries=1,
@@ -82,6 +87,18 @@ def enforce_trailing_slash(url: str):
     if url.endswith("/"):
         return url
     return url + "/"
+
+
+def _ollama_key(llama_llm):
+    # resolve_llm supplies either the configured key or an explicit local-only
+    # placeholder. Omitting it here lets LiteLLM inherit OLLAMA_API_KEY or a
+    # process-wide key instead, even for an unauthenticated local endpoint.
+    authorization = llama_llm.client._client.headers.get("Authorization", "")
+    if not authorization.startswith("Bearer ") or not authorization[7:]:
+        raise ProviderConfigurationError(
+            "Ollama requires an explicit credential binding"
+        )
+    return authorization[7:]
 
 
 def _bounded_lm(**kwargs) -> dspy.LM:

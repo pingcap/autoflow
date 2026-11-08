@@ -376,6 +376,14 @@ described above; they are not process-kill deadlines.
 Provider-specific coverage and the remaining DSPy transport path are still under
 review while this PR is a draft.
 
+DSPy uses its explicit LiteLLM engine for Ollama to retain the `/api/chat`
+protocol. Automatic engine selection in the current DSPy version interprets the
+same base URL as an OpenAI-compatible endpoint. The adapter forwards the exact
+credential binding from the configured Ollama client (including the explicit
+keyless-local placeholder), preventing ambient or process-wide keys from being
+substituted. Real loopback SDK tests verify the response, path and authorization
+for both authenticated and keyless local configurations.
+
 Forwarded client IP headers are ignored by default. Only register exact proxy
 addresses/CIDRs in `GENERATION_TRUSTED_PROXY_CIDRS` when that proxy sanitizes its
 forwarding chain. The chain is inspected from the immediate peer backwards to

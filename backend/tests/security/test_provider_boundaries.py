@@ -96,6 +96,92 @@ def test_registered_private_endpoint_requires_operator_configuration(monkeypatch
     )
 
 
+@pytest.mark.parametrize("credential", [None, "fixture-explicit-key"])
+def test_real_ollama_and_dspy_never_substitute_ambient_keys(monkeypatch, credential):
+    import json
+    import socket
+    import litellm
+    from llama_index.core.base.llms.types import ChatMessage
+    from app.rag.llms.dspy import get_dspy_lm_by_llama_llm
+
+    calls = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            self.rfile.read(int(self.headers.get("Content-Length", 0)))
+            calls.append((self.path, self.headers.get("Authorization")))
+            response = json.dumps(
+                {
+                    "model": "llama3.2",
+                    "created_at": "2026-01-01T00:00:00Z",
+                    "message": {"role": "assistant", "content": "fixture answer"},
+                    "done": True,
+                    "done_reason": "stop",
+                    "prompt_eval_count": 1,
+                    "eval_count": 2,
+                }
+            ).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(response)))
+            self.end_headers()
+            self.wfile.write(response)
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    origin = f"http://127.0.0.1:{server.server_port}"
+    connect = socket.socket.connect
+
+    def local_only(sock, address):
+        assert isinstance(address, tuple) and address[0] in {"127.0.0.1", "::1"}
+        return connect(sock, address)
+
+    monkeypatch.setattr(socket.socket, "connect", local_only)
+    for proxy in [
+        "HTTP_PROXY",
+        "HTTPS_PROXY",
+        "ALL_PROXY",
+        "http_proxy",
+        "https_proxy",
+        "all_proxy",
+    ]:
+        monkeypatch.delenv(proxy, raising=False)
+    monkeypatch.setattr(settings, "PROVIDER_ALLOWED_ORIGINS", [origin])
+    monkeypatch.setenv("OLLAMA_API_KEY", "forbidden-ambient-key")
+    monkeypatch.setattr(litellm, "ollama_key", "forbidden-global-ollama-key")
+    monkeypatch.setattr(litellm, "api_key", "forbidden-global-key")
+    llm = resolve_llm(
+        LLMProvider.OLLAMA,
+        "llama3.2",
+        {"base_url": origin, "request_timeout": 2},
+        credential,
+    )
+    dspy_lm = None
+    try:
+        assert (
+            llm.chat([ChatMessage(role="user", content="fixture")]).message.content
+            == "fixture answer"
+        )
+        dspy_lm = get_dspy_lm_by_llama_llm(llm)
+        assert dspy_lm(prompt="fixture") == ["fixture answer"], [
+            path for path, _ in calls
+        ]
+        expected = "Bearer " + (credential or "autoflow-local-no-auth")
+        assert calls == [("/api/chat", expected), ("/api/chat", expected)]
+    finally:
+        if dspy_lm is not None:
+            dspy_lm.close()
+        llm.client._client.close()
+        asyncio.run(llm.async_client._client.aclose())
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
 def test_config_updates_cannot_reuse_stored_credentials_and_refresh_stale_rows(
     monkeypatch,
 ):

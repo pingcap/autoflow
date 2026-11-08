@@ -1,0 +1,85 @@
+# Temporary read-only inventory for retiring historical credential-backed reports.
+# Remove after the operator captures the result; no report or secret is uploaded.
+name: Historical E2E Report Inventory
+on:
+  push:
+    branches: ['chord/fix-dependabot-alerts']
+    paths: ['.github/workflows/security-e2e-report-audit.yml']
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inventory only the existing E2E report project
+        env:
+          REPORT_TOKEN: ${{ secrets.E2E_VERCEL_TOKEN }}
+          REPORT_OWNER: ${{ secrets.E2E_VERCEL_ORG_ID }}
+          REPORT_PROJECT: ${{ secrets.E2E_VERCEL_PROJECT_ID }}
+        run: |
+          python3 - <<'PY'
+          import collections, json, os, re, sys
+          import urllib.error, urllib.parse, urllib.request
+
+          token, owner, project = (os.environ.get(n, '') for n in
+                                  ('REPORT_TOKEN', 'REPORT_OWNER', 'REPORT_PROJECT'))
+          if not all((token, owner, project)):
+              sys.exit('Report inventory: existing report credential configuration is incomplete')
+          if not re.fullmatch(r'prj_[A-Za-z0-9]+', project):
+              sys.exit('Report inventory: unexpected project identifier format')
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, *args, **kwargs):
+                  return None
+          opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
+          def get(path, **query):
+              if owner.startswith('team_'):
+                  query['teamId'] = owner
+              url = 'https://api.vercel.com' + path + '?' + urllib.parse.urlencode(query)
+              request = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + token})
+              try:
+                  with opener.open(request, timeout=15) as response:
+                      raw = response.read(4 * 1024 * 1024 + 1)
+                  if len(raw) > 4 * 1024 * 1024:
+                      sys.exit('Report inventory: response exceeds metadata budget')
+                  return json.loads(raw)
+              except urllib.error.HTTPError as error:
+                  sys.exit('Report inventory: API HTTP status ' + str(error.code))
+              except (OSError, ValueError):
+                  sys.exit('Report inventory: network or metadata decoding failure')
+          details = get('/v9/projects/' + project)
+          if (details.get('id') != project or details.get('accountId') != owner
+                  or details.get('name') != 'tidb-ai-playwright'):
+              sys.exit('Report inventory: project identity does not match the historical report target')
+          states, count, until, oldest, newest = collections.Counter(), 0, None, None, None
+          seen = set()
+          for page in range(30):
+              query = {'projectId': project, 'limit': 100}
+              if until is not None:
+                  query['until'] = until
+              data = get('/v7/deployments', **query)
+              for deployment in data['deployments']:
+                  if deployment.get('projectId') != project or deployment.get('name') != 'tidb-ai-playwright':
+                      sys.exit('Report inventory: deployment identity mismatch')
+                  if deployment['uid'] in seen:
+                      continue
+                  seen.add(deployment['uid'])
+                  count += 1
+                  state = deployment.get('state') or deployment.get('readyState')
+                  states[state if state in {'READY', 'ERROR', 'CANCELED', 'QUEUED', 'BUILDING', 'INITIALIZING'} else 'OTHER'] += 1
+                  created = deployment.get('created') or deployment.get('createdAt')
+                  if isinstance(created, (int, float)):
+                      oldest = min(oldest, created) if oldest is not None else created
+                      newest = max(newest, created) if newest is not None else created
+              after = data.get('pagination', {}).get('next')
+              if after is None:
+                  break
+              if not isinstance(after, (int, float)) or after == until:
+                  sys.exit('Report inventory: unexpected pagination')
+              until = after
+          else:
+              sys.exit('Report inventory: page budget exceeded; inventory incomplete')
+          print('REPORT_INVENTORY ' + json.dumps({'project_verified': True,
+                'deployment_count': count, 'states': dict(states), 'oldest': oldest,
+                'newest': newest, 'mutation_performed': False}, sort_keys=True))
+          PY
